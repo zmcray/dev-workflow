@@ -10,10 +10,7 @@ Show where things stand in the current build session, sliced by the issue's flow
 
 ## Step 1: Resolve the Linear Project (For This Repo)
 
-1. Read `~/Documents/Work/.linear-projects.json`. Compute the repo path and look it up. If cached, use it.
-2. On miss, scan Linear projects on `Mcraygroup` for a `Local Path:` matching this repo; append to cache if found.
-3. Legacy fallback: a `Linear Project` row in PROJECT.md.
-4. If none, treat the repo as not Linear-linked.
+Read `./.linear-project.json` at the repo root. If present, use its `id` and `name`. If absent, the repo isn't linked yet (run `/zmcray:build` or `/zmcray:kickoff` to link); omit the Linear lines and continue read-only. Status never writes the file or scans Linear to create it.
 
 ## Step 2: Find the Active Plan
 

@@ -38,11 +38,13 @@ Plans live in `docs/plans/` (visible, project-local, show up in PR diffs); `arch
 
 Goal: link this repo to a Linear project with zero manual mapping. Run in order:
 
-### 3A: Read the cache
-Look for `~/Documents/Work/.linear-projects.json`. Compute the repo path relative to `~/Documents/Work/` (note: repos now live in `~/Developer`, so the cache key is the `~/Developer/[name]` path). If the key exists, use the cached project. Skip to Step 4.
+The link lives *in the repo* as `.linear-project.json` at the repo root: `{ "id", "slug", "name", "team": "MCR" }`. No central cache.
 
-### 3B: Query Linear by Local Path
-On cache miss, query the Linear MCP for projects on the `Mcraygroup` team and scan each description for a `Local Path:` line matching this repo's path. On a unique match: use it, append to the cache, print **"Linked to existing Linear project: [name]."** Skip to Step 4.
+### 3A: Existing link file
+If `./.linear-project.json` already exists with an `id`, the repo is linked. Confirm and skip to Step 4.
+
+### 3B: Resolve from Linear
+Query the Linear MCP for projects on `Mcraygroup`. Match this repo by a project name matching the repo folder name (normalize: lowercase, drop spaces/hyphens), or a `Local Path` of `~/Developer/[name]`. On a unique match: write `./.linear-project.json`, print **"Linked to existing Linear project: [name]."** Skip to Step 4.
 
 ### 3C: Prompt for choice
 If no match, ask:
@@ -54,9 +56,9 @@ No Linear project is linked to this repo. What should I do?
 3. Skip Linear linkage
 ```
 
-**If 1 (create new):** create a project on `Mcraygroup` with name = project name, description carrying `**Owner:** [from user]` and `**Local Path:** [repo path]`, and a one-line summary. Append to the cache. Print the URL. (Do not write a `Stage:` line by hand if the workspace has moved to native project statuses... set the status field instead.)
+**If 1 (create new):** create a project on `Mcraygroup` with name = project name, a one-line summary, and `**Local Path:** ~/Developer/[name]` in the description. Write `./.linear-project.json` with the new project's id/slug/name. Print the URL. (Set the native status field rather than writing a `Stage:` line by hand if the workspace uses native project statuses.)
 
-**If 2 (link existing):** search by name fragment, present top 5, let the user pick. Update the chosen project's description to add the `Local Path:` field if missing (so future auto-linking works). Append to the cache.
+**If 2 (link existing):** search by name fragment, present top 5, let the user pick. Write `./.linear-project.json` for the chosen project, and add `Local Path: ~/Developer/[name]` to its description if missing.
 
 **If 3 (skip):** continue without linkage. Build will fall back to free-text task arguments.
 
@@ -114,7 +116,7 @@ If caspian is not yet available in this environment, the offer degrades to a poi
 - [ ] Repo is under `~/Developer`, is a git repo on `main`, with a `.gitignore` covering `node_modules`/build/`.env*`
 - [ ] GitHub remote exists (created/linked) or the manual path was printed
 - [ ] `docs/plans/archive/` and `docs/checkpoints/` exist
-- [ ] Linear linkage resolved (created, linked, or explicitly skipped) and cache updated
+- [ ] Linear linkage resolved (created, linked, or explicitly skipped); `.linear-project.json` written at the repo root if linked
 - [ ] AGENTS.md carries the canonical block; CLAUDE.md imports it
 - [ ] Slim PROJECT.md exists with Linear + GitHub rows
 - [ ] Scaffold committed; handoff step printed
@@ -122,6 +124,6 @@ If caspian is not yet available in this environment, the offer degrades to a poi
 ## Notes
 
 - **No tier, by design.** Flow is a per-issue label (`flow:design/standard/ship`) set by caspian at issue creation or by build's triage at pickup. A repo holds a mix of flows, so there is no repo-level default to set here.
-- The cache file is a performance shortcut; Linear's `Local Path:` field is the source of truth. Wrong cache entry? Delete it and re-run.
+- The Linear link lives in the repo as `.linear-project.json` (id + slug + name). It travels with the repo, so it never goes stale from a move. Wrong link? Delete the file and re-run, or re-link via Step 3C.
 - Kickoff is one-time per repo. Re-running is safe (idempotent checks throughout) and useful to repair a half-wired repo.
 - Creating a GitHub repo is a real external action: always confirm name + visibility first, never auto-create.

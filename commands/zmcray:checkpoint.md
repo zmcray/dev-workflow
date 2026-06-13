@@ -26,7 +26,7 @@ Write to `docs/checkpoints/checkpoint-[YYYY-MM-DD]-[HH-MM].md`. (Create `docs/ch
 **Saved:** [timestamp]
 **Branch:** [current git branch]
 **Flow:** [design|standard|ship, from the active plan's Flow field]
-**Linear Project:** [resolved from cache or Linear scan, or "none"]
+**Linear Project:** [from ./.linear-project.json, or "none"]
 **Linear Issue:** [ID from active plan metadata, or "none"]
 **Linear State:** [current state pulled from Linear, or "n/a"]
 

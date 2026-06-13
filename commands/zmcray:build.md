@@ -12,19 +12,19 @@ Execute the McRay Build Loop. Resolves the Linear project, picks up work from Li
 
 ## Step 1: Resolve Linear Project (For This Repo)
 
-Find the Linear project linked to the current repo. Run these checks in order:
+The repo's Linear link lives *in the repo*, in `.linear-project.json` at the repo root: `{ "id": "...", "slug": "...", "name": "...", "team": "MCR" }`. Resolve in order:
 
-### 1A: Cache lookup
-Read `~/Documents/Work/.linear-projects.json`. Compute the current repo path relative to `~/Documents/Work/`. If that path is in the `projects` map, use the cached entry. Skip to Step 2.
+### 1A: Local link file
+Read `./.linear-project.json`. If present with an `id`, use it. Skip to Step 2.
 
-### 1B: Linear scan (cache miss)
-If the cache misses, query Linear projects on the `Mcraygroup` team and scan descriptions for `Local Path: [current repo path]`. If a match is found, use it and **append the entry to the cache file** so future sessions hit the cache.
+### 1B: Resolve and write (no link file)
+Query Linear projects on the `Mcraygroup` team. Match this repo by, in order: (a) a project whose `Local Path` is `~/Developer/[repo-folder-name]`; (b) a project whose name matches the repo folder name (normalize: lowercase, drop spaces and hyphens). On a unique match, write `./.linear-project.json` and skip to Step 2.
 
-### 1C: Legacy fallback
-If no Linear scan match, check if PROJECT.md has a legacy `Linear Project` row in its Identity table (from the old format). If yes, use that.
+### 1C: Ambiguous or no match
+If several projects match or none do, ask: link to an existing project (search by name), create a new one, or skip. Once resolved, write `./.linear-project.json` so future sessions read it directly.
 
 ### 1D: No linkage
-If none of the above, this repo is not Linear-linked. The build skill can still run via free-text arguments (Path D below) but the auto-pull and Linear sync features won't fire. Inform the user once.
+If the user skips, this repo is not Linear-linked. Build still runs via free-text arguments (Path D below) but auto-pull and Linear sync won't fire. Inform the user once.
 
 ## Step 2: Determine Task Source
 
@@ -174,5 +174,5 @@ See `30_Projects/00_Code/review-conventions.md` for the review strategy. Note: /
 - The plan file is the single source of truth from pre-work through wrap. /lfg's gate requires it to exist for design/standard; /lfg writes its own for ship.
 - Linear updates during the session: In Progress + start comment (Step 5), /lfg residuals (Step 6), build-complete comment (Step 7). The full session summary lands at wrap.
 - If Linear is unreachable when you try to update it, log the failure to the plan file's `## Linear Sync Errors` section and continue. Don't block the build on a network glitch.
-- The Linear project mapping comes from the cache file first, Linear's `Local Path:` field second, legacy PROJECT.md row third. The cache regenerates automatically when entries are missing.
+- The Linear link lives in the repo's `.linear-project.json` (id + slug + name). If it's missing, Step 1B resolves it from Linear and writes it. The file travels with the repo, so the link can't go stale from a path change... no central cache.
 - Compound Engineering v3 renamed commands to the `ce-` prefix (`/ce-plan`, `/lfg`, `/ce-compound`). If a command is missing, run `/ce-update` or reinstall the plugin before debugging this skill.

@@ -9,7 +9,7 @@ Linear (Mcraygroup team). File all deferred findings, residuals, and follow-ups 
 A repo wired into this system is:
 
 - A git repo with a private GitHub remote, kebab-case name matching the folder, living under `~/Developer` (never iCloud), with `node_modules`, `.next`, build output, and `.env*` gitignored.
-- Linked to a Linear project via the project's `Local Path` field, cached in `~/Documents/Work/.linear-projects.json`.
+- Linked to a Linear project, recorded in a `.linear-project.json` file at the repo root (id + slug + name). The link travels with the repo... no central cache.
 - Carrying this `AGENTS.md` plus a `CLAUDE.md` that imports it (`@AGENTS.md`).
 
 Plans live in `docs/plans/` (archive completed ones in `docs/plans/archive/`); checkpoints live in `docs/checkpoints/`. Flow is never set at the repo level: it is a per-issue property (see below). On Claude Code, `/zmcray:kickoff` performs this setup once, then hands off to `/caspian` (PRD + issues) and `/zmcray:build` (per issue). The canonical sequence for a new product is **kickoff (wire the repo) > caspian (strategy: PRD + labeled issues) > build (per issue)**.
