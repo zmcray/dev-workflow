@@ -4,9 +4,12 @@
 # Deploys the canonical AGENTS.md workflow block into each repo under ~/Developer,
 # and repoints CLAUDE.md to import AGENTS.md so Claude Code reads the same source.
 #
-# Source of truth: AGENTS.workflow.md (sibling of this script). Edit that file,
-# re-run this script, and every repo's canonical block re-syncs. Repo-specific
-# context above the block is preserved across re-runs.
+# Sources of truth (all siblings of this script):
+#   AGENTS.workflow.md            the canonical workflow block (injected into every repo)
+#   templates/AGENTS.md.template  the AGENTS.md scaffold ({{REPO}} + {{CANONICAL_WORKFLOW}})
+#   templates/CLAUDE.md.template  the CLAUDE.md @AGENTS.md import file
+# Edit those, re-run this script, and every repo re-syncs. Repo-specific context above
+# the block is preserved across re-runs.
 #
 # Non-destructive: copies/edits only. Backs up any CLAUDE.md it replaces to
 # CLAUDE.md.pre-agents.bak. Never deletes. Skips repos not present in ~/Developer.
@@ -19,19 +22,20 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKFLOW_FILE="$SCRIPT_DIR/AGENTS.workflow.md"
+AGENTS_TEMPLATE="$SCRIPT_DIR/templates/AGENTS.md.template"
+CLAUDE_TEMPLATE="$SCRIPT_DIR/templates/CLAUDE.md.template"
 DEV_DIR="$HOME/Developer"
 LOG="$SCRIPT_DIR/deploy-$(date +%Y%m%d-%H%M%S).log"
 
 DRY_RUN=0
 [[ "${1:-}" == "--dry-run" ]] && DRY_RUN=1
 
-# Repos to manage. The script acts only on those that exist in ~/Developer,
-# so pending-migration repos are safe to list now; they get picked up once moved.
-REPOS=(
-  first-tack helm cgsc atlas-os
-  forge pulse mcraygroup-site racconto-website learn-anything
-  meridian abc-healthcare-scheduling compound palenque larder
-)
+# Auto-discover every git repo directly under ~/Developer. No hardcoded list to maintain,
+# so new repos are covered automatically. A repo is skipped if it is in EXCLUDE, is not a
+# git repo, or contains a .agents-skip file (drop an empty .agents-skip in any repo you do
+# not want the build workflow injected into... e.g. third-party clones).
+EXCLUDE=( dev-workflow )
+is_excluded() { local n="$1"; for e in "${EXCLUDE[@]}"; do [[ "$n" == "$e" ]] && return 0; done; return 1; }
 
 BEGIN_MARK="<!-- BEGIN CANONICAL WORKFLOW"
 END_MARK="<!-- END CANONICAL WORKFLOW -->"
@@ -39,7 +43,9 @@ END_MARK="<!-- END CANONICAL WORKFLOW -->"
 log()  { echo "$*" | tee -a "$LOG"; }
 act()  { if [[ $DRY_RUN -eq 1 ]]; then log "  [dry-run] $*"; else eval "$2"; log "  $1"; fi; }
 
-[[ -f "$WORKFLOW_FILE" ]] || { echo "FATAL: canonical block not found at $WORKFLOW_FILE"; exit 1; }
+[[ -f "$WORKFLOW_FILE" ]]   || { echo "FATAL: canonical block not found at $WORKFLOW_FILE"; exit 1; }
+[[ -f "$AGENTS_TEMPLATE" ]] || { echo "FATAL: AGENTS template not found at $AGENTS_TEMPLATE"; exit 1; }
+[[ -f "$CLAUDE_TEMPLATE" ]] || { echo "FATAL: CLAUDE template not found at $CLAUDE_TEMPLATE"; exit 1; }
 
 log "=== deploy-agents-md.sh $([[ $DRY_RUN -eq 1 ]] && echo '(DRY RUN)') ==="
 log "Canonical block: $WORKFLOW_FILE"
@@ -57,10 +63,34 @@ replace_block() {
   ' "$target" > "$target.tmp" && mv "$target.tmp" "$target"
 }
 
-for repo in "${REPOS[@]}"; do
-  dir="$DEV_DIR/$repo"
-  if [[ ! -d "$dir" ]]; then
-    log "SKIP $repo (not in ~/Developer yet)"
+# Render templates/AGENTS.md.template for a repo: substitute {{REPO}} and inject the
+# canonical block at the {{CANONICAL_WORKFLOW}} line. Keeps AGENTS.workflow.md the single source.
+render_agents_template() {
+  local repo="$1"
+  awk -v repo="$repo" -v blockfile="$WORKFLOW_FILE" '
+    BEGIN { while ((getline line < blockfile) > 0) blk = blk line "\n" }
+    {
+      gsub(/\{\{REPO\}\}/, repo)
+      if ($0 ~ /\{\{CANONICAL_WORKFLOW\}\}/) { printf "%s", blk }
+      else { print }
+    }
+  ' "$AGENTS_TEMPLATE"
+}
+
+shopt -s nullglob
+for dir in "$DEV_DIR"/*/; do
+  dir="${dir%/}"
+  repo="$(basename "$dir")"
+  if [[ ! -d "$dir/.git" ]]; then
+    log "SKIP $repo (not a git repo)"
+    continue
+  fi
+  if is_excluded "$repo"; then
+    log "SKIP $repo (excluded)"
+    continue
+  fi
+  if [[ -f "$dir/.agents-skip" ]]; then
+    log "SKIP $repo (.agents-skip present)"
     continue
   fi
 
@@ -73,21 +103,22 @@ for repo in "${REPOS[@]}"; do
     act "AGENTS.md canonical block re-synced" "replace_block \"$agents\""
   elif [[ -f "$agents" ]]; then
     act "AGENTS.md exists, appended canonical block (no marker found)" "cat \"$WORKFLOW_FILE\" >> \"$agents\""
-  else
-    # New AGENTS.md. Seed the context header from CLAUDE.md body if it has real content,
-    # else a stub. Strip any standalone 'Issue tracker:' line (now lives in the block).
-    if [[ -f "$claude" ]] && ! grep -q "@AGENTS.md" "$claude" && [[ $(grep -vcE '^\s*$' "$claude") -gt 1 ]]; then
-      header="$(grep -vE '^\*\*Issue tracker:\*\*' "$claude")"
-      src="migrated from CLAUDE.md"
-    else
-      header="# ${repo}"$'\n\n'"Project context. Describe build/test commands, architecture, and key conventions here."
-      src="new stub header"
-    fi
+  elif [[ -f "$claude" ]] && ! grep -q "@AGENTS.md" "$claude" && [[ $(grep -vcE '^\s*$' "$claude") -gt 1 ]]; then
+    # Migration case: an existing CLAUDE.md carries real repo context. Preserve it as the
+    # header (minus any standalone 'Issue tracker:' line, now in the block) + canonical block.
     if [[ $DRY_RUN -eq 1 ]]; then
-      log "  [dry-run] AGENTS.md created (${src}) + canonical block"
+      log "  [dry-run] AGENTS.md created (header migrated from CLAUDE.md) + canonical block"
     else
-      { printf '%s\n\n' "$header"; cat "$WORKFLOW_FILE"; } > "$agents"
-      log "  AGENTS.md created (${src}) + canonical block"
+      { grep -vE '^\*\*Issue tracker:\*\*' "$claude"; printf '\n'; cat "$WORKFLOW_FILE"; } > "$agents"
+      log "  AGENTS.md created (header migrated from CLAUDE.md) + canonical block"
+    fi
+  else
+    # Fresh repo: render the AGENTS.md template (scaffold header + injected canonical block).
+    if [[ $DRY_RUN -eq 1 ]]; then
+      log "  [dry-run] AGENTS.md created from templates/AGENTS.md.template"
+    else
+      render_agents_template "$repo" > "$agents"
+      log "  AGENTS.md created from templates/AGENTS.md.template"
     fi
   fi
 
@@ -98,17 +129,11 @@ for repo in "${REPOS[@]}"; do
     if [[ -f "$claude" && ! -f "$claude.pre-agents.bak" ]]; then
       act "CLAUDE.md backed up to CLAUDE.md.pre-agents.bak" "cp \"$claude\" \"$claude.pre-agents.bak\""
     fi
-    import_body="# Claude Code memory
-
-This repo's instructions live in AGENTS.md, the cross-tool source of truth read by
-Claude Code, Codex, Cursor, and other harnesses. Edit AGENTS.md, not this file.
-
-@AGENTS.md"
     if [[ $DRY_RUN -eq 1 ]]; then
-      log "  [dry-run] CLAUDE.md rewritten to @AGENTS.md import"
+      log "  [dry-run] CLAUDE.md rewritten from templates/CLAUDE.md.template"
     else
-      printf '%s\n' "$import_body" > "$claude"
-      log "  CLAUDE.md rewritten to @AGENTS.md import"
+      cp "$CLAUDE_TEMPLATE" "$claude"
+      log "  CLAUDE.md rewritten from templates/CLAUDE.md.template"
     fi
   fi
   log ""
