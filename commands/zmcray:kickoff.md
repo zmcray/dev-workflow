@@ -104,12 +104,18 @@ If Step 1 created the repo (or there are setup files uncommitted), stage and com
 
 Close with the right next step based on what Step 3 found:
 
-- **New or empty Linear project, no issues/PRD yet:** offer to launch strategy now. *"Repo wired and linked to [project]. No PRD or issues yet. Run `/caspian` to produce the PRD and labeled issues against this project, then `/zmcray:build` to start. Want me to launch caspian now?"* (caspian assumes the project already exists from this step, so the order is correct.)
+- **New or empty Linear project, no issues/PRD yet:** offer to launch strategy now. *"Repo wired and linked to [project]. No PRD or issues yet. Run `/caspian` to produce the PRD and labeled issues against this project, then `/zmcray:build` to start. Want me to launch caspian now?"*
 - **Project already has active issues:** *"Repo wired and linked to [project]. [N] active issues. Run `/zmcray:build` to pick up the highest-priority one."*
 - **Quick build, no strategy needed:** *"Repo wired. For a one-off, just `/zmcray:build [task]`."*
 - **Linear skipped:** *"Repo wired, no Linear link. Use `/zmcray:build [task]` with free-text."*
 
 If caspian is not yet available in this environment, the offer degrades to a pointer rather than an invocation.
+
+### Kickoff and caspian are bidirectional (not strictly kickoff-first)
+
+Kickoff is the *infrastructure-first* entry point: you know you're building, so you wire the repo + Linear project shell, then hand off to caspian to produce the PRD and the labeled issues. But that is not the only order. Caspian runs on **lazy kickoff** ... its thinking phases need no repo or Linear at all, so an *idea-first* session can start in `/caspian` from a raw idea and only resolve infrastructure at its ship gate, where caspian runs this kickoff flow inline if no project exists yet.
+
+So: kickoff creates the *project shell*; caspian creates the *issues*. Whichever runs first, kickoff never creates issues and caspian never creates a bare project (it routes through kickoff). Don't tell the user they must run kickoff before caspian ... they can, but starting in caspian is equally valid.
 
 ## Success Criteria
 
