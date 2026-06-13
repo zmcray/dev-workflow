@@ -52,6 +52,29 @@ If an issue is unlabeled, triage it in ~30 seconds, apply the label in Linear, s
 
 The **architecture pass** on `flow:design` only: gstack `/plan-eng-review` on the approved plan, or a native dedicated review of system design, data model, and failure modes. This is the one place a deeper architecture review still earns its cost; CE's plan council covers the rest.
 
+### Effort (reasoning budget)
+
+A separate axis from flow. Flow decides *which* phases run; effort decides *how hard the model reasons* while running them. They are orthogonal: a `flow:ship` fix can be reasoning-trivial, and a `flow:design` feature can be mostly boilerplate or a genuinely hard problem.
+
+Effort is an ordered dial, lowest to highest:
+
+`low` ... `medium` ... `high` ... `extra` ... `max` ... `ultracode`
+
+Apply the chosen level with your tool's reasoning-effort control (on Claude Code, the `/effort` setting). These level names are owned by the tool and change over time, so use whatever your tool currently exposes and map by intent to the nearest step it offers. Do not hard-code a tool's effort syntax into a plan or an issue.
+
+Pick the level by *reasoning difficulty*, not blast radius (blast radius is flow's job). Step up as these rise:
+
+- *novelty* ... solved this shape of problem before, or net-new?
+- *ambiguity* ... one obvious approach, or several plausible ones / multiple possible root causes?
+- *subtlety* ... algorithmic, concurrency, security, or correctness traps?
+- *simultaneity* ... how much must be held in mind at once to get it right (not files touched)?
+
+`low` for mechanical, well-trodden work; `high` is the sensible default for real but familiar reasoning; `max`/`ultracode` for novel, subtle, or high-stakes problems where deeper reasoning earns its cost.
+
+Set effort at pull-down, against the actual task, and re-tune per phase. Unlike flow, effort is not fixed for an issue... planning a hard design may warrant `max` while its implementation runs at `medium`. Set it at the start of the Plan phase and again at the start of Execute.
+
+Out of scope here: parallel orchestration / auto-workflows and run-persistence (`/goal`) are separate axes, not governed by this dial.
+
 ### Discipline that holds on every flow
 
 - **Branch:** use the Linear `gitBranchName` if the issue has one, else `feat/[short-slug]`. Never work on `main`.

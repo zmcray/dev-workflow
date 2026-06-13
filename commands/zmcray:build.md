@@ -89,6 +89,8 @@ Two orthogonal signals on the issue decide the route. The `flow:*` label says ho
 
 ## Step 4: Pre-Work (By Flow)
 
+**Set effort first.** Assess the planning work against the AGENTS.md Effort rubric (reasoning difficulty, not blast radius) and set your tool's effort control before planning. Effort is orthogonal to flow and re-tuned per phase.
+
 If you arrived via Path B with an approved active plan, skip to Step 5.
 
 For `prd-source` issues, the PRD is the planning input: read it via the path in the issue description, or pull the project's Linear document if the local path is unavailable. The Cagan risk block and acceptance criteria in the issue body carry the per-feature contract.
@@ -132,6 +134,8 @@ Task: [one-line description]
 5. Print: **"Branch created, baseline green, Linear updated. Next step: hand off to /lfg (runs unattended through PR). Ready?"**
 
 ## Step 6: Execute via /lfg
+
+**Re-assess effort.** Implementation effort can differ from planning (a hard design often plans at `max` but implements at `medium`, or vice versa). Re-assess against the AGENTS.md Effort rubric and set your tool's effort control before handing to /lfg.
 
 This is the handoff. From here /lfg runs its gated pipeline without prompting: plan gate > work > plan-aware code review > apply fixes + commit > file unfixed findings to Linear > browser test > commit/push/PR > CI watch until green (max 3 fix attempts).
 
