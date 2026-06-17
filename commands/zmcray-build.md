@@ -1,5 +1,5 @@
 ---
-name: zmcray:build
+name: zmcray-build
 description: Run the flow-routed build loop. Reads the issue's flow label, runs the right pre-work, then hands off to /lfg for execution through PR. Auto-pulls highest-priority Linear issue when no arg given.
 argument-hint: "[Linear issue ID like MCR-123, or free-text task description]"
 ---
@@ -53,7 +53,7 @@ If the argument is empty AND `docs/plans/` has an active plan file (not in archi
 If the argument is empty AND no active plan exists AND Step 1 resolved a Linear project:
 
 1. Pull active issues from that Linear project via the MCP (state type != Done/Cancelled, sorted by priority Urgent > High > Normal > Low, then by updatedAt desc).
-2. Take the top result. Print: **"Highest-priority active issue: [ID] [title] (Priority: [X], Flow: [label]). Auto-building. Override with `/zmcray:build [different-id]` if wrong."**
+2. Take the top result. Print: **"Highest-priority active issue: [ID] [title] (Priority: [X], Flow: [label]). Auto-building. Override with `/zmcray-build [different-id]` if wrong."**
 3. Wait 2 seconds for an interrupt. If none, capture the issue ID and labels and proceed.
 4. Continue to Step 3.
 
@@ -67,7 +67,7 @@ If the argument is free text (not a Linear ID pattern):
 
 ### Path E: Nothing to build
 
-If no argument AND no active plan AND repo is not Linear-linked, stop and tell the user: "No task source. Provide an argument, run `/zmcray:kickoff` to link Linear, or create a plan first."
+If no argument AND no active plan AND repo is not Linear-linked, stop and tell the user: "No task source. Provide an argument, run `/zmcray-kickoff` to link Linear, or create a plan first."
 
 ## Step 3: Resolve Flow
 
@@ -89,7 +89,7 @@ Two orthogonal signals on the issue decide the route. The `flow:*` label says ho
 
 ## Step 4: Pre-Work (By Flow)
 
-**Set effort first.** Assess the planning work against the AGENTS.md Effort rubric (reasoning difficulty, not blast radius) and set your tool's effort control before planning. Effort is orthogonal to flow and re-tuned per phase.
+**Set effort first.** Assess the planning work against the AGENTS.md Effort rubric (reasoning difficulty, not blast radius). State the assessed effort level and a one-line rationale, then ask the user to confirm or override before planning. Once confirmed, set your tool's effort control. Effort is orthogonal to flow and re-tuned per phase. Print it like: **"Planning effort: [level] ([one-line rationale]). Confirm or override?"**
 
 If you arrived via Path B with an approved active plan, skip to Step 5.
 
@@ -108,7 +108,7 @@ No pre-work. `/lfg`'s built-in plan gate (a written plan file must exist in `doc
 
 After each pre-work skill completes, print: **"[Skill] complete. Next step: [next]. Ready?"** Wait for confirmation.
 
-**Plan file convention (design + standard):** ensure the plan lands in `docs/plans/plan-[YYYY-MM-DD]-[short-description].md` (create `docs/plans/archive/` if missing) with this metadata header, so /lfg's gate and /zmcray:wrap can find it:
+**Plan file convention (design + standard):** ensure the plan lands in `docs/plans/plan-[YYYY-MM-DD]-[short-description].md` (create `docs/plans/archive/` if missing) with this metadata header, so /lfg's gate and /zmcray-wrap can find it:
 
 ```
 ---
@@ -130,12 +130,12 @@ Task: [one-line description]
 3. **If a Linear issue is linked**, update Linear:
    - Move the issue state to **In Progress**.
    - Post a comment: `Build session started. Branch: [branch-name]. Flow: [flow]. Plan: [plan-filename or "/lfg plan gate"].`
-4. Update PROJECT.md (slim format): one-line Current Status + a Build Log row (date, "Build session started", plan filename, issue ID). If PROJECT.md doesn't exist, stop and tell the user to run `/zmcray:kickoff` first.
+4. Update PROJECT.md (slim format): one-line Current Status + a Build Log row (date, "Build session started", plan filename, issue ID). If PROJECT.md doesn't exist, stop and tell the user to run `/zmcray-kickoff` first.
 5. Print: **"Branch created, baseline green, Linear updated. Next step: hand off to /lfg (runs unattended through PR). Ready?"**
 
 ## Step 6: Execute via /lfg
 
-**Re-assess effort.** Implementation effort can differ from planning (a hard design often plans at `max` but implements at `medium`, or vice versa). Re-assess against the AGENTS.md Effort rubric and set your tool's effort control before handing to /lfg.
+**Re-assess effort.** Implementation effort can differ from planning (a hard design often plans at `max` but implements at `medium`, or vice versa). Re-assess against the AGENTS.md Effort rubric, state the implementation effort level and a one-line rationale, and ask the user to confirm or override before handing to /lfg. Once confirmed, set your tool's effort control. Print it like: **"Implementation effort: [level] ([one-line rationale]). Confirm or override?"**
 
 This is the handoff. From here /lfg runs its gated pipeline without prompting: plan gate > work > plan-aware code review > apply fixes + commit > file unfixed findings to Linear > browser test > commit/push/PR > CI watch until green (max 3 fix attempts).
 
@@ -159,7 +159,7 @@ When /lfg emits DONE (or exits with unresolved CI failures):
 1. Confirm: PR exists, CI status, and whether residual findings were filed to Linear (check the PR body's residuals section).
 2. If CI is red after /lfg's 3 attempts, surface the "CI Failures Unresolved" section to the user. Do not merge anything.
 3. Post a Linear comment on the issue: `Build complete. PR: [link]. CI: [green/red]. Residuals filed: [N or none].`
-4. Print: **"/lfg done. PR [link], CI [status]. Next: /zmcray:wrap to close the session (compound runs there for design/standard flows)."**
+4. Print: **"/lfg done. PR [link], CI [status]. Next: /zmcray-wrap to close the session (compound runs there for design/standard flows)."**
 
 Merging the PR is the user's call, not the build loop's.
 

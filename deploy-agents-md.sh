@@ -11,8 +11,9 @@
 # Edit those, re-run this script, and every repo re-syncs. Repo-specific context above
 # the block is preserved across re-runs.
 #
-# Non-destructive: copies/edits only. Backs up any CLAUDE.md it replaces to
-# CLAUDE.md.pre-agents.bak. Never deletes. Skips repos not present in ~/Developer.
+# Non-destructive: copies/edits only. Backs up any CLAUDE.md it replaces to the central
+# backups/ folder beside this script (never inside a repo). Never deletes. Skips repos
+# not present in ~/Developer.
 #
 # Usage:
 #   bash deploy-agents-md.sh --dry-run    # show what would happen, touch nothing
@@ -26,6 +27,9 @@ AGENTS_TEMPLATE="$SCRIPT_DIR/templates/AGENTS.md.template"
 CLAUDE_TEMPLATE="$SCRIPT_DIR/templates/CLAUDE.md.template"
 DEV_DIR="$HOME/Developer"
 LOG="$SCRIPT_DIR/deploy-$(date +%Y%m%d-%H%M%S).log"
+# Central backups dir. CLAUDE.md backups land here (out of the repos) so they never show
+# up as uncommitted noise in a repo's working tree.
+BACKUP_DIR="$SCRIPT_DIR/backups"
 
 DRY_RUN=0
 [[ "${1:-}" == "--dry-run" ]] && DRY_RUN=1
@@ -126,8 +130,9 @@ for dir in "$DEV_DIR"/*/; do
   if [[ -f "$claude" ]] && grep -q "@AGENTS.md" "$claude"; then
     log "  CLAUDE.md already imports AGENTS.md (left as-is)"
   else
-    if [[ -f "$claude" && ! -f "$claude.pre-agents.bak" ]]; then
-      act "CLAUDE.md backed up to CLAUDE.md.pre-agents.bak" "cp \"$claude\" \"$claude.pre-agents.bak\""
+    if [[ -f "$claude" ]]; then
+      bak="$BACKUP_DIR/${repo}-CLAUDE.md.$(date +%Y%m%d-%H%M%S).bak"
+      act "CLAUDE.md backed up to backups/$(basename "$bak")" "mkdir -p \"$BACKUP_DIR\"; cp \"$claude\" \"$bak\""
     fi
     if [[ $DRY_RUN -eq 1 ]]; then
       log "  [dry-run] CLAUDE.md rewritten from templates/CLAUDE.md.template"

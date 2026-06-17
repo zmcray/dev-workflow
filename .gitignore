@@ -1,2 +1,3 @@
 deploy-*.log
 .DS_Store
+backups/

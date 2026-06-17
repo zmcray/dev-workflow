@@ -1,5 +1,5 @@
 ---
-name: zmcray:retro
+name: zmcray-retro
 description: Cross-project retrospective that promotes durable learnings to the base template
 argument-hint: "[optional: specific project or timeframe to retro]"
 ---

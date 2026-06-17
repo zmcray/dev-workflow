@@ -12,7 +12,7 @@ A repo wired into this system is:
 - Linked to a Linear project, recorded in a `.linear-project.json` file at the repo root (id + slug + name). The link travels with the repo... no central cache.
 - Carrying this `AGENTS.md` plus a `CLAUDE.md` that imports it (`@AGENTS.md`).
 
-Plans live in `docs/plans/` (archive completed ones in `docs/plans/archive/`); checkpoints live in `docs/checkpoints/`. Flow is never set at the repo level: it is a per-issue property (see below). On Claude Code, `/zmcray:kickoff` performs this setup once, then hands off to `/caspian` (PRD + issues) and `/zmcray:build` (per issue). The canonical sequence for a new product is **kickoff (wire the repo) > caspian (strategy: PRD + labeled issues) > build (per issue)**.
+Plans live in `docs/plans/` (archive completed ones in `docs/plans/archive/`); checkpoints live in `docs/checkpoints/`. Flow is never set at the repo level: it is a per-issue property (see below). On Claude Code, `/zmcray-kickoff` performs this setup once, then hands off to `/caspian` (PRD + issues) and `/zmcray-build` (per issue). The canonical sequence for a new product is **kickoff (wire the repo) > caspian (strategy: PRD + labeled issues) > build (per issue)**.
 
 ## Build workflow (tool-agnostic)
 
@@ -105,6 +105,6 @@ When the build session ends: move the Linear issue to **In Review** (or **Done**
 
 ### Claude Code accelerators
 
-On Claude Code, `/zmcray:build` and `/zmcray:wrap` run this exact workflow as a guided loop (flow routing, the phase sequence, Linear sync). They are conveniences layered on top of this file, not a separate process. Any other harness reads this section and runs the same workflow directly.
+On Claude Code, `/zmcray-build` and `/zmcray-wrap` run this exact workflow as a guided loop (flow routing, the phase sequence, Linear sync). They are conveniences layered on top of this file, not a separate process. Any other harness reads this section and runs the same workflow directly.
 
 <!-- END CANONICAL WORKFLOW -->

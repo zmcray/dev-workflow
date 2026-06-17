@@ -1,5 +1,5 @@
 ---
-name: zmcray:status
+name: zmcray-status
 description: Quick, read-only status of the current build session. Reads flow, plan state, and Linear state.
 argument-hint: ""
 ---
@@ -10,11 +10,11 @@ Show where things stand in the current build session, sliced by the issue's flow
 
 ## Step 1: Resolve the Linear Project (For This Repo)
 
-Read `./.linear-project.json` at the repo root. If present, use its `id` and `name`. If absent, the repo isn't linked yet (run `/zmcray:build` or `/zmcray:kickoff` to link); omit the Linear lines and continue read-only. Status never writes the file or scans Linear to create it.
+Read `./.linear-project.json` at the repo root. If present, use its `id` and `name`. If absent, the repo isn't linked yet (run `/zmcray-build` or `/zmcray-kickoff` to link); omit the Linear lines and continue read-only. Status never writes the file or scans Linear to create it.
 
 ## Step 2: Find the Active Plan
 
-Look in `docs/plans/` (not `archive/`) for the most recent plan file. If found, read its metadata header and extract `Flow`, `Linear Issue`, and which phases are done. If no active plan, say: *"No active plan. Start with `/zmcray:build [task]` or `/zmcray:build` to auto-pull from Linear."*
+Look in `docs/plans/` (not `archive/`) for the most recent plan file. If found, read its metadata header and extract `Flow`, `Linear Issue`, and which phases are done. If no active plan, say: *"No active plan. Start with `/zmcray-build [task]` or `/zmcray-build` to auto-pull from Linear."*
 
 ## Step 3: Read Flow + Linear State
 

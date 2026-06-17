@@ -1,5 +1,5 @@
 ---
-name: zmcray:wrap
+name: zmcray-wrap
 description: End a build session cleanly. Auto-syncs Linear, captures compound, syncs PROJECT.md, commits.
 argument-hint: "[done | hold | notes on what happened]"
 ---

@@ -45,7 +45,7 @@ The official Linear MCP in Claude Code supports initiatives, projects, milestone
 
 - **Initiatives are available natively.** Skip the Cowork GraphQL/manual fallback entirely. If, and only if, the initiative tools are genuinely absent in this session, fall back per `linear-write.md` Step 3; otherwise create/update the Initiative directly via MCP.
 - **Push the PRD as a Linear project document** (`save_document`, title `<product> <theme> PRD v<N>`) so any agent working an issue reads the PRD in-context. On REFRESH, update the existing document rather than creating a second.
-- **Stamp exactly one `flow:*` label per issue** (`flow:design` / `flow:standard` / `flow:ship`), classified by blast radius, per `linear-write.md` Step 6. Always add `prd-source`. This is what routes `/zmcray:build`.
+- **Stamp exactly one `flow:*` label per issue** (`flow:design` / `flow:standard` / `flow:ship`), classified by blast radius, per `linear-write.md` Step 6. Always add `prd-source`. This is what routes `/zmcray-build`.
 - **No-delete, never roll back, idempotent checkpoints** ... all unchanged from the shared governance. Killed features get no issue; newly-killed-on-refresh issues are `Cancelled` with a comment, never deleted.
 
 ### D3. Lazy kickoff, run inline
@@ -55,7 +55,7 @@ Thinking needs no infrastructure; only shipping does. Phases 1–7 require no re
 At the **Phase 7 → 8 ship gate** (Step 4 of the write sequence), resolve the Linear Project:
 - If the active repo already has a linked Linear Project (check `~/Documents/Work/.linear-projects.json` keyed by the `~/Developer/<repo>` path, then scan Linear projects on the `Mcraygroup` team for a `Local Path:` match) ... use it.
 - If none exists, present the lazy-kickoff gate:
-  1. **Run kickoff now (inline).** You are in Claude Code, so run the `/zmcray:kickoff` flow yourself: confirm the repo is under `~/Developer`, git + GitHub, create/link the Linear Project, wire AGENTS.md, slim PROJECT.md. Then continue shipping the issues.
+  1. **Run kickoff now (inline).** You are in Claude Code, so run the `/zmcray-kickoff` flow yourself: confirm the repo is under `~/Developer`, git + GitHub, create/link the Linear Project, wire AGENTS.md, slim PROJECT.md. Then continue shipping the issues.
   2. **Stop at the PRD doc.** Save the PRD to `docs/strategy/`, create no Linear, wire nothing. Resume the ship step later by re-running `/caspian` on this PRD.
   3. **Skip Linear** for a one-off; PRD only.
 - Never silently auto-create a bare Linear Project ... route through kickoff so git/GitHub/AGENTS.md/cache all get wired.
@@ -86,13 +86,13 @@ After shipping, close with the standard pattern from `voice.md`:
 
 > *[Product] [theme] PRD shipped. [N] Linear issues created on [Initiative ID]. PRD written to `docs/strategy/...` and pushed to the Linear project. [Registry updated / reminder to update Registry from Cowork].*
 > *Links: PRD (repo path), Initiative (linear url), Issues (list).*
-> *You've got the chart. Next: `/zmcray:build` to pick up the highest-priority issue.*
+> *You've got the chart. Next: `/zmcray-build` to pick up the highest-priority issue.*
 
 If the session ended at "stop at the PRD doc" (lazy-kickoff option 2), close instead with: *"PRD saved to `docs/strategy/...`. Nothing wired ... no repo, no Linear. When it's real enough to build, re-run `/caspian` on this PRD and we'll kickoff + ship the issues."*
 
 ## Relationship to the other commands
 
-- **`/zmcray:kickoff`** wires a repo (git + GitHub + Linear Project shell + AGENTS.md). It does NOT create issues. Caspian is the issue-writer. Kickoff can hand off to Caspian; Caspian can run kickoff at the ship gate. Same two players, order depends on whether you start from "I'm building X" or "I have an idea."
-- **`/zmcray:build`** picks up the labeled issues Caspian created and executes them per the `flow:*` label. If a build exceeds its PRD, it kicks back to Caspian as an EXPAND session ... the build loop never expands scope.
+- **`/zmcray-kickoff`** wires a repo (git + GitHub + Linear Project shell + AGENTS.md). It does NOT create issues. Caspian is the issue-writer. Kickoff can hand off to Caspian; Caspian can run kickoff at the ship gate. Same two players, order depends on whether you start from "I'm building X" or "I have an idea."
+- **`/zmcray-build`** picks up the labeled issues Caspian created and executes them per the `flow:*` label. If a build exceeds its PRD, it kicks back to Caspian as an EXPAND session ... the build loop never expands scope.
 - **`/plan-ceo-review`** (gstack) is in-codebase plan rigor, not product strategy. Different job. Caspian produces the strategy; plan-ceo-review pressure-tests an implementation plan.
 - **Hagen** (Cowork) is go/no-go decision pressure-testing, not product shaping. If the real question is "should I pursue this at all," that's Hagen, not Caspian.

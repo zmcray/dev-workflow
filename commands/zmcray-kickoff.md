@@ -1,5 +1,5 @@
 ---
-name: zmcray:kickoff
+name: zmcray-kickoff
 description: Wire a repo into the build system. Git + GitHub, Linear link, AGENTS.md, slim PROJECT.md. Hands off to caspian or build. No tier... flow is per-issue.
 argument-hint: "[project name or feature description]"
 ---
@@ -85,7 +85,7 @@ If `PROJECT.md` does not exist at the repo root, create it:
 
 ## Current Status
 
-[Updated each build session by zmcray:wrap]
+[Updated each build session by zmcray-wrap]
 
 ## Build Log
 
@@ -104,10 +104,10 @@ If Step 1 created the repo (or there are setup files uncommitted), stage and com
 
 Close with the right next step based on what Step 3 found:
 
-- **New or empty Linear project, no issues/PRD yet:** offer to launch strategy now. *"Repo wired and linked to [project]. No PRD or issues yet. Run `/caspian` to produce the PRD and labeled issues against this project, then `/zmcray:build` to start. Want me to launch caspian now?"*
-- **Project already has active issues:** *"Repo wired and linked to [project]. [N] active issues. Run `/zmcray:build` to pick up the highest-priority one."*
-- **Quick build, no strategy needed:** *"Repo wired. For a one-off, just `/zmcray:build [task]`."*
-- **Linear skipped:** *"Repo wired, no Linear link. Use `/zmcray:build [task]` with free-text."*
+- **New or empty Linear project, no issues/PRD yet:** offer to launch strategy now. *"Repo wired and linked to [project]. No PRD or issues yet. Run `/caspian` to produce the PRD and labeled issues against this project, then `/zmcray-build` to start. Want me to launch caspian now?"*
+- **Project already has active issues:** *"Repo wired and linked to [project]. [N] active issues. Run `/zmcray-build` to pick up the highest-priority one."*
+- **Quick build, no strategy needed:** *"Repo wired. For a one-off, just `/zmcray-build [task]`."*
+- **Linear skipped:** *"Repo wired, no Linear link. Use `/zmcray-build [task]` with free-text."*
 
 If caspian is not yet available in this environment, the offer degrades to a pointer rather than an invocation.
 

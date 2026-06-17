@@ -1,5 +1,5 @@
 ---
-name: zmcray:checkpoint
+name: zmcray-checkpoint
 description: Save or resume build state across sessions. Tool-neutral storage in docs/checkpoints/.
 argument-hint: "[save|resume|list]"
 ---
@@ -10,10 +10,10 @@ Save and resume build context across sessions. Solves the cold-start problem whe
 
 ## Usage
 
-- `/zmcray:checkpoint save` ... snapshot current state
-- `/zmcray:checkpoint resume` ... load most recent (or a named one)
-- `/zmcray:checkpoint list` ... show all saved checkpoints
-- `/zmcray:checkpoint` (no arg) ... if a checkpoint exists, offer to resume; if mid-build, offer to save
+- `/zmcray-checkpoint save` ... snapshot current state
+- `/zmcray-checkpoint resume` ... load most recent (or a named one)
+- `/zmcray-checkpoint list` ... show all saved checkpoints
+- `/zmcray-checkpoint` (no arg) ... if a checkpoint exists, offer to resume; if mid-build, offer to save
 
 ## Save
 
@@ -48,7 +48,7 @@ Write to `docs/checkpoints/checkpoint-[YYYY-MM-DD]-[HH-MM].md`. (Create `docs/ch
 [Anything the user said to remember, or key decisions not yet in AGENTS.md/PROJECT.md]
 ```
 
-After saving, print: `Checkpoint saved. Flow: [flow]. Linear: [ID -> state]. Resume with /zmcray:checkpoint resume`
+After saving, print: `Checkpoint saved. Flow: [flow]. Linear: [ID -> state]. Resume with /zmcray-checkpoint resume`
 
 ## Resume
 
@@ -73,7 +73,7 @@ Status is "open" (unfinished build loop) or "closed" (build completed). Linear c
 
 ## Notes
 
-- `/zmcray:wrap` should prompt to save a checkpoint if there is unfinished work.
+- `/zmcray-wrap` should prompt to save a checkpoint if there is unfinished work.
 - Checkpoints are lightweight pointers to plan files, git state, and Linear issue IDs, not full copies.
 - Old checkpoints (>30 days, closed) can be cleaned up during folder cleanup.
 - Never delete an open checkpoint without user approval.
