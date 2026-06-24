@@ -1,0 +1,4 @@
+interface:
+  display_name: "ZMcRay Wrap"
+  short_description: "Close a build session cleanly"
+  default_prompt: "Use $zmcray-wrap to close this build session and sync Linear, PROJECT.md, and learnings."

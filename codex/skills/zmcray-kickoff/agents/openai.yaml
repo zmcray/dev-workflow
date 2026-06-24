@@ -1,0 +1,4 @@
+interface:
+  display_name: "ZMcRay Kickoff"
+  short_description: "Wire a repo into the build system"
+  default_prompt: "Use $zmcray-kickoff to wire this repo into the McRay build workflow."

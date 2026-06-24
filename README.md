@@ -15,6 +15,8 @@ templates/
 README.md                   this file
 commands/                   the zmcray-* Claude Code skill sources (build, wrap, kickoff,
                             status, checkpoint, retro, ss)
+codex/skills/               the zmcray-* Codex skill sources (each a <name>/SKILL.md +
+                            agents/openai.yaml), deployed to ~/.codex/skills/
 ```
 
 ## How it works
@@ -40,11 +42,21 @@ Idempotent and non-destructive: re-running re-syncs the block, backs up any repl
 cp ~/Developer/dev-workflow/commands/*.md ~/.claude/commands/
 ```
 
+## Deploy the Codex skills
+
+Codex discovers skills by scanning `~/.codex/skills/<name>/SKILL.md`, so deploy is a recursive copy that preserves the per-skill directory layout (Codex reads the deployed copy exactly as before — the source just lives here now):
+
+```bash
+cp -R ~/Developer/dev-workflow/codex/skills/* ~/.codex/skills/
+```
+
 ## Updating
 
-1. Edit `AGENTS.workflow.md` (the workflow block), a file in `templates/` (the AGENTS.md/CLAUDE.md scaffolds), or a file in `commands/` (a skill).
+1. Edit `AGENTS.workflow.md` (the workflow block), a file in `templates/` (the AGENTS.md/CLAUDE.md scaffolds), a file in `commands/` (a Claude Code skill), or a file under `codex/skills/` (a Codex skill).
 2. Re-run the relevant deploy command above.
 3. Commit. The repo's git history is the version record.
+
+Note: a skill's *steps* are dual-sourced — `commands/<name>.md` (Claude) and `codex/skills/<name>/SKILL.md` (Codex) are separate files in different formats. When you change what a skill *does*, update both so the tools stay in lockstep. Tool-agnostic build rules live once in `AGENTS.workflow.md` and reach every tool via each repo's `AGENTS.md`; only the thin per-tool skill wrappers are duplicated.
 
 ## Repos covered
 

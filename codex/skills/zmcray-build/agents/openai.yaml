@@ -1,0 +1,4 @@
+interface:
+  display_name: "ZMcRay Build"
+  short_description: "Run the flow-routed build loop"
+  default_prompt: "Use $zmcray-build to pick up and execute the next Linear issue for this repo."
