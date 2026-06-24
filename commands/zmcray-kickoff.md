@@ -69,7 +69,24 @@ Ensure the repo carries the canonical workflow so any tool (Claude Code, Codex, 
 1. If `AGENTS.md` is missing or lacks the `<!-- BEGIN CANONICAL WORKFLOW` marker, source the canonical block from `~/Developer/dev-workflow/AGENTS.workflow.md` and write/refresh AGENTS.md (repo-context header above the marked block). The simplest path is to run the deploy script: `bash ~/Developer/dev-workflow/deploy-agents-md.sh` (it is idempotent and acts on this repo if it lives in `~/Developer`).
 2. Ensure `CLAUDE.md` imports it: a thin file containing `@AGENTS.md` (plus any Claude-only path-scoped rules). The deploy script does this too.
 
-## Step 5: Initialize PROJECT.md (Slim)
+## Step 5: Database migration auto-deploy (if the repo uses Supabase)
+
+Detect Supabase: a `supabase/` directory (or `supabase/config.toml`), or `@supabase/supabase-js` in `package.json`. If none of these, skip this step.
+
+If the repo uses Supabase, it MUST have an automatic path that applies migrations to the **production** database before it ships. **Deploying code never applies migrations** — they are a separate ship — so without this, the app deploys ahead of its schema and every page that reads a not-yet-applied column/table 500s in prod. (Real scar: a repo can deploy green for days while its prod DB silently drifts behind; the failure only surfaces when new code reads a column prod doesn't have.) Confirm one of these is in place, and set it up if not:
+
+**Default — Supabase's native GitHub Integration (no stored secrets):** Supabase dashboard → project → **Integrations → GitHub** → connect this repo, then set:
+- **Working directory** = the folder that *contains* the `supabase/` folder (the repo root `.` if it's at the top; a subdir like `app`/`atlas` if nested — a wrong path silently applies nothing).
+- **Deploy to production** ON → production branch `main`.
+- **Automatic branching** OFF unless per-PR preview databases are explicitly wanted (their compute is billable and not covered by the org spend cap).
+
+This is a dashboard OAuth click-through, so kickoff can't fully automate it — **prompt the user through these exact settings and confirm it's done** (same posture as creating the GitHub repo in 1C). It needs no secrets, which is the point.
+
+**Fallback — `supabase db push` GitHub Action** (only if the native integration isn't viable): a workflow on push to `main` (path-filtered to the migrations dir) running `supabase link --project-ref …` + `supabase db push`, with `SUPABASE_ACCESS_TOKEN` / `SUPABASE_PROJECT_ID` / `SUPABASE_DB_PASSWORD` as repo secrets. Set secrets via `gh secret set` (stdin) or have the user set them — never scrape the keychain.
+
+Don't consider a Supabase repo fully wired until this exists.
+
+## Step 6: Initialize PROJECT.md (Slim)
 
 If `PROJECT.md` does not exist at the repo root, create it:
 
@@ -96,11 +113,11 @@ If `PROJECT.md` does not exist at the repo root, create it:
 
 No Tier row (flow is per-issue). No Strategy section (lives in the Linear project + the PRD). No Milestones table (Linear projects/cycles or plan files). If a legacy rich PROJECT.md exists, leave its existing rows alone and just add the `Linear` / `GitHub` rows if missing.
 
-## Step 6: Initial Commit
+## Step 7: Initial Commit
 
 If Step 1 created the repo (or there are setup files uncommitted), stage and commit the scaffold: `chore: wire repo into build system (AGENTS.md, PROJECT.md, docs/plans)`. If a remote was created in 1C with `--push`, the branch is already pushed; otherwise `git push -u origin main`.
 
-## Step 7: Handoff
+## Step 8: Handoff
 
 Close with the right next step based on what Step 3 found:
 
@@ -124,6 +141,7 @@ So: kickoff creates the *project shell*; caspian creates the *issues*. Whichever
 - [ ] `docs/plans/archive/` and `docs/checkpoints/` exist
 - [ ] Linear linkage resolved (created, linked, or explicitly skipped); `.linear-project.json` written at the repo root if linked
 - [ ] AGENTS.md carries the canonical block; CLAUDE.md imports it
+- [ ] If the repo uses Supabase: automatic migration-to-prod path configured (native GitHub Integration, or fallback db-push Action) and confirmed
 - [ ] Slim PROJECT.md exists with Linear + GitHub rows
 - [ ] Scaffold committed; handoff step printed
 
