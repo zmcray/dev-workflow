@@ -76,6 +76,16 @@ Set effort at pull-down, against the actual task, and re-tune per phase. Unlike 
 
 Out of scope here: parallel orchestration / auto-workflows and run-persistence (`/goal`) are separate axes, not governed by this dial.
 
+### Delegation (subagents and model tiers)
+
+A third axis, orthogonal to flow and effort. Flow decides which phases run, effort decides how hard the model reasons, delegation decides *who does each piece and at what cost*.
+
+When subagent tools are available, use your judgment to delegate isolated research, review, or implementation subtasks... main-thread context is scarce; spend it on decisions and synthesis, not file dumps. Choose the model only if the tool exposes model selection; otherwise proceed with the default. If subagents are unavailable, perform the work in the main thread.
+
+When model selection is exposed, tier by work type: **mechanical → cheapest tier, moderate synthesis → mid tier, judgment → frontier tier**. Tier names are owned by the tool and change over time... map by intent to what your harness currently offers (Claude Code today: `haiku` / `sonnet` / `opus` on the subagent model param; Codex and Cursor: default unless exposed). Do not hard-code a tier name into a plan or an issue.
+
+Good delegation targets: repo exploration, multi-file reads, dependency audits, per-file review passes, test-suite triage. Keep in the main thread: architectural calls, plan approval, anything the human will be asked to decide on.
+
 ### Discipline that holds on every flow
 
 - **Branch:** use the Linear `gitBranchName` if the issue has one, else `feat/[short-slug]`. Never work on `main`.
