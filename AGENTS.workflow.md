@@ -74,7 +74,7 @@ Pick the level by *reasoning difficulty*, not blast radius (blast radius is flow
 
 Set effort at pull-down, against the actual task, and re-tune per phase. Unlike flow, effort is not fixed for an issue... planning a hard design may warrant `max` while its implementation runs at `medium`. Set it at the start of the Plan phase and again at the start of Execute.
 
-Out of scope here: parallel orchestration / auto-workflows and run-persistence (`/goal`) are separate axes, not governed by this dial.
+Out of scope here: parallel orchestration and run-persistence are separate axes, not governed by this dial (see Autonomous runs below).
 
 ### Delegation (subagents and model tiers)
 
@@ -85,6 +85,10 @@ When subagent tools are available, use your judgment to delegate isolated resear
 When model selection is exposed, tier by work type: **mechanical → cheapest tier, moderate synthesis → mid tier, judgment → frontier tier**. Tier names are owned by the tool and change over time... map by intent to what your harness currently offers (Claude Code today: `haiku` / `sonnet` / `opus` on the subagent model param; Codex and Cursor: default unless exposed). Do not hard-code a tier name into a plan or an issue.
 
 Good delegation targets: repo exploration, multi-file reads, dependency audits, per-file review passes, test-suite triage. Keep in the main thread: architectural calls, plan approval, anything the human will be asked to decide on.
+
+### Autonomous runs (goal mode)
+
+A fourth axis: does the run pause for the human? Default is interactive (confirm between pre-work steps). In **goal mode** the human sets an objective spanning one or more issues and the agent runs to completion without prompting: every would-be question becomes a stated one-line judgment call, logged to the relevant Linear issue so decisions stay auditable. Planning, flow/effort decisions, and architecture calls stay in the main thread; execution subtasks are delegated per the Delegation section above. Goal runs work issues strictly sequentially under the merge-on-green rule and end only when the objective is met or a hard stop fires: an unmergeable PR, red baseline, the kick-back rule, or anything destructive the plan doesn't cover — never skip past a stuck issue. On Claude Code this is `/goal [objective]` (which drives `/zmcray-build` in its autonomous mode); on other harnesses, apply this contract natively when the user asks for a hands-off run.
 
 ### Discipline that holds on every flow
 

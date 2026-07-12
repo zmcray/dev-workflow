@@ -1,7 +1,7 @@
 ---
 name: zmcray-build
 description: Run the flow-routed build loop. Reads the issue's flow label, runs the right pre-work, then hands off to /lfg for execution through PR. Auto-pulls highest-priority Linear issue when no arg given.
-argument-hint: "[Linear issue ID like MCR-123, or free-text task description]"
+argument-hint: "[Linear issue ID like MCR-123, an app name in a monorepo (e.g. radar), or free-text task description]"
 ---
 
 # Build
@@ -10,12 +10,29 @@ Execute the McRay Build Loop. Resolves the Linear project, picks up work from Li
 
 **Interactive contract: after every pre-work step, print the next step and ask "Ready to proceed?" Do not silently advance. The contract ends at the /lfg handoff... /lfg runs unattended through PR by design.**
 
+## Autonomous Mode
+
+Autonomous mode is ON when any of these hold: this skill was invoked by `/goal`; the argument contains `--auto`; or the user said to run without input ("don't ask me", "use your judgment", "autonomous", "hands-off"). When ON, the interactive contract above is **suspended** and these substitutions apply everywhere in this skill:
+
+- Every "Ready to proceed?" / "Ready?" / "Confirm or override?" becomes a stated one-line decision, then continue. Never wait for input.
+- Effort (Steps 4 and 6): assess against the AGENTS.md rubric, print **"[Planning|Implementation] effort: [level] ([rationale]). Proceeding."**, set the effort control, and continue.
+- Anywhere a step says to ask (flow triage tie-break, monorepo app pick, Path B plan confirmation): make the best-judgment call, state it in one line, and log it in the Step 5 or Step 7 Linear comment so the decision is auditable.
+- Delegation is expected, not optional: apply the AGENTS.md Delegation section. Keep planning, architecture calls, flow/effort decisions, and synthesis in the main thread; hand isolated execution subtasks (multi-file reads, repo exploration, per-file review passes, mechanical implementation slices, test triage) to subagents, tiered mechanical → cheapest model, moderate synthesis → mid tier, judgment → frontier.
+
+**Hard stops still hold** — autonomous mode never overrides these; stop and surface instead of guessing: red baseline tests (Step 5), dirty tree / failed base pull (Step 5), unmergeable PR after the retry (Step 8), the PRD kick-back rule (Step 3), CI red after /lfg's attempts (Step 7), and anything destructive or irreversible outside the plan's scope.
+
 ## Step 1: Resolve Linear Project (For This Repo)
 
 The repo's Linear link lives *in the repo*, in `.linear-project.json` at the repo root: `{ "id": "...", "slug": "...", "name": "...", "team": "MCR" }`. Resolve in order:
 
 ### 1A: Local link file
 Read `./.linear-project.json`. If present with an `id`, use it. Skip to Step 2.
+
+### 1A-mono: Monorepo (no root link file, per-app link files exist)
+If the repo root has no `.linear-project.json` but one or more `apps/*/.linear-project.json` exist, this is a monorepo of Linear-linked apps. Resolve the target app:
+1. If the argument names an app (e.g. `radar`, `horizon` — match against `apps/*` folder names, case-insensitive) or is a Linear issue ID whose issue belongs to one of those apps' projects, use that app's link file.
+2. Otherwise ask which app to work on (AskUserQuestion with the app list).
+Then use `apps/<app>/.linear-project.json` as the project link, treat `apps/<app>/` as the working scope for this session (its AGENTS.md governs), and keep plans/checkpoints under `apps/<app>/docs/`. Branches, commits, and the PR still run from the repo root.
 
 ### 1B: Resolve and write (no link file)
 Query Linear projects on the `Mcraygroup` team. Match this repo by, in order: (a) a project whose `Local Path` is `~/Developer/[repo-folder-name]`; (b) a project whose name matches the repo folder name (normalize: lowercase, drop spaces and hyphens). On a unique match, write `./.linear-project.json` and skip to Step 2.
@@ -123,15 +140,19 @@ Task: [one-line description]
 
 ## Step 5: Branch, Baseline, Linear Sync
 
-1. Create the feature branch:
+1. Sync the base branch. Always branch from fresh remote state, never from a stale local HEAD or a leftover feature branch — a stale base is where PR merge conflicts come from:
+   - Detect the default branch (`gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, fall back to `main`).
+   - `git checkout [default-branch] && git pull origin [default-branch]`
+   - If the working tree is dirty or the pull fails (offline, diverged), stop and surface it before branching.
+2. Create the feature branch from that fresh base:
    - If a Linear `gitBranchName` was captured, use it: `git checkout -b [gitBranchName]`
    - Otherwise: `git checkout -b feat/[short-description]`
-2. Run existing tests. Confirm green baseline. If tests fail, stop and surface failures before proceeding.
-3. **If a Linear issue is linked**, update Linear:
+3. Run existing tests. Confirm green baseline. If tests fail, stop and surface failures before proceeding.
+4. **If a Linear issue is linked**, update Linear:
    - Move the issue state to **In Progress**.
    - Post a comment: `Build session started. Branch: [branch-name]. Flow: [flow]. Plan: [plan-filename or "/lfg plan gate"].`
-4. Update PROJECT.md (slim format): one-line Current Status + a Build Log row (date, "Build session started", plan filename, issue ID). If PROJECT.md doesn't exist, stop and tell the user to run `/zmcray-kickoff` first.
-5. Print: **"Branch created, baseline green, Linear updated. Next step: hand off to /lfg (runs unattended through PR). Ready?"**
+5. Update PROJECT.md (slim format): one-line Current Status + a Build Log row (date, "Build session started", plan filename, issue ID). If PROJECT.md doesn't exist, stop and tell the user to run `/zmcray-kickoff` first.
+6. Print: **"Branch created from fresh [default-branch], baseline green, Linear updated. Next step: hand off to /lfg (runs unattended through PR). Ready?"**
 
 ## Step 6: Execute via /lfg
 
@@ -157,11 +178,31 @@ Invoke `/lfg` with a task statement that includes:
 When /lfg emits DONE (or exits with unresolved CI failures):
 
 1. Confirm: PR exists, CI status, and whether residual findings were filed to Linear (check the PR body's residuals section).
-2. If CI is red after /lfg's 3 attempts, surface the "CI Failures Unresolved" section to the user. Do not merge anything.
+2. If CI is red after /lfg's 3 attempts, surface the "CI Failures Unresolved" section to the user. Do not merge anything, and do not proceed to Step 8.
 3. Post a Linear comment on the issue: `Build complete. PR: [link]. CI: [green/red]. Residuals filed: [N or none].`
-4. Print: **"/lfg done. PR [link], CI [status]. Next: /zmcray-wrap to close the session (compound runs there for design/standard flows)."**
+4. If CI is green, continue directly to Step 8 (Merge & Advance).
 
-Merging the PR is the user's call, not the build loop's.
+## Step 8: Merge & Advance (auto-merge)
+
+Runs automatically after Step 7 when CI is green. This is what keeps multi-issue runs conflict-free: each PR merges before the next issue branches, so every build starts on top of the previous one's merged code.
+
+**Opt-out:** skip this step if `.linear-project.json` has `"automerge": false`, or the user said not to merge in this session or goal. When skipped, print **"/lfg done. PR [link], CI green. Auto-merge is off — merging is your call. Next: /zmcray-wrap."** and stop.
+
+1. **Gate:** CI green and PR mergeable (`gh pr view [number] --json mergeable,mergeStateStatus`). Never merge a red or blocked PR.
+2. Merge: `gh pr merge [number] --squash --delete-branch`
+3. **If GitHub reports conflicts** (something else landed on the default branch mid-build): `git fetch origin && git rebase origin/[default-branch]`, resolve conflicts, `git push --force-with-lease`, wait for CI to go green again, then retry the merge once. If it still fails, stop and surface — don't loop.
+4. Advance the local base: `git checkout [default-branch] && git pull origin [default-branch]`. Confirm the squash commit is present (`git log -1`).
+5. Post a Linear comment on the issue: `PR merged to [default-branch]: [link].` (State stays In Review — the user reviews the live app; /zmcray-wrap handles the final state.)
+6. Print: **"PR [link] merged (squash) and [default-branch] updated. The next issue will branch from this state. Next: /zmcray-wrap, or the next issue in the run."**
+
+## Multi-Issue Runs (goals / batch builds)
+
+When a goal or a single session works through multiple Linear issues:
+
+- **Strictly sequential:** one issue → PR → merge (Step 8) → next issue. Never start issue N+1's branch before issue N's PR has merged.
+- Each iteration re-enters at Step 2. Step 5's fresh-base rule plus Step 8's merge guarantee the new branch includes everything merged so far — this is the conflict-prevention mechanism; don't skip either half.
+- If any PR can't merge (red CI, unresolvable conflict), **stop the run there** and surface. Don't skip ahead to the next issue — it would branch from a base missing the stuck work and recreate the conflict problem.
+- Run /zmcray-wrap per issue, or once at the end covering all issues (list each PR in the summary).
 
 ## Review Reference
 
@@ -172,7 +213,8 @@ See `30_Projects/00_Code/review-conventions.md` for the review strategy. Note: /
 - **Prompt between pre-work steps; never inside /lfg.** The interactive contract covers Steps 1-5. Step 6 is autonomous by design.
 - The two routing signals are independent: `flow:*` = rigor, `prd-source` = strategy already done. A `flow:design` + `prd-source` issue skips Think but keeps the eng review.
 - The plan file is the single source of truth from pre-work through wrap. /lfg's gate requires it to exist for design/standard; /lfg writes its own for ship.
-- Linear updates during the session: In Progress + start comment (Step 5), /lfg residuals (Step 6), build-complete comment (Step 7). The full session summary lands at wrap.
+- Linear updates during the session: In Progress + start comment (Step 5), /lfg residuals (Step 6), build-complete comment (Step 7), merged comment (Step 8). The full session summary lands at wrap.
+- Auto-merge (Step 8) is on by default and gated on green CI. Turn it off per-repo with `"automerge": false` in `.linear-project.json`, or per-session by saying so. Squash merge is the fixed strategy — one commit per issue on the default branch.
 - If Linear is unreachable when you try to update it, log the failure to the plan file's `## Linear Sync Errors` section and continue. Don't block the build on a network glitch.
 - The Linear link lives in the repo's `.linear-project.json` (id + slug + name). If it's missing, Step 1B resolves it from Linear and writes it. The file travels with the repo, so the link can't go stale from a path change... no central cache.
 - Compound Engineering v3 renamed commands to the `ce-` prefix (`/ce-plan`, `/lfg`, `/ce-compound`). If a command is missing, run `/ce-update` or reinstall the plugin before debugging this skill.
