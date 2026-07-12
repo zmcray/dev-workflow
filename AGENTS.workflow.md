@@ -40,7 +40,7 @@ If an issue is unlabeled, triage it in ~30 seconds, apply the label in Linear, s
 |---|---|---|---|
 | **Think** | Founder/strategy lens: is this the right problem, framed the right way? | gstack `/office-hours` then `/plan-ceo-review`; or Compound Engineering `/ce-brainstorm` / `/ce-ideate` | Write a short design doc answering: problem, who it is for, the 10x version, what we are deliberately not doing. |
 | **Plan** | Turn the issue (and PRD, if present) into a concrete, reviewed plan | CE `/ce-plan` (its persona council gates the plan: feasibility, design, product, scope, security) | Write `docs/plans/plan-[date]-[slug].md` with the metadata header below; self-review it against feasibility, scope, and security before writing code. |
-| **Execute** | Implement through to an open PR with CI green | CE `/lfg` (plan gate > work > plan-aware multi-persona code review > apply fixes + commit > file residuals to Linear > browser test > commit/push/PR > CI watch, max 3 fix attempts) | Implement on a branch, write tests, run the review yourself or via `/ce-code-review`, commit, push, open the PR, watch CI to green, and file any unfixed findings to Linear as issues. |
+| **Execute** | Implement through to a merged PR (CI green, then merge-on-green — see Discipline) | CE `/lfg` (plan gate > work > plan-aware multi-persona code review > apply fixes + commit > file residuals to Linear > browser test > commit/push/PR > CI watch, max 3 fix attempts), then the merge-on-green rule | Implement on a branch, write tests, run the review yourself or via `/ce-code-review`, commit, push, open the PR, watch CI to green, file any unfixed findings to Linear as issues, then merge per the merge-on-green rule. |
 | **Learn** | Capture what worked and what the plan missed so the next build is easier | CE `/ce-compound` | Append a short "what worked / what the plan missed / new pattern" note to this repo's learnings (CLAUDE.md `## Compound Learnings` or a `LEARNINGS.md`). |
 
 ### Flow routing
@@ -88,7 +88,8 @@ Good delegation targets: repo exploration, multi-file reads, dependency audits, 
 
 ### Discipline that holds on every flow
 
-- **Branch:** use the Linear `gitBranchName` if the issue has one, else `feat/[short-slug]`. Never work on `main`.
+- **Branch from a fresh base:** before creating the feature branch, check out the default branch and pull it from origin — never branch from a stale local HEAD or a leftover feature branch (that is where PR merge conflicts come from). Then use the Linear `gitBranchName` if the issue has one, else `feat/[short-slug]`. Never work on `main`.
+- **Merge on green (auto-merge):** when CI is green, squash-merge the PR (`gh pr merge --squash --delete-branch`), pull the default branch, and post a "PR merged" comment to the Linear issue. Never merge a red or blocked PR. Multi-issue runs are strictly sequential: merge issue N before branching issue N+1; if a PR cannot merge, stop the run there — do not skip ahead. Opt out per-repo with `"automerge": false` in `.linear-project.json`. (PR review is not a gate in this workflow; quality gates are CI plus reviewing the live app after merge.)
 - **Test-first (design + standard):** write the failing test before the implementation for each unit of work.
 - **Commits:** conventional commits with the issue ID appended, e.g. `feat: implement upload flow [MCR-123]`, so Linear auto-links. Commit on the branch and leave the working tree clean before picking up the next issue.
 - **Scope is the PRD (kick-back rule):** if the issue carries `prd-source` and the work wants scope beyond what the PRD defines, do not expand scope here. Post a Linear comment ("Scope exceeds PRD: [reason]. Kicking back for Caspian EXPAND."), move the issue to Backlog, and stop. Strategy changes go through Caspian, not the build loop.
@@ -113,7 +114,7 @@ Task: [one-line description]
 
 ### Session close
 
-When the build session ends: move the Linear issue to **In Review** (or **Done** if shipped, or leave **In Progress** if paused), post a session-summary comment (what shipped, PR + CI status, commit count, tests, residuals filed, loose ends), archive the plan with an `## Outcome` note, and run the Learn phase for design/standard flows. Never auto-merge the PR; merging is the human's call.
+When the build session ends: move the Linear issue to **In Review** (or **Done** if shipped, or leave **In Progress** if paused), post a session-summary comment (what shipped, PR + CI status, commit count, tests, residuals filed, loose ends), archive the plan with an `## Outcome` note, and run the Learn phase for design/standard flows. By session close the PR should already be merged via the merge-on-green rule above; if auto-merge was skipped or blocked, flag the unmerged PR as a loose end rather than merging during close.
 
 ### Claude Code accelerators
 
