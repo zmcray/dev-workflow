@@ -15,7 +15,9 @@ Ask before moving past pre-work gates when the workflow requires confirmation. O
 
 Do not branch, run baseline tests, or start implementation until every required pre-work gate for the selected flow is complete and verified. A written plan alone is not a completed Plan phase for `flow:design`.
 
-Do not auto-merge. If Linear or GitHub tools are unavailable, continue with the best local equivalent and clearly report the skipped sync.
+Merge on green, per `AGENTS.md`: when CI is green and the PR is mergeable, squash-merge it (`gh pr merge --squash --delete-branch`), pull the default branch, and post a merged comment to the Linear issue. Never merge a red or blocked PR. Opt out only if `.linear-project.json` has `"automerge": false` or the user said not to merge this session.
+
+If Linear or GitHub tools are unavailable, continue with the best local equivalent and clearly report the skipped sync.
 
 ## 1. Resolve Project
 
@@ -111,4 +113,4 @@ Confirm tests, PR/CI state if a PR was opened, and any residual Linear issues fi
 
 `Build complete. PR: [link]. CI: [green/red]. Residuals filed: [N or none].`
 
-Close by telling the user the PR/CI state and that `$zmcray-wrap` closes the session. Do not merge.
+If CI is green, apply the merge-on-green rule from the Interaction Contract before closing. Close by telling the user the PR/CI/merge state and that `$zmcray-wrap` closes the session. If auto-merge is opted out or the PR is blocked, say the PR awaits merge instead — never merge a red or blocked PR.

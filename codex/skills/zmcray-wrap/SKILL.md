@@ -14,7 +14,7 @@ Close a build session using the repo's `AGENTS.md` session-close contract. Treat
 - `hold`: leave linked Linear issue In Progress and post a paused summary.
 - Free text: treat it as session notes and use default In Review behavior.
 
-Never auto-merge. Never auto-commit without explicit user approval.
+By session close the PR should already be merged via the merge-on-green rule in `AGENTS.md`; if it is not (auto-merge opted out, red or blocked CI), flag the unmerged PR as a loose end rather than merging during wrap. Never auto-commit without explicit user approval.
 
 ## 1. Read Flow
 
