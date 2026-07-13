@@ -56,6 +56,43 @@ log "Canonical block: $WORKFLOW_FILE"
 log "Developer dir:   $DEV_DIR"
 log ""
 
+# --- Skill drift check: commands/ and codex/skills/ sources vs their deployed copies ---
+# Skills deploy by copy (see README), so a live copy edited in place (~/.claude/commands,
+# ~/.codex/skills) silently diverges from source here — and the next source edit either
+# clobbers or misses those changes. Warn on any divergence with the direction (which side
+# is newer) so the fix is obvious. Warn-only: this script never copies skills; reconcile,
+# then use the README's cp deploy commands.
+check_skill_drift() {
+  local src dst drift=0
+  log "--- skill drift check (source vs deployed) ---"
+  while IFS='|' read -r src dst; do
+    [[ -f "$src" ]] || continue
+    if [[ ! -f "$dst" ]]; then
+      drift=1; log "DRIFT: $src has no deployed copy at $dst — deploy it (see README)"
+      continue
+    fi
+    if ! cmp -s "$src" "$dst"; then
+      drift=1
+      if [[ "$dst" -nt "$src" ]]; then
+        log "DRIFT: deployed $dst is NEWER than source — sync it back first: cp \"$dst\" \"$src\""
+      else
+        log "DRIFT: source $src is newer than deployed — redeploy: cp \"$src\" \"$dst\""
+      fi
+    fi
+  done < <(
+    for f in "$SCRIPT_DIR"/commands/*.md; do
+      echo "$f|$HOME/.claude/commands/$(basename "$f")"
+    done
+    for f in "$SCRIPT_DIR"/codex/skills/*/SKILL.md; do
+      echo "$f|$HOME/.codex/skills/$(basename "$(dirname "$f")")/SKILL.md"
+    done
+  )
+  [[ $drift -eq 0 ]] && log "Skill sources and deployed copies are in sync."
+  log ""
+}
+
+check_skill_drift
+
 # Replace the marked block in $1 with the canonical block (awk: drop old block, insert new).
 replace_block() {
   local target="$1"

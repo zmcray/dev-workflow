@@ -36,6 +36,8 @@ bash ~/Developer/dev-workflow/deploy-agents-md.sh             # apply
 
 Idempotent and non-destructive: re-running re-syncs the block, backs up any replaced `CLAUDE.md` to `CLAUDE.md.pre-agents.bak`, never deletes, and skips repos not yet in `~/Developer`. A timestamped log is written next to the script.
 
+The script also runs a **skill drift check** first: it compares every `commands/*.md` and `codex/skills/*/SKILL.md` source against its deployed copy (`~/.claude/commands/`, `~/.codex/skills/`) and warns with the direction — a deployed copy newer than source means someone edited the live file and it must be synced back before touching source; a newer source means the deploy cp below hasn't run. Warn-only; it never copies skills itself.
+
 ## Deploy the Claude Code skills
 
 ```bash
