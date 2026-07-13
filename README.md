@@ -13,8 +13,8 @@ templates/
   AGENTS.md.template        AGENTS.md scaffold: {{REPO}} header + {{CANONICAL_WORKFLOW}} marker
   CLAUDE.md.template        the CLAUDE.md @AGENTS.md import file
 README.md                   this file
-commands/                   the zmcray-* Claude Code skill sources (build, wrap, kickoff,
-                            status, checkpoint, retro, ss)
+commands/                   the zmcray-* Claude Code skill sources (build, plan, execute,
+                            wrap, kickoff, status, checkpoint, retro, ss)
 codex/skills/               the zmcray-* Codex skill sources (each a <name>/SKILL.md +
                             agents/openai.yaml), deployed to ~/.codex/skills/
 ```
