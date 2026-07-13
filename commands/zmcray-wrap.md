@@ -105,7 +105,7 @@ Print a brief wrap-up:
 ```
 Session: [what was built]
 Flow: [design|standard|ship]
-PR: [link + CI status, or none]
+PR: [link + CI status + merged/unmerged, or none]
 Commits: [number of commits this session]
 Compound: [captured / skipped]
 PROJECT.md: [updated / not found]
@@ -116,7 +116,7 @@ Loose ends: [none | list]
 ## Notes
 
 - Never auto-commit without user approval.
-- Never auto-merge or push to remote. Wrap is local-state only unless the user explicitly asks to push. (/lfg already pushed and opened the PR during build... wrap never merges it. Merging is the user's call.)
+- Never merge or push to remote from wrap. Wrap is local-state only unless the user explicitly asks to push. (Merging happens in /zmcray-build Step 8's auto-merge, gated on green CI — by wrap time the PR is usually already merged. If auto-merge was skipped or failed, note the unmerged PR as a loose end; don't merge it here.)
 - If the user provides notes in the argument (and it isn't `done` or `hold`), include them in the compound capture and the Linear comment.
 - Keep the summary under 10 lines. The user is done for the day.
 - The Linear sync is the piece that prevents board drift. If you skip it, you defeat the purpose of the linkage. Surface any sync failures loudly.
