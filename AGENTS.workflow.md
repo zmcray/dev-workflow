@@ -86,6 +86,8 @@ When model selection is exposed, tier by work type: **mechanical → cheapest ti
 
 Good delegation targets: repo exploration, multi-file reads, dependency audits, per-file review passes, test-suite triage. Keep in the main thread: architectural calls, plan approval, anything the human will be asked to decide on.
 
+**Parallel tool calls:** when making multiple tool calls with no dependencies between them (independent file reads, searches, status checks), issue them in parallel rather than sequentially, using whatever batching mechanism your harness provides (e.g. Codex's `multi_tool_use.parallel`; Claude Code batches independent calls in one turn natively). Sequence calls only when a later call needs an earlier call's result.
+
 ### Autonomous runs (goal mode)
 
 A fourth axis: does the run pause for the human? Default is interactive (confirm between pre-work steps). In **goal mode** the human sets an objective spanning one or more issues and the agent runs to completion without prompting: every would-be question becomes a stated one-line judgment call, logged to the relevant Linear issue so decisions stay auditable. Planning, flow/effort decisions, and architecture calls stay in the main thread; execution subtasks are delegated per the Delegation section above. Goal runs work issues strictly sequentially under the merge-on-green rule and end only when the objective is met or a hard stop fires: an unmergeable PR, red baseline, the kick-back rule, or anything destructive the plan doesn't cover — never skip past a stuck issue. On Claude Code this is `/goal [objective]` (which drives `/zmcray-build` in its autonomous mode); on other harnesses, apply this contract natively when the user asks for a hands-off run.
