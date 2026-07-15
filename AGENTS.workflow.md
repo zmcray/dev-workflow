@@ -126,4 +126,8 @@ When the build session ends: move the Linear issue to **In Review** (or **Done**
 
 On Claude Code, `/zmcray-build` and `/zmcray-wrap` run this exact workflow as a guided loop (flow routing, the phase sequence, Linear sync). They are conveniences layered on top of this file, not a separate process. Any other harness reads this section and runs the same workflow directly.
 
+### shadcn registries
+
+Every shadcn-initialized app registers the namespaced registries from `templates/components.registries.json` in the dev-workflow repo... merge the `registries` key into the app's `components.json`, never overwrite existing keys, and keep the literal `{name}` placeholder intact. Current registries: `@bklit` (https://bklit.com/r/{name}.json) and `@kokonutui` (https://kokonutui.com/r/{name}.json). On installing any component from these registries, restyle it to McRay Group brand tokens (`colors_and_type.css` semantic vars) before first use; no raw registry styling ships.
+
 <!-- END CANONICAL WORKFLOW -->
