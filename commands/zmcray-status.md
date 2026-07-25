@@ -75,5 +75,6 @@ Check for: unresolved review findings or residuals filed to Linear, TODO/FIXME a
 
 - Keep the whole output under ~22 lines. A glance, not a report.
 - Read-only. Run no mutating tools, make no edits.
+- **This whole command is cheap-tier work.** Steps 1-3 and 5-6 are file reads, one Linear fetch, and a `git status` — delegate the gathering to a single `haiku` subagent that returns the fields the report needs, and render the output from that. Nothing here requires the frontier model; only the Step 6 flow-vs-work mismatch flag is a judgment call, and it's a one-line one.
 - If flow and the work disagree (e.g. a ship issue is clearly touching auth), flag it as an outstanding item... build's escalation rule should bump it up a flow.
 - If Linear says Done but the plan is not archived, surface it.

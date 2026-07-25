@@ -25,7 +25,9 @@ Each repo gets an `AGENTS.md` = repo-specific context header + the canonical wor
 
 The deploy script builds these from `templates/`. A fresh repo's `AGENTS.md` is rendered from `templates/AGENTS.md.template` (the `{{REPO}}` header placeholder is filled in and the `{{CANONICAL_WORKFLOW}}` marker is replaced with the contents of `AGENTS.workflow.md`, so the block stays single-sourced). `CLAUDE.md` is copied from `templates/CLAUDE.md.template`. A repo that already has context in its `CLAUDE.md` keeps that as the header instead of the scaffold. Re-runs only re-sync the marked block.
 
-The block defines the two routing signals (`flow:*` rigor + `prd-source` strategy-done), the flow table, the four phases (Think / Plan / Execute / Learn) as roles with command implementations (gstack, Compound Engineering) and native fallbacks, plus commit / test-first / residual / kick-back / escalation discipline, and the one-time Project setup convention.
+The block defines the two routing signals (`flow:*` rigor + `prd-source` strategy-done), the flow table, the four phases (Think / Plan / Execute / Learn) as roles with command implementations (gstack, Compound Engineering) and native fallbacks, the four orthogonal axes (flow / effort / delegation / autonomy), plus commit / test-first / residual / kick-back / escalation discipline, and the one-time Project setup convention.
+
+The **Delegation** axis is a hard rule, not a hint: every step with more than a couple of tool calls must have a stated tier call, the default is delegate-and-downshift, and all GitHub/CI work that loops or returns bulk output (CI watch, Actions log reduction, PR body assembly, workflow YAML) runs on the cheapest tier that can do it. Judgment — flow triage, plan approval, architecture, failure diagnosis, the merge call — stays in the main thread. The `zmcray-*` command files name Claude Code's models directly (`haiku` / `sonnet` / `opus`); plans and Linear issues never do, since other harnesses read those.
 
 ## Deploy the workflow (AGENTS.md)
 

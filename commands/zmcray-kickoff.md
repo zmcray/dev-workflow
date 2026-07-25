@@ -82,7 +82,7 @@ If the repo uses Supabase, it MUST have an automatic path that applies migration
 
 This is a dashboard OAuth click-through, so kickoff can't fully automate it — **prompt the user through these exact settings and confirm it's done** (same posture as creating the GitHub repo in 1C). It needs no secrets, which is the point.
 
-**Fallback — `supabase db push` GitHub Action** (only if the native integration isn't viable): a workflow on push to `main` (path-filtered to the migrations dir) running `supabase link --project-ref …` + `supabase db push`, with `SUPABASE_ACCESS_TOKEN` / `SUPABASE_PROJECT_ID` / `SUPABASE_DB_PASSWORD` as repo secrets. Set secrets via `gh secret set` (stdin) or have the user set them — never scrape the keychain.
+**Fallback — `supabase db push` GitHub Action** (only if the native integration isn't viable): a workflow on push to `main` (path-filtered to the migrations dir) running `supabase link --project-ref …` + `supabase db push`, with `SUPABASE_ACCESS_TOKEN` / `SUPABASE_PROJECT_ID` / `SUPABASE_DB_PASSWORD` as repo secrets. Set secrets via `gh secret set` (stdin) or have the user set them — never scrape the keychain. **Authoring that workflow YAML is `haiku` work** — delegate it with the trigger, path filter, and step list specified, then verify the result here. The main thread's job is deciding the migration path, not typing the YAML.
 
 Don't consider a Supabase repo fully wired until this exists.
 

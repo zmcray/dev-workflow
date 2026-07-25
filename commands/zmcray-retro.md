@@ -8,6 +8,14 @@ argument-hint: "[optional: specific project or timeframe to retro]"
 
 System-level retrospective. Scans compound learnings across all projects, extracts durable patterns, and promotes them to CLAUDE-base.md so every future project inherits them. Run this from the parent Projects folder (30_Projects/), not from inside a specific project.
 
+## Delegation & Model Policy
+
+Apply the AGENTS.md Delegation section. **State the tier before each step that runs more than a couple of tool calls.** A retro is mostly bulk reading, which is exactly the wrong thing to spend frontier context on:
+
+- **`haiku`:** Step 1's scan (fan out — one subagent per project directory, dispatched in parallel, each returning that project's learning entries as a compact list, not the file), and Step 6's mechanical pruning/archiving edits once the main thread has decided what goes.
+- **`sonnet`:** clustering the collected entries by theme and drafting the promoted rule text.
+- **Main thread (frontier):** the Step 2 contradiction calls, the Step 3 answers, deciding what is genuinely durable, and every Step 5 conflict resolution. A bad rule in the base template affects every future project — that judgment never gets delegated.
+
 ## Step 1: Scan All Projects
 
 Find every project CLAUDE.md that has a `## Compound Learnings` section. Search all subdirectories:

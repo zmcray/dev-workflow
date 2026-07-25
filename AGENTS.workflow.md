@@ -40,7 +40,7 @@ If an issue is unlabeled, triage it in ~30 seconds, apply the label in Linear, s
 |---|---|---|---|
 | **Think** | Founder/strategy lens: is this the right problem, framed the right way? | gstack `/office-hours` then `/plan-ceo-review`; or Compound Engineering `/ce-brainstorm` / `/ce-ideate` | Write a short design doc answering: problem, who it is for, the 10x version, what we are deliberately not doing. |
 | **Plan** | Turn the issue (and PRD, if present) into a concrete, reviewed plan | CE `/ce-plan` (its persona council gates the plan: feasibility, design, product, scope, security) | Write `docs/plans/plan-[date]-[slug].md` with the metadata header below; self-review it against feasibility, scope, and security before writing code. |
-| **Execute** | Implement through to a merged PR (CI green, then merge-on-green — see Discipline) | CE `/lfg` (plan gate > work > plan-aware multi-persona code review > apply fixes + commit > file residuals to Linear > browser test > commit/push/PR > CI watch, max 3 fix attempts), then the merge-on-green rule | Implement on a branch, write tests, run the review yourself or via `/ce-code-review`, commit, push, open the PR, watch CI to green, file any unfixed findings to Linear as issues, then merge per the merge-on-green rule. |
+| **Execute** | Implement through to a merged PR (CI green, then merge-on-green — see Discipline) | CE `/lfg` (plan gate > work > plan-aware multi-persona code review > apply fixes + commit > file residuals to Linear > browser test > commit/push/PR > CI watch, max 3 fix attempts), then the merge-on-green rule | Implement on a branch, write tests, run the review yourself or via `/ce-code-review`, commit, push, open the PR, watch CI to green, file any unfixed findings to Linear as issues, then merge per the merge-on-green rule. Delegate the CI watch, Actions log reduction, and per-file review passes to cheap/mid-tier subagents per Delegation; keep failure diagnosis and the merge call in the main thread. |
 | **Learn** | Capture what worked and what the plan missed so the next build is easier | CE `/ce-compound` | Append a short "what worked / what the plan missed / new pattern" note to this repo's learnings (CLAUDE.md `## Compound Learnings` or a `LEARNINGS.md`). |
 
 ### Flow routing
@@ -80,11 +80,24 @@ Out of scope here: parallel orchestration and run-persistence are separate axes,
 
 A third axis, orthogonal to flow and effort. Flow decides which phases run, effort decides how hard the model reasons, delegation decides *who does each piece and at what cost*.
 
-When subagent tools are available, use your judgment to delegate isolated research, review, or implementation subtasks... main-thread context is scarce; spend it on decisions and synthesis, not file dumps. Choose the model only if the tool exposes model selection; otherwise proceed with the default. If subagents are unavailable, perform the work in the main thread.
+**The tier assessment is mandatory, not optional.** Before starting any step that runs more than a couple of tool calls, assess whether a lower-tier subagent can do it and state the call in one line: **"Delegating [work] → [tier] ([why])"**, or **"Main thread: [work] ([why it needs judgment])"**. The default answer is delegate-and-downshift. Work stays in the main thread on the frontier model only when it genuinely requires judgment; "it's faster to just do it here" is not a reason. Main-thread context is the scarcest resource in a run... spend it on decisions and synthesis, never on file dumps, log tails, or status polling.
 
-When model selection is exposed, tier by work type: **mechanical → cheapest tier, moderate synthesis → mid tier, judgment → frontier tier**. Tier names are owned by the tool and change over time... map by intent to what your harness currently offers (Claude Code today: `haiku` / `sonnet` / `opus` on the subagent model param; Codex and Cursor: default unless exposed). Do not hard-code a tier name into a plan or an issue.
+When model selection is exposed, tier by work type — **mechanical → cheapest tier, moderate synthesis → mid tier, judgment → frontier tier**:
 
-Good delegation targets: repo exploration, multi-file reads, dependency audits, per-file review passes, test-suite triage. Keep in the main thread: architectural calls, plan approval, anything the human will be asked to decide on.
+| Work | Tier | Claude Code model |
+|---|---|---|
+| Repo exploration, multi-file reads, existing-pattern discovery, dependency audits, mechanical transcription (issue spec → plan file), TODO/FIXME scans, PROJECT.md / Build Log edits, Linear comment formatting, duplicate-issue checks | mechanical | `haiku` |
+| **GitHub and CI work** (see the rule below) | mechanical, mid if logs need real interpretation | `haiku` → `sonnet` |
+| Per-file review passes, test-suite triage, implementation slices against a settled spec, drafting a spec from decisions already made, summarizing what a mechanical pass found | moderate synthesis | `sonnet` |
+| Flow triage, effort setting, plan approval, architecture calls, scope and taste judgment, root-causing a CI failure, the merge decision, anything the human will be asked to decide | judgment | frontier (main thread) |
+
+**GitHub / CI operations run on the cheapest tier that can do them.** Delegate to `haiku` (escalating to `sonnet` only when output needs real interpretation): CI watch and check-status polling, fetching and reducing Actions run logs to the failing lines, PR body assembly, authoring or editing Actions workflow YAML, and label / secret / branch plumbing across multiple items. The main thread receives the *reduced* result — the failing test name and error, not the log. Deciding what a failure means and whether to merge stays frontier. Exception: a single one-shot `gh` call (one `gh pr view`, one `gh pr merge`) stays inline — a subagent round-trip costs more than the call. The rule targets anything that loops, polls, or returns bulk output.
+
+Tier names are owned by the tool and change over time... map by intent to what your harness currently offers (Claude Code today: `haiku` / `sonnet` / `opus` on the subagent `model` param; Codex and Cursor: default unless exposed). Do not hard-code a tier name into a plan or an issue. If subagents are unavailable, do the work in the main thread and say so once.
+
+**Escalate on failure, not on suspicion.** Start a delegated subtask at the lowest plausible tier. If the result comes back incomplete, low-confidence, or wrong, re-run it one tier up rather than absorbing it into the main thread. Two failed tiers on the same subtask means the work needed judgment all along... pull it back and reclassify. Never pre-emptively route to frontier because a cheaper tier *might* struggle.
+
+**Fan out in parallel.** Independent delegated subtasks are dispatched in a single message with multiple subagent calls, never one at a time.
 
 **Parallel tool calls:** when making multiple tool calls with no dependencies between them (independent file reads, searches, status checks), issue them in parallel rather than sequentially, using whatever batching mechanism your harness provides (e.g. Codex's `multi_tool_use.parallel`; Claude Code batches independent calls in one turn natively). Sequence calls only when a later call needs an earlier call's result.
 

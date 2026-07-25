@@ -22,13 +22,16 @@ Hard stops hold in every mode: contradictory requirements in the source scope, s
 
 ## Delegation & Model Policy
 
-Apply the AGENTS.md Delegation section throughout. Keep decomposition, flow triage, quality gating, and all judgment calls in the main thread (frontier tier). Fan out to subagents:
+Apply the AGENTS.md Delegation section throughout. **Assessing the tier is mandatory, not optional:** before any step that runs more than a couple of tool calls, state **"Delegating [work] → [haiku|sonnet] ([why])"** or **"Main thread: [work] (judgment)"**, then act. Default to delegate-and-downshift — a planning pass burns main-thread context fastest on codebase reads, and that context is what the quality gate needs later.
 
-- **Mechanical / cheapest tier (haiku):** repo exploration, multi-file reads, existing-pattern discovery, duplicate-issue checks against Linear, dependency-surface mapping.
+Keep decomposition, flow triage, quality gating, and all judgment calls in the main thread (frontier tier). Fan out to subagents:
+
+- **Mechanical / cheapest tier (haiku):** repo exploration, multi-file reads, existing-pattern discovery, duplicate-issue checks against Linear, dependency-surface mapping, Linear issue-body writes once the text is settled.
 - **Moderate synthesis / mid tier (sonnet):** drafting each feature's Implementation Unit spec from the main thread's decisions, formatting issue bodies, summarizing prior art found by the mechanical pass.
 - **Judgment / frontier:** stays in the main thread... never delegate the flow label, the quality score, or a taste call.
+- **GitHub / `gh` reads (haiku):** any repo-history, PR, or Actions-workflow inspection this pass needs (what CI already runs, what a prior PR did) goes to a cheap-tier subagent that returns the answer, not the output.
 
-Dispatch independent per-feature spec drafts in parallel (single message, multiple Agent calls) once decisions are made.
+Escalate on failure, not suspicion: re-run a weak delegated result one tier up rather than pulling it into the main thread. Dispatch independent per-feature spec drafts in parallel (single message, multiple Agent calls) once decisions are made.
 
 ## Step 1: Resolve Linear Project
 

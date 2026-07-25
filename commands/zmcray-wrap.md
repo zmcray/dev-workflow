@@ -14,6 +14,15 @@ Close out a build session. Captures learnings, syncs project status, commits wor
 - `hold` ... session ended but feature isn't review-ready. Leaves Linear issue in **In Progress**, posts a "paused here" comment.
 - Free text ... treated as session notes. Default Linear behavior (In Review) applies.
 
+## Delegation & Model Policy
+
+Most of a wrap is mechanical, so most of a wrap should not run on the frontier model. Apply the AGENTS.md Delegation section: **assess the tier before each step that runs more than a couple of tool calls and state it in one line** (`Delegating [work] → haiku ([why])`).
+
+- **`haiku`:** the Step 2 `git status` / `git diff --stat` summary, the Step 3 diff-range resolution, the Step 5 PROJECT.md and Build Log edits, the Step 6 plan-file `## Outcome` + archive move, the Step 7 Linear comment formatting, and the Step 8 TODO/FIXME and skipped-test scans. All of these return a short summary to the main thread, never raw output.
+- **`sonnet`:** applying a batch of mechanical review fixes from Step 3 once the main thread has decided each one is a fix, and drafting the compound capture text.
+- **Main thread (frontier):** judging each review finding (fix vs. file to Linear), the commit-message call and its approval gate, the compound learnings themselves, and anything flagged as a loose end.
+- **GitHub reads on `haiku`:** the PR link + CI status for the Step 9 summary is a delegated `gh` lookup returning two fields, not a main-thread investigation.
+
 ## Step 1: Read Flow
 
 Read the active plan's `Flow:` metadata field (design, standard, or ship). If the plan predates flow routing, fall back to CLAUDE.md's `## Build Tier` section and map Tier 1 → design, Tier 2 → standard, Tier 3 → ship.

@@ -17,9 +17,23 @@ Autonomous mode is ON when any of these hold: this skill was invoked by `/goal`;
 - Every "Ready to proceed?" / "Ready?" / "Confirm or override?" becomes a stated one-line decision, then continue. Never wait for input.
 - Effort (Steps 4 and 6): assess against the AGENTS.md rubric, print **"[Planning|Implementation] effort: [level] ([rationale]). Proceeding."**, set the effort control, and continue.
 - Anywhere a step says to ask (flow triage tie-break, monorepo app pick, Path B plan confirmation): make the best-judgment call, state it in one line, and log it in the Step 5 or Step 7 Linear comment so the decision is auditable.
-- Delegation is expected, not optional: apply the AGENTS.md Delegation section. Keep planning, architecture calls, flow/effort decisions, and synthesis in the main thread; hand isolated execution subtasks (multi-file reads, repo exploration, per-file review passes, mechanical implementation slices, test triage) to subagents, tiered mechanical → cheapest model, moderate synthesis → mid tier, judgment → frontier.
+- Delegation is expected, not optional: apply the Delegation & Model Policy section below, and state each tier call in one line instead of asking about it.
 
 **Hard stops still hold** — autonomous mode never overrides these; stop and surface instead of guessing: red baseline tests (Step 5), dirty tree / failed base pull (Step 5), unmergeable PR after the retry (Step 8), the PRD kick-back rule (Step 3), CI red after /lfg's attempts (Step 7), and anything destructive or irreversible outside the plan's scope.
+
+## Delegation & Model Policy
+
+Applies in **both** modes, every step. This is the AGENTS.md Delegation section as it lands in this loop — read that for the full tier table.
+
+**Assess the tier before every step that runs more than a couple of tool calls.** State the call in one line — **"Delegating [work] → [haiku|sonnet] ([why])"** or **"Main thread: [work] (judgment)"** — then act. Not assessing is the error; the default is delegate-and-downshift, and "faster to do it here" is not a reason to burn frontier context on a file dump.
+
+- **Cheapest tier (`haiku`):** repo exploration, multi-file reads, existing-pattern discovery, the Step 1 project resolution scan, plan-file scaffolding and metadata-header writes, PROJECT.md / Build Log rows, Linear comment formatting, TODO/FIXME scans, git status/diff summarization.
+- **Mid tier (`sonnet`):** per-file review passes, test-suite triage, implementation slices against a settled plan, summarizing what a `haiku` pass found, drafting the PR body.
+- **Frontier (main thread, never delegated):** flow triage (Step 3), effort assessment (Steps 4 and 6), plan approval, architecture calls, the kick-back and escalation rules, CI failure diagnosis, and the Step 8 merge decision.
+
+**GitHub and CI work is cheap-tier by default.** Every `gh` / Actions operation that loops, polls, or returns bulk output goes to a `haiku` subagent — CI watch, check-status polling, fetching Actions run logs and reducing them to the failing lines, PR body assembly, workflow-YAML edits, label and secret plumbing. Escalate that subagent to `sonnet` only when the logs need real interpretation. The main thread gets the reduced result (failing test + error), not the log. Deciding what the failure *means*, and whether to merge, stays here. A single one-shot `gh` call (`gh pr view`, `gh pr merge`) stays inline — a subagent round-trip costs more than the call.
+
+**Escalate on failure, not suspicion:** start low, and on an incomplete or low-confidence result re-run one tier up rather than pulling the work into the main thread. Two failed tiers means it needed judgment... reclassify. Dispatch independent subtasks in parallel (one message, multiple Agent calls).
 
 ## Step 1: Resolve Linear Project (For This Repo)
 
@@ -173,13 +187,14 @@ Invoke `/lfg` with a task statement that includes:
 ### Implementation rules /lfg inherits
 
 - **Subagent isolation:** tasks touching 3+ files break into independent subtasks in fresh subagents, merged at the end.
+- **Tier those subagents** per the Delegation & Model Policy above: mechanical slices and file reads on `haiku`, spec-bound implementation and per-file review passes on `sonnet`, judgment in the main thread. /lfg's CI watch and its Actions log fetching run on `haiku`; only the diagnosis of a red run comes back to the frontier model.
 - **Stay on the plan.** If something doesn't verify, surface it... don't route around it.
 
 ## Step 7: Post-/lfg Verification
 
 When /lfg emits DONE (or exits with unresolved CI failures):
 
-1. Confirm: PR exists, CI status, and whether residual findings were filed to Linear (check the PR body's residuals section).
+1. Confirm: PR exists, CI status, and whether residual findings were filed to Linear (check the PR body's residuals section). Delegate this gathering to a `haiku` subagent — it's `gh pr view` plus a PR-body read, and it should return a three-line summary, not the PR. If CI is red, that same subagent pulls the Actions run logs and returns only the failing job, test, and error lines.
 2. If CI is red after /lfg's 3 attempts, surface the "CI Failures Unresolved" section to the user. Do not merge anything, and do not proceed to Step 8.
 3. Post a Linear comment on the issue: `Build complete. PR: [link]. CI: [green/red]. Residuals filed: [N or none].`
 4. If CI is green, continue directly to Step 8 (Merge & Advance).

@@ -12,7 +12,9 @@ Run the McRay Batch Execution Loop. Consume `spec-ready` issues in dependency or
 
 - Never wait for input. Decisions are stated one line at a time and logged in the issue's Linear comments.
 - Effort per phase: assess against the AGENTS.md rubric, print **"[Phase] effort: [level] ([rationale]). Proceeding."**, set the control, continue.
-- Delegation is mandatory, per the AGENTS.md Delegation section: orchestration, merge decisions, and failure triage stay in the main thread (frontier tier); implementation slices, multi-file reads, per-file review passes, and test triage go to subagents (mechanical → cheapest tier, implementation → mid tier).
+- Delegation is mandatory, per the AGENTS.md Delegation section and /zmcray-build's Delegation & Model Policy. **Assess the tier before every step that runs more than a couple of tool calls and state it in one line** (`Delegating [work] → haiku ([why])`); an unassessed step is a defect in the run, not a shortcut. Orchestration, spec-gate calls, failure diagnosis, and merge decisions stay in the main thread (frontier). Everything else goes down a tier: multi-file reads, repo exploration, the 2B plan transcription, PROJECT.md rows, and Linear comment formatting on `haiku`; implementation slices against a settled spec, per-file review passes, and test triage on `sonnet`. This is a long unattended run — main-thread context is the budget that decides how many issues it survives.
+- **GitHub and CI work runs on `haiku`** (escalate to `sonnet` only when logs need interpretation): the CI watch, check-status polling, Actions run-log fetching reduced to the failing lines, PR body assembly, workflow-YAML edits, label plumbing. One-shot `gh` calls stay inline. What a red run *means* is a frontier call.
+- Escalate on failure, not suspicion: an incomplete or low-confidence delegated result is re-run one tier up, not absorbed into the main thread. Two failed tiers on the same subtask means it needed judgment... reclassify it.
 - **Hard stops** (stop the run, surface, never guess past): red baseline tests; dirty tree or failed base pull; CI red after /lfg's 3 fix attempts; unmergeable PR after one rebase retry; 3 failed fix attempts on any single failure (gstack Iron Law... investigate, don't thrash); a spec that is materially wrong against the codebase (kick-back, below); anything destructive or irreversible outside the spec's scope.
 
 ## Step 1: Resolve Linear Project & Queue
@@ -48,7 +50,7 @@ Hand off to `/lfg` with: the issue ID and title, the derived plan file path, con
 After /lfg's own review, `flow:design` issues get an independent cross-model second opinion: run `/codex` in review-gate mode against the PR diff. High-confidence findings that CE's review didn't catch: apply as fixes and re-push. The advisor pass gets its **own budget of 2 fix rounds**, separate from /lfg's 3 CI fix attempts... advisor findings are review depth, not CI failure, and must never trip the CI hard stop. Findings still open after 2 rounds: file to Linear as residuals and move on. Low-confidence or conflicting findings: file to Linear as residuals, don't churn. `flow:standard` and `flow:ship` skip this... CE's persona review is sufficient at that blast radius.
 
 ### 2F: Verify, merge, advance
-Exactly /zmcray-build Steps 7-8: confirm PR + CI + residuals, post the build-complete comment, then auto-merge on green (`gh pr merge --squash --delete-branch`, one rebase retry on conflict), pull the default branch, post the merged comment. Respect `"automerge": false`... when off, leave the PR open, comment the link, and continue to the next issue ONLY if it isn't blocked by this one (a blocked successor with an unmerged blocker ends the run there).
+Exactly /zmcray-build Steps 7-8, including its `haiku` delegation of the PR/CI/residual gathering and any Actions log reduction: confirm PR + CI + residuals, post the build-complete comment, then auto-merge on green (`gh pr merge --squash --delete-branch`, one rebase retry on conflict), pull the default branch, post the merged comment. Respect `"automerge": false`... when off, leave the PR open, comment the link, and continue to the next issue ONLY if it isn't blocked by this one (a blocked successor with an unmerged blocker ends the run there).
 Then remove `spec-ready` from the issue (it's consumed) and leave state In Review for the human's live-app pass.
 
 ### 2G: Advance the queue
@@ -70,6 +72,7 @@ After the last issue (or a stopping failure):
 - [ ] Every issue: fresh base, green baseline, /lfg pipeline, merge-on-green
 - [ ] flow:design issues got the /codex cross-model advisor pass
 - [ ] Zero human prompts; every judgment call logged to Linear
+- [ ] Every multi-tool-call step had a stated tier call; GitHub/CI polling and log reduction ran on `haiku`, not the main thread
 - [ ] Invalidated specs kicked back, never improvised around
 - [ ] No issue branched before its blockers merged
 - [ ] Final /ce-code-review pass run and all findings fixed (or filed as residuals with reasons)
@@ -88,4 +91,4 @@ After the last issue (or a stopping failure):
 - The spec-gate kick-back (2A) is the safety valve that keeps this skill honest: execution never silently becomes planning. Kick-backs are cheap; improvised plans in an unattended run are not.
 - Linear unreachable mid-run: log to the plan file's `## Linear Sync Errors` section and continue; don't block execution on a network glitch. The wrap sync will reconcile.
 - The advisor pass (2E) is deliberately asymmetric: cross-model review earns its latency only where blast radius is high. Tune by moving the line (e.g. include flow:standard) in this file, not ad hoc mid-run.
-- Model tier names are tool-owned; map by intent (mechanical/mid/frontier), never hard-code model IDs in dispatches.
+- Model names in this file are Claude Code's (`haiku` / `sonnet` / `opus` on the subagent `model` param) because this is a Claude Code command. Never write a model name into a plan file or a Linear issue — those are read by other harnesses, where tiers map by intent (mechanical / mid / frontier) instead.
