@@ -20,8 +20,9 @@ Run the McRay Batch Execution Loop. Consume `spec-ready` issues in dependency or
 1. Resolve the project exactly as /zmcray-build Step 1 (`.linear-project.json`, monorepo per-app files). No linkage → stop; this skill has no free-text path.
 2. Build the queue: issues on the project with the `spec-ready` label, state not Done/Cancelled/In Progress, **and no incomplete blocking issues**. Sort by dependency order first (blockers before blocked), then priority, then updatedAt.
 3. Apply the argument: a specific issue ID starts the queue there; `--max N` caps the run at N issues; an app name scopes a monorepo.
-4. Print the run manifest: **"Queue: [ID, ID, ...] ([N] issues, [M] deferred as blocked). Cap: [N or none]. Starting."** Post the manifest as a comment on the Linear project.
-5. Empty queue → print "No unblocked spec-ready issues. Run /zmcray-plan or unblock the chain." and stop.
+4. Record the run's starting commit: `git rev-parse origin/[default-branch]` after a fresh fetch. Note it in the manifest — Step 3's final code review diffs `[start-sha]..HEAD` on the default branch after all merges.
+5. Print the run manifest: **"Queue: [ID, ID, ...] ([N] issues, [M] deferred as blocked). Cap: [N or none]. Base: [start-sha]. Starting."** Post the manifest as a comment on the Linear project.
+6. Empty queue → print "No unblocked spec-ready issues. Run /zmcray-plan or unblock the chain." and stop.
 
 ## Step 2: Per-Issue Loop
 
@@ -53,14 +54,15 @@ Then remove `spec-ready` from the issue (it's consumed) and leave state In Revie
 ### 2G: Advance the queue
 Re-derive the unblocked set (this merge may have freed successors). Next issue re-enters at 2A. On any hard stop, end the run... don't skip ahead past a stuck blocker.
 
-## Step 3: Compound & Wrap
+## Step 3: Review, Fix, Compound & Wrap
 
 After the last issue (or a stopping failure):
 
-1. Run `/ce-compound` once over the whole run: recurring review findings, spec-drift patterns, anything the next /zmcray-plan pass should encode. Learnings land in `docs/solutions/`.
-2. Post the run summary to the Linear project: issues completed (with PR links), kicked back, deferred as blocked, open PRs awaiting manual merge (automerge off), residuals filed, learnings captured, and where/why the run stopped if it did.
-3. Print the same summary in chat, ending with: **"Run complete: [N] merged, [M] kicked back, [K] still blocked. Next: review the In Review issues live, or /zmcray-plan for the kick-backs."**
-4. Run /zmcray-wrap once covering all issues in the run.
+1. **Final review pass:** run `/ce-code-review` over the run's merged work (the default branch diff from the run's starting commit). Fix **every** finding — implement the fixes, run tests, and land them (branch + PR + merge-on-green, same mechanics as 2F; a single cleanup PR covering all findings is fine). Only genuinely unfixable findings (scope decisions, external dependencies) get filed to Linear as residuals. A clean review is stated in one line and the step moves on. This pass runs before compound so learnings capture what the review actually surfaced.
+2. Run `/ce-compound` once over the whole run: recurring review findings, spec-drift patterns, anything the next /zmcray-plan pass should encode. Learnings land in `docs/solutions/`.
+3. Post the run summary to the Linear project: issues completed (with PR links), kicked back, deferred as blocked, open PRs awaiting manual merge (automerge off), residuals filed, learnings captured, and where/why the run stopped if it did.
+4. Print the same summary in chat, ending with: **"Run complete: [N] merged, [M] kicked back, [K] still blocked. Next: review the In Review issues live, or /zmcray-plan for the kick-backs."**
+5. Run /zmcray-wrap once covering all issues in the run.
 
 ## Success Criteria
 
@@ -70,6 +72,7 @@ After the last issue (or a stopping failure):
 - [ ] Zero human prompts; every judgment call logged to Linear
 - [ ] Invalidated specs kicked back, never improvised around
 - [ ] No issue branched before its blockers merged
+- [ ] Final /ce-code-review pass run and all findings fixed (or filed as residuals with reasons)
 - [ ] /ce-compound learnings captured; run summary posted to Linear
 - [ ] /zmcray-wrap closed the session
 

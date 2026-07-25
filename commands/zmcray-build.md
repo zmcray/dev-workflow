@@ -1,6 +1,6 @@
 ---
 name: zmcray-build
-description: Run the flow-routed build loop. Reads the issue's flow label, runs the right pre-work, then hands off to /lfg for execution through PR. Auto-pulls highest-priority Linear issue when no arg given.
+description: Run the flow-routed build loop. Reads the issue's flow label, runs the right pre-work, then hands off to /lfg for execution through PR, merges on green, and auto-wraps (code review + fix, compound, Linear sync). Auto-pulls highest-priority Linear issue when no arg given.
 argument-hint: "[Linear issue ID like MCR-123, an app name in a monorepo (e.g. radar), or free-text task description]"
 ---
 
@@ -134,6 +134,7 @@ Flow: [design|standard|ship]
 Linear Project: [name from Step 1, or "none"]
 Linear Issue: [ID from Step 2, or "none"]
 Linear Branch: [gitBranchName from Linear, or "none"]
+Base Commit: [filled in at Step 5 — the default-branch SHA the feature branch was cut from]
 Task: [one-line description]
 ---
 ```
@@ -147,6 +148,7 @@ Task: [one-line description]
 2. Create the feature branch from that fresh base:
    - If a Linear `gitBranchName` was captured, use it: `git checkout -b [gitBranchName]`
    - Otherwise: `git checkout -b feat/[short-description]`
+   - Record the base SHA (`git rev-parse HEAD` before any commits) into the plan file's `Base Commit:` field. This is what wrap's code review diffs against — it survives the squash-merge and branch deletion.
 3. Run existing tests. Confirm green baseline. If tests fail, stop and surface failures before proceeding.
 4. **If a Linear issue is linked**, update Linear:
    - Move the issue state to **In Progress**.
@@ -186,14 +188,24 @@ When /lfg emits DONE (or exits with unresolved CI failures):
 
 Runs automatically after Step 7 when CI is green. This is what keeps multi-issue runs conflict-free: each PR merges before the next issue branches, so every build starts on top of the previous one's merged code.
 
-**Opt-out:** skip this step if `.linear-project.json` has `"automerge": false`, or the user said not to merge in this session or goal. When skipped, print **"/lfg done. PR [link], CI green. Auto-merge is off — merging is your call. Next: /zmcray-wrap."** and stop.
+**Opt-out:** skip this step if `.linear-project.json` has `"automerge": false`, or the user said not to merge in this session or goal. When skipped, print **"/lfg done. PR [link], CI green. Auto-merge is off — merging is your call."** and continue to Step 9 (wrap still runs; note the unmerged PR as a loose end).
 
 1. **Gate:** CI green and PR mergeable (`gh pr view [number] --json mergeable,mergeStateStatus`). Never merge a red or blocked PR.
 2. Merge: `gh pr merge [number] --squash --delete-branch`
 3. **If GitHub reports conflicts** (something else landed on the default branch mid-build): `git fetch origin && git rebase origin/[default-branch]`, resolve conflicts, `git push --force-with-lease`, wait for CI to go green again, then retry the merge once. If it still fails, stop and surface — don't loop.
 4. Advance the local base: `git checkout [default-branch] && git pull origin [default-branch]`. Confirm the squash commit is present (`git log -1`).
 5. Post a Linear comment on the issue: `PR merged to [default-branch]: [link].` (State stays In Review — the user reviews the live app; /zmcray-wrap handles the final state.)
-6. Print: **"PR [link] merged (squash) and [default-branch] updated. The next issue will branch from this state. Next: /zmcray-wrap, or the next issue in the run."**
+6. Print: **"PR [link] merged (squash) and [default-branch] updated. The next issue will branch from this state."** Then continue to Step 9.
+
+## Step 9: Wrap (automatic)
+
+Build ends with a wrap — don't leave the session open. Run `/zmcray-wrap` now, **unless**:
+
+- This build is one iteration of a multi-issue run (a `/goal` run or a batch session) that will continue to another issue — then defer to the single wrap at the end of the run (per Multi-Issue Runs below; /goal's own Step 3 handles it).
+- The user explicitly said to skip the wrap this session.
+- Step 7 or 8 hard-stopped (red CI, unmergeable PR) — surface the stop; the user decides whether to wrap a broken session.
+
+The wrap carries the session's close-out machinery: the code review + fix pass, compound capture, plan archive, PROJECT.md sync, and the Linear In Review move. Running it here means a plain `/zmcray-build` invocation gets all of that without a separate command.
 
 ## Multi-Issue Runs (goals / batch builds)
 
@@ -202,7 +214,7 @@ When a goal or a single session works through multiple Linear issues:
 - **Strictly sequential:** one issue → PR → merge (Step 8) → next issue. Never start issue N+1's branch before issue N's PR has merged.
 - Each iteration re-enters at Step 2. Step 5's fresh-base rule plus Step 8's merge guarantee the new branch includes everything merged so far — this is the conflict-prevention mechanism; don't skip either half.
 - If any PR can't merge (red CI, unresolvable conflict), **stop the run there** and surface. Don't skip ahead to the next issue — it would branch from a base missing the stuck work and recreate the conflict problem.
-- Run /zmcray-wrap per issue, or once at the end covering all issues (list each PR in the summary).
+- Defer Step 9's per-issue wrap during the run; run /zmcray-wrap once at the end covering all issues (list each PR in the summary). The wrap's code-review + compound pass then covers the whole run's diff in one shot.
 
 ## Review Reference
 

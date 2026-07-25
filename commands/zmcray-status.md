@@ -36,6 +36,7 @@ Issue: [ID] [title] -> [state] | Priority: [X]      (omit if unlinked)
 [ ] Plan (ce-plan council)
 [ ] Architecture pass (plan-eng-review)
 [ ] Execute (/lfg: work > review > test > PR > CI)
+[ ] Review (ce-code-review)
 [ ] Learn (ce-compound)
 ```
 
@@ -47,6 +48,7 @@ Issue: [ID] [title] -> [state] | Priority: [X]      (omit if unlinked)
 
 [ ] Plan (ce-plan council)
 [ ] Execute (/lfg: work > review > test > PR > CI)
+[ ] Review (ce-code-review)
 [ ] Learn (ce-compound)
 ```
 

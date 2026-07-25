@@ -27,7 +27,21 @@ Run `git status` and `git diff --stat`. If there are uncommitted changes:
 
 If working tree is clean, say so and move on.
 
-## Step 3: Compound (design and standard flows only)
+## Step 3: Code Review & Fix
+
+Always runs, every wrap — /lfg's in-pipeline review is not a substitute (in practice /ce-code-review surfaces findings /lfg's pass misses). Run `/ce-code-review` over the session's changes. Resolve the diff range first — the PR is usually already squash-merged by wrap time, so a plain branch-vs-default diff would be empty:
+
+1. **Preferred:** read `Base Commit:` from the active plan's metadata header and review `git diff [base-commit]..HEAD` (on the default branch post-merge, this is exactly the session's work; on an unmerged feature branch it's the same range).
+2. **Fallback (no Base Commit field):** on an unmerged feature branch, diff against the merge-base with the default branch (`git diff $(git merge-base [default-branch] HEAD)..HEAD`). If already merged, review the session's squash commit(s) — identify them by the `[ISSUE-ID]` tag or the session's start time in `git log`.
+
+State the range in one line ("Reviewing [base]..[head], N files"), then run the review against it.
+
+- Fix **every** finding it reports — don't defer to Linear from this pass; the point is to enter compound with a clean slate.
+- Commit the fixes with a conventional message (append `[ISSUE-ID]` if the plan has one).
+- If a finding is genuinely unfixable right now (needs a scope decision, external dependency), file it to Linear and list it in Step 8's loose ends — but that's the exception, not the default.
+- If the review comes back clean, say so and move on.
+
+## Step 4: Compound (design and standard flows only)
 
 If the flow is design or standard, and `/ce-compound` has NOT already been run in this session:
 - Run `/ce-compound`
@@ -36,7 +50,7 @@ If the flow is design or standard, and `/ce-compound` has NOT already been run i
 
 If the flow is ship, skip this step.
 
-## Step 4: Update PROJECT.md (Lightweight)
+## Step 5: Update PROJECT.md (Lightweight)
 
 Open PROJECT.md at the project root.
 
@@ -48,13 +62,13 @@ Skip milestones-update logic. Milestones now live in Linear as projects/cycles o
 
 If PROJECT.md doesn't exist, note it in the session summary and move on. Don't block the wrap.
 
-## Step 5: Archive Plan
+## Step 6: Archive Plan
 
 Find the most recent plan file in `docs/plans/` (not in archive/).
 - Add a `## Outcome` section at the bottom: shipped, partially shipped, or abandoned
 - Move it to `docs/plans/archive/`
 
-## Step 6: Sync Linear
+## Step 7: Sync Linear
 
 Read the (now-archived) plan file's metadata header. Look for `Linear Issue:` value.
 
@@ -90,7 +104,7 @@ Read the (now-archived) plan file's metadata header. Look for `Linear Issue:` va
 
 If Linear is unreachable, log the failure inline in the chat and append it to PROJECT.md's Build Log row so you can retry manually.
 
-## Step 7: Flag Loose Ends
+## Step 8: Flag Loose Ends
 
 Check for:
 - Any `TODO` or `FIXME` comments added during this session (search git diff)
@@ -99,7 +113,7 @@ Check for:
 
 If any exist, list them in a short summary. If none, say "Clean session, nothing outstanding."
 
-## Step 8: Session Summary
+## Step 9: Session Summary
 
 Print a brief wrap-up:
 ```
@@ -107,6 +121,7 @@ Session: [what was built]
 Flow: [design|standard|ship]
 PR: [link + CI status + merged/unmerged, or none]
 Commits: [number of commits this session]
+Review: [N findings fixed / clean / skipped]
 Compound: [captured / skipped]
 PROJECT.md: [updated / not found]
 Linear: [ISSUE-ID → In Review | Done | In Progress (held) | none]
