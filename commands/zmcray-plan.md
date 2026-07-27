@@ -89,6 +89,15 @@ Run `/ce-plan` with the feature (plus PRD section, if any) as input. Shape its o
 ## Scope Boundaries
 [Explicit non-goals. What this issue deliberately does NOT do.]
 
+## CI Impact (only when applicable)
+- Trigger and path scope: ...
+- Repository visibility and runner class: ...
+- Fast required PR checks: ...
+- Full merge/manual coverage: ...
+- Artifact policy (conditions, estimated size, retention): ...
+- Required-check compatibility: ...
+- Expected Actions usage change: ...
+
 ## Deferred to Implementation
 [Only decisions that require seeing code mid-flight. Empty is the goal.]
 
@@ -98,8 +107,10 @@ Run `/ce-plan` with the feature (plus PRD section, if any) as input. Shape its o
 
 For `flow:design` features, additionally run `/plan-eng-review` on the spec (architecture, failure modes, test matrix) and fold its findings into the units.
 
+Include `## CI Impact` when the feature changes `.github/workflows/**`, test topology, artifact uploads, scheduled jobs, runner labels, or monorepo workflow routing. Apply the canonical CI cost discipline: preserve coverage while reducing redundant execution, and explicitly resolve branch-protection compatibility before proposing path filters. Omit the section when CI is genuinely unaffected.
+
 ### 4D: Quality gate
-Score the spec 1-10 against the executability bar: complete files list, single decided approach per unit, testable verification steps, real scope boundaries, near-empty deferred section. **Below 7: do not log the issue.** Loop back... in taste/review mode ask the narrowing questions; in --auto mode do another research pass (subagent) and re-spec once, and if still below 7, log it as a normal (non-spec-ready) issue with a comment explaining what's missing and move on.
+Score the spec 1-10 against the executability bar: complete files list, single decided approach per unit, testable verification steps, real scope boundaries, near-empty deferred section, and a complete CI Impact section when applicable. **Below 7: do not log the issue.** Loop back... in taste/review mode ask the narrowing questions; in --auto mode do another research pass (subagent) and re-spec once, and if still below 7, log it as a normal (non-spec-ready) issue with a comment explaining what's missing and move on.
 
 ### 4E: Taste checkpoint (taste mode only)
 If this feature raised taste calls, ask them now, batched in one AskUserQuestion. Fold answers into the spec. Review mode: present the full spec for approval instead.

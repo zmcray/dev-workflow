@@ -22,3 +22,4 @@ This skill is a coordinator. When the workflow names a skill (`$ce-plan`, `$offi
 - Exactly one `flow:*` label + `spec-ready` per issue; `blocked by` relations encode execution order.
 - Advisor pass (scope-guardian / feasibility / adversarial, confidence-gated) runs before the plan is declared done.
 - PRD kick-back rule: scope beyond a `prd-source` PRD goes back to $caspian, never silently expanded.
+- Issues that change workflows, test topology, artifacts, schedules, runner labels, or monorepo CI routing include the canonical `## CI Impact` section and pass its required-check compatibility gate.

@@ -29,6 +29,8 @@ The block defines the two routing signals (`flow:*` rigor + `prd-source` strateg
 
 The **Delegation** axis is a hard rule, not a hint: every step with more than a couple of tool calls must have a stated tier call, the default is delegate-and-downshift, and all GitHub/CI work that loops or returns bulk output (CI watch, Actions log reduction, PR body assembly, workflow YAML) runs on the cheapest tier that can do it. Judgment — flow triage, plan approval, architecture, failure diagnosis, the merge call — stays in the main thread. The `zmcray-*` command files name Claude Code's models directly (`haiku` / `sonnet` / `opus`); plans and Linear issues never do, since other harnesses read those.
 
+The canonical block also defines **CI cost discipline**. It preserves test coverage while reducing wasted Actions usage through cancellation of superseded runs, safe path scoping, fast PR gates plus full merge/manual suites, fewer tiny billed jobs, short failure-only artifact retention, scheduled-job preflights, and local verification before batched pushes. Planning records a `## CI Impact` contract when a change affects CI; build and execute enforce it.
+
 ## Deploy the workflow (AGENTS.md)
 
 ```bash
@@ -60,7 +62,7 @@ cp -R ~/Developer/dev-workflow/codex/skills/* ~/.codex/skills/
 2. Re-run the relevant deploy command above.
 3. Commit. The repo's git history is the version record.
 
-Note: a skill's *steps* are dual-sourced — `commands/<name>.md` (Claude) and `codex/skills/<name>/SKILL.md` (Codex) are separate files in different formats. When you change what a skill *does*, update both so the tools stay in lockstep. Tool-agnostic build rules live once in `AGENTS.workflow.md` and reach every tool via each repo's `AGENTS.md`; only the thin per-tool skill wrappers are duplicated.
+Note: a skill's *steps* are dual-sourced — `commands/<name>.md` (Claude) and `codex/skills/<name>/SKILL.md` (Codex) are separate files in different formats. When you change what a skill *does*, update both so the tools stay in lockstep. Tool-agnostic build and CI cost rules live once in `AGENTS.workflow.md` and reach every tool via each repo's `AGENTS.md`; only the thin per-tool skill wrappers are duplicated.
 
 ## Repos covered
 
