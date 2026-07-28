@@ -86,7 +86,19 @@ This is a dashboard OAuth click-through, so kickoff can't fully automate it — 
 
 Don't consider a Supabase repo fully wired until this exists.
 
-## Step 6: Initialize PROJECT.md (Slim)
+## Step 6: Audit GitHub Actions cost and safety
+
+If `.github/workflows/` is absent or empty, record "no workflows" and continue; kickoff does not create general-purpose CI by default. Otherwise inspect every workflow against the canonical **CI cost discipline** in `AGENTS.md`:
+
+1. Record repository visibility and each job's runner class.
+2. Add safe mechanical defaults where missing: workflow/ref concurrency with cancellation, short artifact retention, failure-only diagnostic uploads, and secret/config preflights for scheduled or external-service jobs.
+3. Identify safe docs-only or monorepo path filters. Before applying one, confirm the skipped workflow is not a required branch-protection check that would stay pending.
+4. Flag expensive runner tiers, duplicated matrices, sub-minute job fragmentation, large artifacts, and full suites that run on every push. Recommend a fast required PR gate plus full merge/manual coverage where appropriate; never weaken required coverage just to save minutes.
+5. Keep scheduled workflows disabled until their required secrets and configuration are confirmed.
+
+Apply unambiguous repository-local fixes. Surface topology or branch-protection choices that need product/release judgment in the handoff.
+
+## Step 7: Initialize PROJECT.md (Slim)
 
 If `PROJECT.md` does not exist at the repo root, create it:
 
@@ -113,11 +125,11 @@ If `PROJECT.md` does not exist at the repo root, create it:
 
 No Tier row (flow is per-issue). No Strategy section (lives in the Linear project + the PRD). No Milestones table (Linear projects/cycles or plan files). If a legacy rich PROJECT.md exists, leave its existing rows alone and just add the `Linear` / `GitHub` rows if missing.
 
-## Step 7: Initial Commit
+## Step 8: Initial Commit
 
 If Step 1 created the repo (or there are setup files uncommitted), stage and commit the scaffold: `chore: wire repo into build system (AGENTS.md, PROJECT.md, docs/plans)`. If a remote was created in 1C with `--push`, the branch is already pushed; otherwise `git push -u origin main`.
 
-## Step 8: Handoff
+## Step 9: Handoff
 
 Close with the right next step based on what Step 3 found:
 
@@ -141,6 +153,7 @@ So: kickoff creates the *project shell*; caspian creates the *issues*. Whichever
 - [ ] `docs/plans/archive/` and `docs/checkpoints/` exist
 - [ ] Linear linkage resolved (created, linked, or explicitly skipped); `.linear-project.json` written at the repo root if linked
 - [ ] AGENTS.md carries the canonical block; CLAUDE.md imports it
+- [ ] Existing GitHub Actions were audited for runner cost, cancellation, trigger scope, required-check compatibility, artifacts, and scheduled-job readiness
 - [ ] If the repo uses Supabase: automatic migration-to-prod path configured (native GitHub Integration, or fallback db-push Action) and confirmed
 - [ ] Slim PROJECT.md exists with Linear + GitHub rows
 - [ ] Scaffold committed; handoff step printed

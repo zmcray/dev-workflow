@@ -139,6 +139,10 @@ No pre-work. `/lfg`'s built-in plan gate (a written plan file must exist in `doc
 
 After each pre-work skill completes, print: **"[Skill] complete. Next step: [next]. Ready?"** Wait for confirmation.
 
+### CI impact gate (when applicable)
+
+If the task or plan changes `.github/workflows/**`, test topology, artifact uploads, scheduled jobs, runner labels, or monorepo workflow routing, apply the canonical **CI cost discipline** before branching. The plan must state trigger/path scope, repository visibility and runner class, fast required PR checks versus full merge/manual coverage, artifact conditions/size/retention, branch-protection compatibility, and expected Actions usage change. Add the section if an older plan omitted it. Never reduce required coverage merely to save minutes.
+
 **Plan file convention (design + standard):** ensure the plan lands in `docs/plans/plan-[YYYY-MM-DD]-[short-description].md` (create `docs/plans/archive/` if missing) with this metadata header, so /lfg's gate and /zmcray-wrap can find it:
 
 ```
@@ -183,11 +187,13 @@ Invoke `/lfg` with a task statement that includes:
 - **Commit convention:** conventional commits with `[ISSUE-ID]` appended, e.g. `feat: implement upload flow [MCR-123]`, so Linear auto-links
 - **Test-first directive (design + standard only):** "Write the failing test before the implementation for each unit of work."
 - **Constraint:** stay within the plan's scope; if the work wants more, stop and apply the kick-back rule from Step 3 instead of improvising
+- **CI execution discipline:** run focused verification locally before the first push, batch coherent fixes into one push, and do not rerun an unchanged failed job unless evidence points to transient infrastructure. Workflow changes must preserve the plan's CI Impact decisions and the canonical CI cost discipline.
 
 ### Implementation rules /lfg inherits
 
 - **Subagent isolation:** tasks touching 3+ files break into independent subtasks in fresh subagents, merged at the end.
 - **Tier those subagents** per the Delegation & Model Policy above: mechanical slices and file reads on `haiku`, spec-bound implementation and per-file review passes on `sonnet`, judgment in the main thread. /lfg's CI watch and its Actions log fetching run on `haiku`; only the diagnosis of a red run comes back to the frontier model.
+- **Preserve coverage while cutting waste:** cancellation, safe path scoping, job consolidation, artifact limits, and PR/merge suite separation are valid optimizations; skipping required tests is not.
 - **Stay on the plan.** If something doesn't verify, surface it... don't route around it.
 
 ## Step 7: Post-/lfg Verification

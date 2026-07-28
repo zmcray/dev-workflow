@@ -14,6 +14,7 @@ Run the McRay Batch Execution Loop. Consume `spec-ready` issues in dependency or
 - Effort per phase: assess against the AGENTS.md rubric, print **"[Phase] effort: [level] ([rationale]). Proceeding."**, set the control, continue.
 - Delegation is mandatory, per the AGENTS.md Delegation section and /zmcray-build's Delegation & Model Policy. **Assess the tier before every step that runs more than a couple of tool calls and state it in one line** (`Delegating [work] → haiku ([why])`); an unassessed step is a defect in the run, not a shortcut. Orchestration, spec-gate calls, failure diagnosis, and merge decisions stay in the main thread (frontier). Everything else goes down a tier: multi-file reads, repo exploration, the 2B plan transcription, PROJECT.md rows, and Linear comment formatting on `haiku`; implementation slices against a settled spec, per-file review passes, and test triage on `sonnet`. This is a long unattended run — main-thread context is the budget that decides how many issues it survives.
 - **GitHub and CI work runs on `haiku`** (escalate to `sonnet` only when logs need interpretation): the CI watch, check-status polling, Actions run-log fetching reduced to the failing lines, PR body assembly, workflow-YAML edits, label plumbing. One-shot `gh` calls stay inline. What a red run *means* is a frontier call.
+- **CI cost discipline is inherited from `AGENTS.md`:** honor every applicable issue's `## CI Impact` decisions. Preserve required coverage, run focused verification before the first push, batch coherent fixes, and never rerun an unchanged failure without evidence of transient infrastructure.
 - Escalate on failure, not suspicion: an incomplete or low-confidence delegated result is re-run one tier up, not absorbed into the main thread. Two failed tiers on the same subtask means it needed judgment... reclassify it.
 - **Hard stops** (stop the run, surface, never guess past): red baseline tests; dirty tree or failed base pull; CI red after /lfg's 3 fix attempts; unmergeable PR after one rebase retry; 3 failed fix attempts on any single failure (gstack Iron Law... investigate, don't thrash); a spec that is materially wrong against the codebase (kick-back, below); anything destructive or irreversible outside the spec's scope.
 
@@ -33,7 +34,7 @@ Strictly sequential, per the build skill's Multi-Issue Runs rule: issue N's PR m
 For each issue:
 
 ### 2A: Spec gate
-Pull the issue. Verify the spec bar: Implementation Units with files/approach/verification, Scope Boundaries present, `flow:*` label present. If the spec is missing or materially wrong against the current codebase (files moved, approach invalidated by merged work from earlier in this run):
+Pull the issue. Verify the spec bar: Implementation Units with files/approach/verification, Scope Boundaries present, `flow:*` label present, and `## CI Impact` present when the issue changes workflows, test topology, artifacts, schedules, runner labels, or monorepo CI routing. If the spec is missing or materially wrong against the current codebase (files moved, approach invalidated by merged work from earlier in this run):
 - Minor drift (paths renamed, pattern moved): adapt, note the adaptation in a Linear comment, proceed.
 - Material invalidation (approach can't work): **kick back.** Remove `spec-ready`, move the issue state to Backlog (same as the canonical kick-back rule), comment "Spec invalidated: [reason]. Needs /zmcray-plan re-pass.", skip to the next issue whose blockers are all still satisfied. Do not improvise a new plan mid-run.
 
@@ -73,6 +74,7 @@ After the last issue (or a stopping failure):
 - [ ] flow:design issues got the /codex cross-model advisor pass
 - [ ] Zero human prompts; every judgment call logged to Linear
 - [ ] Every multi-tool-call step had a stated tier call; GitHub/CI polling and log reduction ran on `haiku`, not the main thread
+- [ ] Applicable CI Impact decisions were honored without weakening required coverage or triggering redundant reruns
 - [ ] Invalidated specs kicked back, never improvised around
 - [ ] No issue branched before its blockers merged
 - [ ] Final /ce-code-review pass run and all findings fixed (or filed as residuals with reasons)

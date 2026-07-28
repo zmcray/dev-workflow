@@ -87,7 +87,19 @@ A Supabase repo MUST have an automatic path that applies migrations to the **pro
 
 Don't consider a Supabase repo fully wired until this exists.
 
-## 7. PROJECT.md
+## 7. GitHub Actions cost and safety audit
+
+If `.github/workflows/` is absent or empty, record "no workflows" and continue; do not create general-purpose CI by default. Otherwise inspect every workflow against the canonical **CI cost discipline** in `AGENTS.md`:
+
+1. Record repository visibility and runner class.
+2. Apply safe defaults where missing: workflow/ref concurrency with cancellation, short artifact retention, failure-only diagnostics, and secret/config preflights for scheduled or external-service jobs.
+3. Identify safe docs-only or monorepo path filters, but first confirm a skipped workflow is not a required branch-protection check that would remain pending.
+4. Flag expensive runner tiers, duplicated matrices, tiny fragmented jobs, large artifacts, and full suites on every push. Prefer a fast required PR gate plus full merge/manual coverage without weakening required coverage.
+5. Keep scheduled workflows disabled until required secrets and configuration are confirmed.
+
+Apply unambiguous repository-local fixes and surface topology or branch-protection choices in the handoff.
+
+## 8. PROJECT.md
 
 If `PROJECT.md` is missing, create the slim file:
 
@@ -114,7 +126,7 @@ If `PROJECT.md` is missing, create the slim file:
 
 If a richer legacy file exists, preserve it and add missing Linear/GitHub identity rows.
 
-## 8. Commit and Handoff
+## 9. Commit and Handoff
 
 If setup files changed, stage and commit with:
 

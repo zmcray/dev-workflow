@@ -93,6 +93,12 @@ Fallback rule:
 
 - Use native Codex review only when the named review skill file is missing or unreadable. In that case, state the missing path, perform the closest native review, write the same `## GSTACK REVIEW REPORT` shape into the plan, and mark the relevant review status as fallback. Do not silently downgrade.
 
+CI impact gate:
+
+- If the task changes `.github/workflows/**`, test topology, artifacts, schedules, runner labels, or monorepo workflow routing, require the plan's canonical `## CI Impact` section before branching.
+- Resolve trigger/path scope, repository visibility and runner class, fast required PR checks versus full merge/manual coverage, artifact conditions/size/retention, required-check compatibility, and expected usage change.
+- Apply the canonical CI cost discipline from `AGENTS.md`; preserve required coverage while removing redundant execution.
+
 After each pre-work gate, print the gate completed, the next required gate, and ask "Ready to proceed?" only when the workflow requires confirmation. If the next gate is mandatory and not yet run, do not phrase implementation as the next step.
 
 ## 5. Branch, Baseline, Sync
@@ -103,7 +109,7 @@ If Linear is linked, move the issue to In Progress and post a start comment. Upd
 
 ## 6. Execute
 
-Implement within the plan scope. For design and standard flows, write failing tests before implementation for API, data, auth, DB, or other meaningful logic. Follow repo code standards, review your diff, run focused tests plus build/typecheck as appropriate, and fix review findings instead of filing residuals unless the finding is genuinely out of scope.
+Implement within the plan scope. For design and standard flows, write failing tests before implementation for API, data, auth, DB, or other meaningful logic. Follow repo code standards, review your diff, run focused tests plus build/typecheck as appropriate, and fix review findings instead of filing residuals unless the finding is genuinely out of scope. Run focused verification locally before the first push, batch coherent CI fixes, and do not rerun unchanged failures unless evidence points to transient infrastructure.
 
 For work touching 3+ files, split the work into independent subtasks mentally or with available subagent tooling; in Codex, use main-thread execution unless a real multi-agent tool is available.
 
