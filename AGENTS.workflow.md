@@ -11,9 +11,34 @@ A repo wired into this system is:
 - A git repo with a private GitHub remote, kebab-case name matching the folder, living under `~/Developer` (never iCloud), with `node_modules`, `.next`, build output, and `.env*` gitignored.
 - Linked to a Linear project, recorded in a `.linear-project.json` file at the repo root (id + slug + name). The link travels with the repo... no central cache.
 - Carrying this `AGENTS.md` plus a `CLAUDE.md` that imports it (`@AGENTS.md`).
+- Carrying a research corpus at `docs/research/` with `README.md`, `INDEX.md`, `topics/`, `sources/`, and reusable templates. Initialize this structure for every new project even when it begins empty; the index is the entry point for agents and humans.
 - **If it uses a deployed database (e.g. Supabase): an automatic migration-to-prod path, wired BEFORE the first production deploy.** Deploying code never applies DB migrations — they are a separate ship — so without this, shipped code runs ahead of the prod schema and every page touching it 500s. Default (Supabase): the native **GitHub Integration** (dashboard → project → Integrations → GitHub) — OAuth, no stored secrets, applies migrations on merge to the production branch; set **Working directory** to the folder that *contains* `supabase/` (the repo root `.`, or a subdir like `app`/`atlas` if it's nested), **Deploy to production** ON → `main`, **Automatic branching** OFF (per-PR preview DBs are billable, uncapped). Fallback: a `supabase db push` GitHub Action gated on `main` with the project's access-token / project-ref / db-password as repo secrets. `/zmcray-kickoff` sets this up.
 
+**iOS repos:** the App Store Connect API key lives at `~/.appstoreconnect/private_keys/` — the conventional location, so `xcodebuild`, `fastlane`, and `altool` find it by key ID without a configured path. The `README.md` beside it records the key ID, issuer ID, and the endpoints for answering "is this build on TestFlight" and "did Xcode Cloud actually trigger". Read that file rather than hunting for credentials; never copy the `.p8` into a repo. Note that Xcode Cloud config lives in App Store Connect, not in the repo, so a TestFlight pipeline can be fully wired while nothing in `.github/workflows/` mentions it — check for an `xcode-cloud` check run on a recent commit before concluding a repo has no release automation.
+
 Plans live in `docs/plans/` (archive completed ones in `docs/plans/archive/`); checkpoints live in `docs/checkpoints/`. Flow is never set at the repo level: it is a per-issue property (see below). On Claude Code, `/zmcray-kickoff` performs this setup once, then hands off to `/caspian` (PRD + issues) and `/zmcray-build` (per issue). The canonical sequence for a new product is **kickoff (wire the repo) > caspian (strategy: PRD + labeled issues) > build (per issue)**.
+
+## Research corpus
+
+Every project keeps reusable research in `docs/research/`. The corpus is the evidence layer, separate from strategy and delivery documents:
+
+```text
+docs/research/
+├── README.md          # Corpus rules, evidence vocabulary, contribution workflow
+├── INDEX.md           # Searchable map of topics, coverage, and open gaps
+├── topics/            # Cross-source syntheses with stable claim IDs
+├── sources/           # One evidence card per paper, dataset, or first-party source
+└── templates/         # Required topic and source-card shapes
+```
+
+- **Sources record evidence.** Capture the method, population, exact findings, limitations, durable link, and which claim IDs the source supports. Label telemetry, experiments, surveys, qualitative work, literature reviews, first-party product statements, and vendor research distinctly.
+- **Topics synthesize evidence.** State bounded findings with stable claim IDs, confidence, scope, disagreement, product implications, what the evidence does not prove, and explicit triggers for further research.
+- **The index routes discovery.** Keep topic status, last-review dates, coverage, source inventory, and gaps current so an agent can find relevant work without rereading the repository.
+- **PRDs and plans make decisions.** They cite topic claim IDs rather than duplicating research prose. Decision documents may interpret the evidence, but must distinguish findings from assumptions and product judgment.
+- **Research is cumulative.** Before commissioning more, search the corpus and reuse what applies. Extend it only when a load-bearing claim is unknown, conflicting, materially stale, or outside the studied population/context. If the remaining question is product-specific, prefer an instrumented test with success and kill conditions.
+- **New evidence returns to the corpus.** Add or update source cards, topic synthesis, and index coverage before closing research-bearing work. Do not store participant personal data, credentials, paywalled copies, or copyrighted full texts.
+
+Every Think or Plan phase that depends on user, market, workflow, or behavioral claims begins by reading `docs/research/INDEX.md`. The resulting design doc or plan includes a short **Research decision**: `reuse`, `extend`, or `none needed`, with linked claim IDs and any additional research required. Absence of relevant corpus evidence is a signal to evaluate the gap, not an automatic mandate to research.
 
 ## Build workflow (tool-agnostic)
 
@@ -39,7 +64,7 @@ If an issue is unlabeled, triage it in ~30 seconds, apply the label in Linear, s
 | Phase | Role | Command implementation (use if available) | Native fallback (any tool) |
 |---|---|---|---|
 | **Think** | Founder/strategy lens: is this the right problem, framed the right way? | gstack `/office-hours` then `/plan-ceo-review`; or Compound Engineering `/ce-brainstorm` / `/ce-ideate` | Write a short design doc answering: problem, who it is for, the 10x version, what we are deliberately not doing. |
-| **Plan** | Turn the issue (and PRD, if present) into a concrete, reviewed plan | CE `/ce-plan` (its persona council gates the plan: feasibility, design, product, scope, security) | Write `docs/plans/plan-[date]-[slug].md` with the metadata header below; self-review it against feasibility, scope, and security before writing code. |
+| **Plan** | Turn the issue (and PRD, if present) into a concrete, reviewed plan; consult the research corpus and record the research decision | CE `/ce-plan` (its persona council gates the plan: feasibility, design, product, scope, security) | Read `docs/research/INDEX.md`, write `docs/plans/plan-[date]-[slug].md` with the metadata header below, include a Research decision (`reuse`, `extend`, or `none needed`), and self-review it against feasibility, scope, and security before writing code. |
 | **Execute** | Implement through to a merged PR (CI green, then merge-on-green — see Discipline) | CE `/lfg` (plan gate > work > plan-aware multi-persona code review > apply fixes + commit > file residuals to Linear > browser test > commit/push/PR > CI watch, max 3 fix attempts), then the merge-on-green rule | Implement on a branch, write tests, run the review yourself or via `/ce-code-review`, commit, push, open the PR, watch CI to green, file any unfixed findings to Linear as issues, then merge per the merge-on-green rule. Delegate the CI watch, Actions log reduction, and per-file review passes to cheap/mid-tier subagents per Delegation; keep failure diagnosis and the merge call in the main thread. |
 | **Learn** | Capture what worked and what the plan missed so the next build is easier | CE `/ce-compound` | Append a short "what worked / what the plan missed / new pattern" note to this repo's learnings (CLAUDE.md `## Compound Learnings` or a `LEARNINGS.md`). |
 
@@ -131,6 +156,18 @@ Linear Branch: [gitBranchName or "none"]
 Task: [one-line description]
 ---
 ```
+
+Every design or standard plan also includes:
+
+```markdown
+## Research decision
+
+- Decision: [reuse | extend | none needed]
+- Evidence: [linked topic claim IDs, or why no corpus evidence is required]
+- Additional research: [specific gap and method, or none]
+```
+
+`extend` is reserved for a gap that could materially change the plan. Add resulting evidence to `docs/research/` before the issue closes.
 
 ### Session close
 
