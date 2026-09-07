@@ -1,5 +1,15 @@
 <!-- BEGIN CANONICAL WORKFLOW (managed by deploy-agents-md.sh ... edit here, not in repos) -->
 
+## Secrets
+
+Never ask Zack to paste a secret into chat, a file, or a command line. When a new secret is needed (local `.env` and/or a GitHub repo secret), hand him one terminal command that prompts silently with `read -rs`, writes to every destination, and unsets the variable. Template (substitute NAME, the repo path, and owner/repo):
+
+```bash
+read -rs "KEY?Paste NAME: " && echo && printf '\nNAME=%s\n' "$KEY" >> <repo>/.env && printf '%s' "$KEY" | gh secret set NAME -R <owner/repo> && unset KEY && echo "Done"
+```
+
+Then verify by name only (`gh secret list`, `grep -c '^NAME=' .env`). Never print, log, or echo a secret value.
+
 ## Issue tracker
 
 Linear (Mcraygroup team). File all deferred findings, residuals, and follow-ups there. The board is the audit trail: move issue status as work progresses, post plan and review summaries as comments, and link the PR. A reviewer should be able to follow the whole build without opening a terminal.
