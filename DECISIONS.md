@@ -95,3 +95,8 @@ All "Based on" citations trace to `docs/research/2026-08-state-of-practice.md` u
 
 **Why:** Linear tracks execution (issues, phases); the Supabase OS (`os.objectives`, `os.roadmap_items`) tracks objectives and weekly commitment. The factory registered as objective `os-two-shift-factory` under the `os` workstream so strategy sessions and weekly reviews surface it.
 **Based on:** Existing McRay Group OS conventions (roadmap contract v1, 2026-07-21).
+
+## D-019: Fork a small set of mattpocock/skills; do not subscribe to the plugin
+
+**Why:** Four of Matt Pocock's skills fill the factory's thinnest spot, the day-shift front end: `grilling` (frontier-of-questions interview, recommended answer per question) gates the packet; `domain-modeling` keeps a `CONTEXT.md` glossary and ADRs so every agent speaks the same terms (the direct lever on D-016); `code-review` splits Standards from Spec in parallel subagents and enforces the file-scope fence at review time; `wizard` scripts the steps only a human can do (secrets, dashboards, signing). Forked rather than installed as the read-only plugin because each is rewritten on day one to Linear, the build packet, and our labels, and because the Learn phase must be able to amend them. The other 33 skills duplicate Caspian, zmcray-plan, lfg, and CE. Upstream hash recorded in `skills/UPSTREAM.md`; back-port check folded into the monthly D-015 audit.
+**Based on:** Review of https://www.aihero.dev/skills and the mattpocock/skills repo (2026-09-09); user decision (2026-09-09).

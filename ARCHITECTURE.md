@@ -32,6 +32,7 @@ Highest-leverage stage: every hour here removes review hours downstream.
 
 PRD + approved canvas → atomic, dependency-linked Linear issues, each carrying a **build packet** (`templates/build-packet.md`):
 
+- **Packets come out of a grilling session** (`skills/grilling` + `skills/domain-modeling`): the agent interviews the human a round at a time, recommended answer attached to each question, until no branch of the design is silently assumed. Terms crystallise into `CONTEXT.md`; hard-to-reverse choices become ADRs.
 - Atomic and independently shippable; diffs reviewable in minutes.
 - **File scope declared and partitioned**: two issues touching the same files get a dependency edge and run sequentially. Scope overlap is the #1 cause of overnight merge pileups.
 - **Acceptance criteria are executable**: each maps to a test or screenshot check the agent runs itself and CI re-runs.
@@ -43,7 +44,7 @@ PRD + approved canvas → atomic, dependency-linked Linear issues, each carrying
 
 **Verification ladder (every PR, before any human sees it):**
 1. Build + unit/integration tests green.
-2. Agent self-checks the diff against acceptance criteria and the approved artboard (Playwright screenshot loop on web; simulator screenshots + accessibility tree on iOS).
+2. Agent self-checks the diff against acceptance criteria and the approved artboard (Playwright screenshot loop on web; simulator screenshots + accessibility tree on iOS), then runs `skills/code-review`: Standards and Spec axes as parallel subagents, the Spec axis reading the packet and flagging any file-scope fence violation as a hard finding.
 3. **Independent cross-model review** (Codex reviews Claude/Cursor output and vice versa), prompted adversarially. Findings fixed or filed as residual Linear issues.
 4. CI re-runs the full gate independently. Green + clean review → auto-merge for graduated classes; everything else waits as a draft PR.
 
@@ -84,7 +85,8 @@ These compose with the existing `flow:*` (rigor) and `prd-source` (strategy prov
 
 | Piece | Status (2026-09-02) |
 |---|---|
-| Build-packet contract | Piloted in argus AGENTS.md (PR #44) |
+| Build-packet contract | Piloted in argus AGENTS.md (PR #44); grilling gate + durability rules added 2026-09-09 |
+| Forked skills (grilling, domain-modeling, code-review, wizard) | In `skills/` (see `skills/UPSTREAM.md`); not yet deployed to harness skill dirs |
 | Linear labels | Live (workspace-wide) |
 | Event-driven dispatcher | Not built (Phase 2, MCR-1412) |
 | Verification ladder + cross-model review | Not built (Phase 2) |
