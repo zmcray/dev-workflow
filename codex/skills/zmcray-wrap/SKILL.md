@@ -55,6 +55,10 @@ If linked and tools are available:
 
 Post a concise comment with shipped summary, PR, CI, commit count, tests, files touched, residuals, loose ends, and archived plan path. If Linear is unreachable, append the failure to `PROJECT.md` build log and report it.
 
+## 6a. Project Status Update + Linear Hygiene
+
+Per AGENTS.md > Linear structure. In default and `done` modes, post a Linear **project status update** (not an issue comment): Shipped / Next / Blocked / Needs Zack, three to six plain lines. Then print the read-only hygiene counts over the project's open issues (no-milestone, no-priority, no-flow, in-historical, milestones missing `Outcome:`/`Order:`). Targets are zero. Fix offenders this session created; list the rest as loose ends. Any residual filed from wrap sets project, `<Epic>: hardening` milestone, priority, and a `flow:*` label.
+
 ## 7. Flag Loose Ends
 
 Search the session diff for newly added `TODO` or `FIXME`, deferred review findings, skipped tests, and failing tests. File residuals to Linear when appropriate. If none, say the session is clean.

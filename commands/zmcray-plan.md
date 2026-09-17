@@ -33,6 +33,10 @@ Keep decomposition, flow triage, quality gating, and all judgment calls in the m
 
 Escalate on failure, not suspicion: re-run a weak delegated result one tier up rather than pulling it into the main thread. Dispatch independent per-feature spec drafts in parallel (single message, multiple Agent calls) once decisions are made.
 
+## Step 0: Betting Pass (weekly planning block only)
+
+If this session is the weekly planning block (or the user says "betting pass"), sweep the project's `Stage: Idea` issues before gathering scope — five minutes, hard cap. For each idea: **bet** (it enters this session's scope), **park** (stays on the shelf, untouched), or **kill** (cancel with a one-line rationale). This is the only door from the idea shelf into the pipeline; ideas never enter mid-sprint. Skip this step silently when the session was invoked with a specific PRD/scope argument.
+
 ## Step 1: Resolve Linear Project
 
 Identical to /zmcray-build Step 1 (link file → monorepo per-app files → resolve-and-write → ask). Read `./.linear-project.json`; follow build's 1A-1D exactly. Planning without Linear linkage is not supported... issues are the output artifact. If the user skips linkage, stop and point them to `/zmcray-kickoff`.
@@ -58,6 +62,7 @@ Break the scope into features sized for one build loop each (one branch, one PR,
 2. Map dependencies as you split: which features must merge before which. This becomes Linear `blocked by` relations in Step 5.
 3. Dispatch a mechanical subagent to check each candidate against existing Linear issues (dedupe) and against the codebase (does part of this already exist?).
 4. Present the feature list with proposed dependency order. Taste mode: proceed unless the split itself is a taste call. Review mode: confirm the list before continuing.
+5. **Skeleton test (first milestone / new-surface scope only):** when the scope defines an M1 or first release, a feature enters that milestone only if the core loop breaks without it. The loop sentence comes from the PRD or the design-session sketch summary (`docs/strategy/sketches/`). Features that fail the test are logged with `deferred` (rationale + kill conditions) instead of `spec-ready`, however good the idea — state each exclusion in one line. Later milestones are exempt; this guards the first usable loop, not the roadmap.
 
 ## Step 4: Per-Feature Planning
 
@@ -121,9 +126,11 @@ For each gated spec, create (or update, for Path B) the Linear issue on the reso
 
 1. Title: imperative, one line. Body: the full spec from 4C.
 2. Labels: exactly one `flow:*`, plus `spec-ready`, plus `prd-source` if Path A.
-3. Priority: from the PRD/scope ordering; default Normal.
-4. Relations: `blocked by` links per the Step 3 dependency map. /zmcray-execute pulls only unblocked `spec-ready` issues, so these edges ARE the execution order.
-5. Estimate: skip. The spec is the estimate.
+3. Priority: from the PRD/scope ordering; default Normal. Never "No priority", including on umbrella issues and their children.
+4. Milestone: required (AGENTS.md > Linear structure). Pick the live `<Epic> N: <Outcome>` milestone the feature serves; `deferred` features go to `<Epic>: later` at priority Low. If none fits, create one named as a user outcome and state it in one line. Sub-issues inherit the umbrella's milestone, and a plan-type umbrella `blocks` its children.
+5. Relations: `blocked by` links per the Step 3 dependency map. Any "before / after / must land first" wording in a spec body also gets the link. /zmcray-execute pulls only unblocked `spec-ready` issues, so these edges ARE the execution order.
+6. Estimate: skip. The spec is the estimate.
+7. Milestone header: after logging, rewrite the `Outcome:` / `Order:` lines at the top of each touched milestone's description so the order reads without opening an issue.
 
 ## Step 6: Advisor Pass (whole plan)
 
@@ -142,8 +149,10 @@ Close with: **"[N] issues spec-ready on [project]. Execution order: [ID → ID �
 - [ ] Linear project resolved from the repo link file
 - [ ] Scope decomposed into one-build-loop features with dependency edges
 - [ ] Every logged issue scores ≥7 on the executability gate
+- [ ] M1 candidates passed the skeleton test; failures logged as `deferred`, not `spec-ready`
 - [ ] Every issue has exactly one `flow:*` label plus `spec-ready`
 - [ ] `blocked by` relations encode the execution order
+- [ ] Every issue has a milestone and a priority; touched milestones carry a current `Outcome:` / `Order:` header
 - [ ] Advisor pass ran and high-confidence findings were applied
 - [ ] Zero unresolved decisions outside `Deferred to Implementation`
 - [ ] Plan summary posted to Linear

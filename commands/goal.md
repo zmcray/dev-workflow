@@ -22,7 +22,7 @@ Resolve the Linear project exactly as `/zmcray-build` Step 1 does (`.linear-proj
 Then scope the run from the argument:
 
 - **Empty or "the whole app" / "all milestones":** every active issue in the project (state type not Done/Cancelled).
-- **A milestone name** (matches a Linear project milestone): the active issues in that milestone.
+- **A milestone or epic name:** match by milestone ID or by prefix, not exact full name (names follow `<Epic> N: <Outcome>` and get refined). An epic name (`Recipes`) selects every live milestone with that prefix, worked in milestone order; the `hardening` shelf is pulled only when named, and the `later` shelf never.
 - **One or more issue IDs:** exactly those issues.
 - **Free text otherwise:** treat it as the definition of done; select the active issues that serve it (state which and why in one line). If no Linear project is linked, run `/zmcray-build [text] --auto` once and wrap.
 

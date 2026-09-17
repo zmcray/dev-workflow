@@ -185,6 +185,7 @@ Invoke `/lfg` with a task statement that includes:
 - The Linear issue ID and title (so commits get tagged and tracker-defer files residuals against the right project)
 - The plan file path from Step 4 (design/standard), or the task description (ship... /lfg will write its own plan)
 - **Commit convention:** conventional commits with `[ISSUE-ID]` appended, e.g. `feat: implement upload flow [MCR-123]`, so Linear auto-links
+- **Residual filing contract:** the issue's milestone and its epic prefix (the part of the milestone name before the number or colon, e.g. `Recipes`), with this instruction: "Every residual you file sets project, milestone `<Epic>: hardening` (create it if missing), a priority mapped from severity (never No priority), and one `flow:*` label. Search open issues on the same file first and extend an existing one rather than filing a near-copy." Per AGENTS.md > Linear structure.
 - **Test-first directive (design + standard only):** "Write the failing test before the implementation for each unit of work."
 - **Constraint:** stay within the plan's scope; if the work wants more, stop and apply the kick-back rule from Step 3 instead of improvising
 - **CI execution discipline:** run focused verification locally before the first push, batch coherent fixes into one push, and do not rerun an unchanged failed job unless evidence points to transient infrastructure. Workflow changes must preserve the plan's CI Impact decisions and the canonical CI cost discipline.
@@ -202,8 +203,9 @@ When /lfg emits DONE (or exits with unresolved CI failures):
 
 1. Confirm: PR exists, CI status, and whether residual findings were filed to Linear (check the PR body's residuals section). Delegate this gathering to a `haiku` subagent — it's `gh pr view` plus a PR-body read, and it should return a three-line summary, not the PR. If CI is red, that same subagent pulls the Actions run logs and returns only the failing job, test, and error lines.
 2. If CI is red after /lfg's 3 attempts, surface the "CI Failures Unresolved" section to the user. Do not merge anything, and do not proceed to Step 8.
-3. Post a Linear comment on the issue: `Build complete. PR: [link]. CI: [green/red]. Residuals filed: [N or none].`
-4. If CI is green, continue directly to Step 8 (Merge & Advance).
+3. **Verify residuals landed home.** For each residual issue /lfg filed, confirm it has a milestone (`<Epic>: hardening`), a priority, and a `flow:*` label; patch any that are missing a field and say so in one line. /lfg's filer does not know the contract unless told, so this check is the backstop, not a formality. Include it in the same `haiku` gathering pass.
+4. Post a Linear comment on the issue: `Build complete. PR: [link]. CI: [green/red]. Residuals filed: [N or none].`
+5. If CI is green, continue directly to Step 8 (Merge & Advance).
 
 ## Step 8: Merge & Advance (auto-merge)
 

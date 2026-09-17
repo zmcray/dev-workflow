@@ -119,4 +119,6 @@ Confirm tests, PR/CI state if a PR was opened, and any residual Linear issues fi
 
 `Build complete. PR: [link]. CI: [green/red]. Residuals filed: [N or none].`
 
+Every residual follows the issue creation contract in AGENTS.md > Linear structure: project, the `<Epic>: hardening` milestone of the parent issue's epic (create if missing), a priority mapped from severity, and one `flow:*` label. Search open issues on the same file first and extend rather than duplicate. Verify each filed residual has all four before posting the comment.
+
 If CI is green, apply the merge-on-green rule from the Interaction Contract before closing. Close by telling the user the PR/CI/merge state and that `$zmcray-wrap` closes the session. If auto-merge is opted out or the PR is blocked, say the PR awaits merge instead — never merge a red or blocked PR.
