@@ -119,8 +119,8 @@ If an issue is unlabeled, triage it in ~30 seconds, apply the label in Linear, s
 | Phase | Role | Command implementation (use if available) | Native fallback (any tool) |
 |---|---|---|---|
 | **Think** | Founder/strategy lens: is this the right problem, framed the right way? | gstack `/office-hours` then `/plan-ceo-review`; or Compound Engineering `/ce-brainstorm` / `/ce-ideate` | Write a short design doc answering: problem, who it is for, the 10x version, what we are deliberately not doing. |
-| **Plan** | Turn the issue (and PRD, if present) into a concrete, reviewed plan; consult the research corpus and record the research decision | CE `/ce-plan` (its persona council gates the plan: feasibility, design, product, scope, security) | Read `docs/research/INDEX.md`, write `docs/plans/plan-[date]-[slug].md` with the metadata header below, include a Research decision (`reuse`, `extend`, or `none needed`), and self-review it against feasibility, scope, and security before writing code. |
-| **Execute** | Implement through to a merged PR (CI green, then merge-on-green — see Discipline) | CE `/lfg` (plan gate > work > plan-aware multi-persona code review > apply fixes + commit > file residuals to Linear > browser test > commit/push/PR > CI watch, max 3 fix attempts), then the merge-on-green rule | Implement on a branch, write tests, run the review yourself or via `/ce-code-review`, commit, push, open the PR, watch CI to green, file any unfixed findings to Linear as issues, then merge per the merge-on-green rule. Delegate the CI watch, Actions log reduction, and per-file review passes to cheap/mid-tier subagents per Delegation; keep failure diagnosis and the merge call in the main thread. |
+| **Plan** | Turn the issue (and PRD, if present) into a concrete, reviewed plan; consult the research corpus and record the research decision | CE `/ce-plan` (on `flow:design` its persona council gates the plan; on `flow:standard` skip the council and self-review, see Review depth) | Read `docs/research/INDEX.md`, write `docs/plans/plan-[date]-[slug].md` with the metadata header below, include a Research decision (`reuse`, `extend`, or `none needed`), and self-review it against feasibility, scope, and security before writing code. |
+| **Execute** | Implement through to a merged PR (CI green, then merge-on-green — see Discipline) | CE `/lfg` (plan gate > work > code review at the depth set in Review depth > apply fixes + commit > file residuals to Linear > browser test > commit/push/PR > CI watch, max 3 fix attempts), then the merge-on-green rule | Implement on a branch, write tests, run the review yourself or via `/ce-code-review`, commit, push, open the PR, watch CI to green, file any unfixed findings to Linear as issues, then merge per the merge-on-green rule. Delegate the CI watch, Actions log reduction, and per-file review passes to cheap/mid-tier subagents per Delegation; keep failure diagnosis and the merge call in the main thread. |
 | **Learn** | Capture what worked and what the plan missed so the next build is easier | CE `/ce-compound` | Append a short "what worked / what the plan missed / new pattern" note to this repo's learnings (CLAUDE.md `## Compound Learnings` or a `LEARNINGS.md`). |
 
 ### Flow routing
@@ -130,6 +130,20 @@ If an issue is unlabeled, triage it in ~30 seconds, apply the label in Linear, s
 | **flow:design** | Plan (+ architecture pass) > Execute > Learn | Think > Plan (+ architecture pass) > Execute > Learn |
 | **flow:standard** | Plan > Execute > Learn | Plan > Execute > Learn |
 | **flow:ship** | Execute (the plan gate is the only planning) | Execute |
+
+### Review depth (pre-users rule, set 2026-09-04)
+
+Review ceremony is sized to blast radius, not to habit. Until the product has retained users, the bottleneck is learning, not defects; CI already catches most of what the councils catch.
+
+| Flow | Plan review | Code review | Wrap |
+|---|---|---|---|
+| `flow:design` | Full CE plan council + architecture pass | Full multi-persona council (`/ce-code-review`), all findings adjudicated | Full wrap: Linear sync, archive plan with Outcome, Learn |
+| `flow:standard` | Self-review only (feasibility, scope, security, in the plan file); no persona council | **One pass**: the always-on personas only (correctness, testing, maintainability, project standards), delegated per Delegation; fix P0/P1 on-branch, file the rest to Linear without a second round | Linear sync + archive plan; Learn entry only if something non-obvious was found |
+| `flow:ship` | None | One always-on pass, or none when the diff is under ~50 lines and CI is green | Linear sync only |
+
+**Escalation stays mandatory.** Any diff on `flow:standard` or `flow:ship` that touches auth, sessions, tokens, RLS or grants, migrations, deletion or export, payments, or outbound fetch gets the full `flow:design` review regardless of label (see the escalation rule under Discipline). Reviewers do not add persona passes on suspicion; they escalate the flow label and say why in Linear.
+
+**No review-of-the-review.** One fix commit after the pass, then push. Do not re-run the council to validate fixes; CI and the merged-app check are the gate.
 
 The **architecture pass** on `flow:design` only: gstack `/plan-eng-review` on the approved plan, or a native dedicated review of system design, data model, and failure modes. This is the one place a deeper architecture review still earns its cost; CE's plan council covers the rest.
 
