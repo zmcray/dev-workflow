@@ -1,6 +1,6 @@
 ---
 name: zmcray-wrap
-description: End a build session cleanly. Auto-syncs Linear, captures compound, syncs PROJECT.md, commits.
+description: End a build session cleanly. Auto-syncs Linear, posts the project status update, runs the Linear hygiene check, captures compound, syncs PROJECT.md, commits.
 argument-hint: "[done | hold | notes on what happened]"
 ---
 
@@ -18,7 +18,7 @@ Close out a build session. Captures learnings, syncs project status, commits wor
 
 Most of a wrap is mechanical, so most of a wrap should not run on the frontier model. Apply the AGENTS.md Delegation section: **assess the tier before each step that runs more than a couple of tool calls and state it in one line** (`Delegating [work] → haiku ([why])`).
 
-- **`haiku`:** the Step 2 `git status` / `git diff --stat` summary, the Step 3 diff-range resolution, the Step 5 PROJECT.md and Build Log edits, the Step 6 plan-file `## Outcome` + archive move, the Step 7 Linear comment formatting, and the Step 8 TODO/FIXME and skipped-test scans. All of these return a short summary to the main thread, never raw output.
+- **`haiku`:** the Step 2 `git status` / `git diff --stat` summary, the Step 3 diff-range resolution, the Step 5 PROJECT.md and Build Log edits, the Step 6 plan-file `## Outcome` + archive move, the Step 7 Linear comment formatting, the Step 7b hygiene counts, and the Step 8 TODO/FIXME and skipped-test scans. All of these return a short summary to the main thread, never raw output.
 - **`sonnet`:** applying a batch of mechanical review fixes from Step 3 once the main thread has decided each one is a fix, and drafting the compound capture text.
 - **Main thread (frontier):** judging each review finding (fix vs. file to Linear), the commit-message call and its approval gate, the compound learnings themselves, and anything flagged as a loose end.
 - **GitHub reads on `haiku`:** the PR link + CI status for the Step 9 summary is a delegated `gh` lookup returning two fields, not a main-thread investigation.
@@ -47,7 +47,7 @@ State the range in one line ("Reviewing [base]..[head], N files"), then run the 
 
 - Fix **every** finding it reports — don't defer to Linear from this pass; the point is to enter compound with a clean slate.
 - Commit the fixes with a conventional message (append `[ISSUE-ID]` if the plan has one).
-- If a finding is genuinely unfixable right now (needs a scope decision, external dependency), file it to Linear and list it in Step 8's loose ends — but that's the exception, not the default.
+- If a finding is genuinely unfixable right now (needs a scope decision, external dependency), file it to Linear under the issue creation contract (AGENTS.md > Linear structure: project, `<Epic>: hardening` milestone, priority, `flow:*` label) and list it in Step 8's loose ends — but that's the exception, not the default.
 - If the review comes back clean, say so and move on.
 
 ## Step 4: Compound (design and standard flows only)
@@ -67,7 +67,7 @@ Open PROJECT.md at the project root.
 
 2. **Build Log:** Append a row with today's date and a brief summary of the session. Example: "Day 6 upload flow shipped. 55 tests passing. Plan archived. Linear: MCR-123 → In Review."
 
-Skip milestones-update logic. Milestones now live in Linear as projects/cycles or as plan files; PROJECT.md no longer carries them.
+Skip milestones-update logic. Milestones live in Linear as project milestones (AGENTS.md > Linear structure); PROJECT.md no longer carries them.
 
 If PROJECT.md doesn't exist, note it in the session summary and move on. Don't block the wrap.
 
@@ -113,6 +113,29 @@ Read the (now-archived) plan file's metadata header. Look for `Linear Issue:` va
 
 If Linear is unreachable, log the failure inline in the chat and append it to PROJECT.md's Build Log row so you can retry manually.
 
+## Step 7a: Project Status Update (the human's glance)
+
+Runs in default and `done` modes whenever the repo has a `.linear-project.json`, even if no issue is linked. Post a Linear **project status update** on the project (`save_status_update`), not an issue comment. Three to six lines, plain words, no jargon:
+
+```
+Shipped: [what a user can now do, with issue IDs]
+Next: [the next 1-3 issues in order, from the milestone's Order line]
+Blocked: [none, or what and why]
+Needs Zack: [none, or the specific decision/action]
+```
+
+Set health to on track / at risk / off track by whether the current milestone's next issue is unblocked. If the session changed the order of work, update the milestone description's `Order:` line in the same step. In `hold` mode, skip the update unless something is blocked or needs Zack.
+
+## Step 7b: Linear Hygiene Check
+
+Read-only query over the project's open issues (delegate to `haiku`; it returns five numbers and the offending IDs, never the issue bodies). Counts per AGENTS.md > Linear structure, targets all zero:
+
+```
+Linear hygiene: no-milestone [N] | no-priority [N] | no-flow [N] | in-historical [N] | milestones missing Outcome/Order [N]
+```
+
+If any count is non-zero: fix every offender **this session created** (residuals, follow-ups), then list the remaining IDs in Step 8's loose ends. Do not bulk-edit issues from other sessions without saying so.
+
 ## Step 8: Flag Loose Ends
 
 Check for:
@@ -134,6 +157,8 @@ Review: [N findings fixed / clean / skipped]
 Compound: [captured / skipped]
 PROJECT.md: [updated / not found]
 Linear: [ISSUE-ID → In Review | Done | In Progress (held) | none]
+Status update: [posted / skipped (hold) / failed]
+Hygiene: [all zero | no-milestone N, no-priority N, no-flow N, in-historical N, milestones N]
 Loose ends: [none | list]
 ```
 
@@ -142,5 +167,5 @@ Loose ends: [none | list]
 - Never auto-commit without user approval.
 - Never merge or push to remote from wrap. Wrap is local-state only unless the user explicitly asks to push. (Merging happens in /zmcray-build Step 8's auto-merge, gated on green CI — by wrap time the PR is usually already merged. If auto-merge was skipped or failed, note the unmerged PR as a loose end; don't merge it here.)
 - If the user provides notes in the argument (and it isn't `done` or `hold`), include them in the compound capture and the Linear comment.
-- Keep the summary under 10 lines. The user is done for the day.
+- Keep the summary under 12 lines. The user is done for the day.
 - The Linear sync is the piece that prevents board drift. If you skip it, you defeat the purpose of the linkage. Surface any sync failures loudly.

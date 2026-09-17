@@ -46,6 +46,13 @@ The official Linear MCP in Claude Code supports initiatives, projects, milestone
 - **Initiatives are available natively.** Skip the Cowork GraphQL/manual fallback entirely. If, and only if, the initiative tools are genuinely absent in this session, fall back per `linear-write.md` Step 3; otherwise create/update the Initiative directly via MCP.
 - **Push the PRD as a Linear project document** (`save_document`, title `<product> <theme> PRD v<N>`) so any agent working an issue reads the PRD in-context. On REFRESH, update the existing document rather than creating a second.
 - **Stamp exactly one `flow:*` label per issue** (`flow:design` / `flow:standard` / `flow:ship`), classified by blast radius, per `linear-write.md` Step 6. Always add `prd-source`. This is what routes `/zmcray-build`.
+- **Linear structure overrides the shared sequence** (AGENTS.md > Linear structure). Where `linear-write.md` disagrees, this wins:
+  - **One initiative per product.** If the product already has an initiative, reuse it. A theme PRD (EXPAND, or a new epic) becomes a **milestone group** on the repo's existing project, never a second initiative pointing at the same project.
+  - **Milestones are outcomes, in order:** `<Epic> N: <Outcome>` (3 to 6 live per epic, ~12 open issues max each), plus `<Epic>: hardening` and `<Epic>: later` shelves created up front. Each description starts with the `Outcome:` / `Order:` header.
+  - **Every issue gets project, milestone, priority, and one `flow:*` label.** Later Shelf items go to `<Epic>: later`, priority Low, label `deferred`.
+  - **Order is links.** Every sequencing statement in the PRD becomes a blocking relation.
+  - **No mirror labels.** Never create labels that restate a milestone or phase (`mvp:c1`).
+  - **REFRESH closes out what it supersedes.** For each replaced phase: re-home every open issue into a live milestone or cancel it with a comment, remove `deferred` from anything the new scope pulled in, and leave no open issue in a superseded milestone. Never rename a milestone "Historical" with open work inside. End the REFRESH by printing the hygiene counts.
 - **No-delete, never roll back, idempotent checkpoints** ... all unchanged from the shared governance. Killed features get no issue; newly-killed-on-refresh issues are `Cancelled` with a comment, never deleted.
 
 ### D3. Lazy kickoff, run inline
@@ -78,6 +85,14 @@ Phase 6.5 is default-ON for NEW, EXPAND, and Medium/Heavy REFRESH. In Claude Cod
 
 Persist the session as markdown in `~/Documents/Work/40_OS/08_Memory/caspian-sessions/active/<session-id>.md` (same store the Cowork variant uses, so a session is resumable from either environment). Move to `completed/` on ship, `abandoned/` if killed. Phase 8 keeps the `phase_8_progress` checkpoint block for idempotent resume after partial failure.
 
+### D8. Sketch gate + skeleton contract (user-facing scope)
+
+For NEW or EXPAND sessions whose scope includes a new user-facing surface, and for any REFRESH that re-slices a first milestone (M1) or re-cuts its screens:
+
+1. **Sketch gate.** Look for a sketch artifact from a design session (`docs/strategy/sketches/*.md` — loop sentence, screens, actions, walk-through notes, verdict, canvas link). If one exists, it enters deliberation as evidence and the Red Team receives it with the locked artifacts — the council argues against what happened in someone's hands, not against vibes. If none exists, offer once: pause this session and run a design session (software factory Stage 3 — an evening in Claude Design), or proceed and record `no-sketch: [reason]` in the decision log. Never silently skip the gate.
+2. **Appetite before scope.** State the M1 time budget ("M1 gets one weekend") before feature scoping begins; scope is hammered to fit the appetite, not argued feature by feature.
+3. **Skeleton contract.** A feature enters M1 only if the core loop (the sketch's loop sentence, or one written now) breaks without it. Everything else lands in a `## Later Shelf` section of the PRD — include this section in the rendered PRD even if the shared template lacks it — with defer rationale and kill conditions. At Phase 8, Later Shelf items become `deferred`-labeled issues, never milestone issues. The shelf exits only via REFRESH, priced by real usage.
+
 ---
 
 ## Handoff and close
@@ -94,5 +109,6 @@ If the session ended at "stop at the PRD doc" (lazy-kickoff option 2), close ins
 
 - **`/zmcray-kickoff`** wires a repo (git + GitHub + Linear Project shell + AGENTS.md). It does NOT create issues. Caspian is the issue-writer. Kickoff can hand off to Caspian; Caspian can run kickoff at the ship gate. Same two players, order depends on whether you start from "I'm building X" or "I have an idea."
 - **`/zmcray-build`** picks up the labeled issues Caspian created and executes them per the `flow:*` label. If a build exceeds its PRD, it kicks back to Caspian as an EXPAND session ... the build loop never expands scope.
+- **The design session** (software factory Stage 3 — a walk-through in Claude Design, not a command) runs BEFORE a user-facing NEW/EXPAND session: loop sentence → spine → screens + flow + actions → walk-through → verdict. Its sketch summary file is a deliberation input here (delta D8). Design sessions probe; Caspian commits.
 - **`/plan-ceo-review`** (gstack) is in-codebase plan rigor, not product strategy. Different job. Caspian produces the strategy; plan-ceo-review pressure-tests an implementation plan.
 - **Hagen** (Cowork) is go/no-go decision pressure-testing, not product shaping. If the real question is "should I pursue this at all," that's Hagen, not Caspian.

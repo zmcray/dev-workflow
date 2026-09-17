@@ -62,6 +62,10 @@ No Linear project is linked to this repo. What should I do?
 
 **If 3 (skip):** continue without linkage. Build will fall back to free-text task arguments.
 
+### 3D: Shelf milestones (any linked project)
+
+Once a project is linked (3A, 3B, or 3C options 1-2), make sure the two cross-cutting shelves from AGENTS.md > Linear structure exist on it: **`Platform: hardening`** (residuals, tech debt, CI, ops) and **`Later: deferred`** (parked ideas). Create whichever is missing via `save_milestone`; never rename or touch existing milestones. Kickoff still creates no issues and no epic milestones... Caspian creates the `<Epic> N: <Outcome>` milestones and each epic's own shelves. This step only guarantees that a residual or a buildnote filed before any PRD exists has a home.
+
 ## Step 4: Wire the AGENTS.md Layer
 
 Ensure the repo carries the canonical workflow so any tool (Claude Code, Codex, Cursor) reads the same build rules.
@@ -137,6 +141,11 @@ Close with the right next step based on what Step 3 found:
 - **Project already has active issues:** *"Repo wired and linked to [project]. [N] active issues. Run `/zmcray-build` to pick up the highest-priority one."*
 - **Quick build, no strategy needed:** *"Repo wired. For a one-off, just `/zmcray-build [task]`."*
 - **Linear skipped:** *"Repo wired, no Linear link. Use `/zmcray-build [task]` with free-text."*
+
+**One-time human setup (print whenever a project was newly created or linked this run).** The Linear connector cannot create saved views, so print this for Zack to do once in the Linear UI, then favorite both so they sit in the sidebar. Menu names may differ slightly in the app:
+
+1. **"[Project]: Now"** view... project = [project], status not Done/Canceled, **group by Milestone, order by Priority**. The daily answer to "where is my list and in what order".
+2. **"[Project]: Orphans"** view... project = [project], milestone = none, open issues. Should always be empty; anything in it means an agent broke the issue creation contract. (The "No milestone" group at the bottom of the Now view works as the same alarm if he'd rather keep one view.)
 
 If caspian is not yet available in this environment, the offer degrades to a pointer rather than an invocation.
 

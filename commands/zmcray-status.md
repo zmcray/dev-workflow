@@ -71,9 +71,19 @@ One line: `Git: [X] uncommitted files, [Y] commits since last plan, branch: [nam
 
 Check for: unresolved review findings or residuals filed to Linear, TODO/FIXME added since the plan started, failing or skipped tests, and Linear/local state mismatch (e.g. issue is In Progress in Linear but the plan is archived). List any; if none, say "Nothing outstanding."
 
+## Step 7: Linear Hygiene
+
+If the repo has a `.linear-project.json`, print the hygiene counts from AGENTS.md > Linear structure (same `haiku` pass, one query over the project's open issues):
+
+```
+Linear hygiene: no-milestone [N] | no-priority [N] | no-flow [N] | in-historical [N] | milestones missing Outcome/Order [N]
+```
+
+All zero prints as `Linear hygiene: clean`. Non-zero lists up to five offending IDs per count. Read-only... status never fixes them; wrap does.
+
 ## Notes
 
-- Keep the whole output under ~22 lines. A glance, not a report.
+- Keep the whole output under ~25 lines. A glance, not a report.
 - Read-only. Run no mutating tools, make no edits.
 - **This whole command is cheap-tier work.** Steps 1-3 and 5-6 are file reads, one Linear fetch, and a `git status` — delegate the gathering to a single `haiku` subagent that returns the fields the report needs, and render the output from that. Nothing here requires the frontier model; only the Step 6 flow-vs-work mismatch flag is a judgment call, and it's a one-line one.
 - If flow and the work disagree (e.g. a ship issue is clearly touching auth), flag it as an outstanding item... build's escalation rule should bump it up a flow.

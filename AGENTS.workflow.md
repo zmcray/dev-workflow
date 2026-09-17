@@ -14,6 +14,50 @@ Then verify by name only (`gh secret list`, `grep -c '^NAME=' .env`). Never prin
 
 Linear (Mcraygroup team). File all deferred findings, residuals, and follow-ups there. The board is the audit trail: move issue status as work progresses, post plan and review summaries as comments, and link the PR. A reviewer should be able to follow the whole build without opening a terminal.
 
+## Linear structure
+
+Agents create the issues; Zack reads the board. Linear must answer, in under a minute, "what are the sections of work, in what order, and where are we". Structure carries that, never prose.
+
+| Linear object | Means | Zack reads it as |
+|---|---|---|
+| Initiative | One product. **One per product, ever** | "My product" |
+| Project | The repo's project (`.linear-project.json`) | The board |
+| Milestone | An ordered phase of an epic, named as a user outcome | "Where we are inside that section" |
+| Issue | One PR | A line item |
+| Blocking link | Hard dependency | The order |
+| Priority | Rank among unblocked issues | What is next |
+| Project status update | Short written "where we are" | The weekly glance |
+
+**Milestone naming (one project per repo).** `<Epic> N: <Outcome>` for live phases (`Recipes 2: The Sunday ritual`), plus two shelves per epic: `<Epic>: hardening` and `<Epic>: later`. Cross-cutting work uses `Platform: hardening` and `Later: deferred`. The shared prefix lets one "milestone name contains <Epic>" filter show the whole epic. Outcomes, not internal codes. 3 to 6 live milestones per epic; split one that passes ~12 open issues. Match milestones by ID or epic prefix, never by exact full name... names get refined.
+
+**Issue creation contract.** No agent creates an issue without setting all four: **project, milestone, priority (never "No priority"), one `flow:*` label**. If no milestone fits, create or pick one and say so in one line. "No milestone" is never valid.
+
+- **Residuals go home:** a review residual is filed into the `<Epic>: hardening` milestone of the epic that produced it (the parent issue's epic). Create the milestone if missing.
+- **Parked work has a shelf:** deferred ideas go to `<Epic>: later`, priority Low, label `deferred`. Work sitting in a live milestone never carries `deferred`.
+- **Children inherit:** sub-issues take the umbrella's milestone and get an explicit priority. A plan-type umbrella `blocks` its children.
+- **Order is structure:** if a description says "before", "after", "blocks", or "must land first", also write the blocking link. Every milestone description starts with two lines, kept current by whichever agent changes the order:
+
+  ```
+  Outcome: <what the user can do when this is done>
+  Order: MCR-a → MCR-b → (MCR-c, MCR-d in parallel) → MCR-e
+  ```
+
+- **Superseding a plan means closing it out:** when a PRD refresh replaces a phase, re-home every open issue into a live milestone or cancel it with a comment. Never rename a milestone "Historical" and leave open issues inside. Put scope changes into structure (milestone, labels, links), not only into the description.
+- **Labels are not structure:** never invent labels that mirror milestones (`mvp:c1`). Labels carry cross-cutting facts only: `flow:*`, `prd-source`, `spec-ready`, `Bug`, `ops`, `deferred`.
+- **Duplicates:** before filing, search open issues on the same file or module. Extend the existing issue instead of filing a near-copy.
+
+**Hygiene check (read-only, targets all zero).** Run at session close and on status; print the counts every time:
+
+1. open issues with no milestone
+2. open issues with no priority
+3. open issues with no `flow:*` label (exempt: issues in a `later` / `deferred` shelf, labeled at pull-down)
+4. open issues inside a milestone marked historical or superseded
+5. live milestones whose description lacks the `Outcome:` / `Order:` header
+
+If non-zero, fix what this session created and list the rest. Never bulk-fix issues the session did not create without saying so.
+
+**Status for the human.** At session close, post a Linear **project status update** (not only an issue comment): shipped, next, blocked, anything needing Zack. Three to six lines, plain words.
+
 ## Project setup (one-time)
 
 A repo wired into this system is:
@@ -21,6 +65,7 @@ A repo wired into this system is:
 - A git repo with a private GitHub remote, kebab-case name matching the folder, living under `~/Developer` (never iCloud), with `node_modules`, `.next`, build output, and `.env*` gitignored.
 - Linked to a Linear project, recorded in a `.linear-project.json` file at the repo root (id + slug + name). The link travels with the repo... no central cache.
 - Carrying this `AGENTS.md` plus a `CLAUDE.md` that imports it (`@AGENTS.md`).
+- Carrying a `CONTEXT.md` at the root: the project's domain glossary and nothing else (no implementation details). Hard-to-reverse, surprising trade-offs get an ADR in `docs/adr/`. Both are maintained inline by the `domain-modeling` skill during grilling; create them lazily, on the first resolved term or first real decision. Every spec, packet, plan, and issue uses `CONTEXT.md` vocabulary.
 - Carrying a research corpus at `docs/research/` with `README.md`, `INDEX.md`, `topics/`, `sources/`, and reusable templates. Initialize this structure for every new project even when it begins empty; the index is the entry point for agents and humans.
 - **If it uses a deployed database (e.g. Supabase): an automatic migration-to-prod path, wired BEFORE the first production deploy.** Deploying code never applies DB migrations — they are a separate ship — so without this, shipped code runs ahead of the prod schema and every page touching it 500s. Default (Supabase): the native **GitHub Integration** (dashboard → project → Integrations → GitHub) — OAuth, no stored secrets, applies migrations on merge to the production branch; set **Working directory** to the folder that *contains* `supabase/` (the repo root `.`, or a subdir like `app`/`atlas` if it's nested), **Deploy to production** ON → `main`, **Automatic branching** OFF (per-PR preview DBs are billable, uncapped). Fallback: a `supabase db push` GitHub Action gated on `main` with the project's access-token / project-ref / db-password as repo secrets. `/zmcray-kickoff` sets this up.
 
@@ -149,7 +194,7 @@ A fourth axis: does the run pause for the human? Default is interactive (confirm
 - **Commits:** conventional commits with the issue ID appended, e.g. `feat: implement upload flow [MCR-123]`, so Linear auto-links. Commit on the branch and leave the working tree clean before picking up the next issue.
 - **Scope is the PRD (kick-back rule):** if the issue carries `prd-source` and the work wants scope beyond what the PRD defines, do not expand scope here. Post a Linear comment ("Scope exceeds PRD: [reason]. Kicking back for Caspian EXPAND."), move the issue to Backlog, and stop. Strategy changes go through Caspian, not the build loop.
 - **Escalate up only (escalation rule):** if work reveals a bigger blast radius than the label implies (auth, data migration, new architecture), escalate to the higher flow, update the label, and post a one-line Linear comment explaining why. Never de-escalate mid-build.
-- **Residuals go to Linear:** any review finding you do not fix becomes a Linear issue on the Mcraygroup team, severity mapped to priority. Do not weaken, skip, or mock a failing assertion to get CI green.
+- **Residuals go to Linear:** any review finding you do not fix becomes a Linear issue on the Mcraygroup team, severity mapped to priority. File it under the issue creation contract (Linear structure): project, the `<Epic>: hardening` milestone, priority, and a `flow:*` label. Do not weaken, skip, or mock a failing assertion to get CI green.
 - **Migrations reach prod separately from code:** deploying code does NOT apply database migrations. The auto-migration-to-prod path (Project setup) must already exist; when an issue adds a migration, confirm it actually reaches the prod DB — the code deploy won't carry it. Additive migrations (new columns/tables) deploy safely alongside the code; for a destructive/renaming one, apply the migration first, confirm, then ship the code.
 
 ### Plan file convention (design + standard)
@@ -181,7 +226,7 @@ Every design or standard plan also includes:
 
 ### Session close
 
-When the build session ends: move the Linear issue to **In Review** (or **Done** if shipped, or leave **In Progress** if paused), post a session-summary comment (what shipped, PR + CI status, commit count, tests, residuals filed, loose ends), archive the plan with an `## Outcome` note, and run the Learn phase for design/standard flows. By session close the PR should already be merged via the merge-on-green rule above; if auto-merge was skipped or blocked, flag the unmerged PR as a loose end rather than merging during close.
+When the build session ends: move the Linear issue to **In Review** (or **Done** if shipped, or leave **In Progress** if paused), post a session-summary comment (what shipped, PR + CI status, commit count, tests, residuals filed, loose ends), archive the plan with an `## Outcome` note, and run the Learn phase for design/standard flows. Then post the project status update and print the hygiene check counts (Linear structure). By session close the PR should already be merged via the merge-on-green rule above; if auto-merge was skipped or blocked, flag the unmerged PR as a loose end rather than merging during close.
 
 ### Claude Code accelerators
 
