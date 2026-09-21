@@ -266,7 +266,7 @@ Two fixed appointments every day: a **morning verify** (20–30 min) and **the d
 |---|---|---|---|
 | Mon | Verify | **Map:** Bet (15 min / project) → Shape the week's bets | `/goal` |
 | Tue | Verify | **Map:** Design session or Commit (`/caspian`), whichever the bets need | `/goal` |
-| Wed | Verify | **Spec:** grill + `/zmcray-plan` → chunks | `/goal` |
+| Wed | Verify | **Spec:** grill → `/ce-plan` → `/to-chunks` | `/goal` |
 | Thu | Verify | **Spec:** chunks, or finish a Commit that ran long | `/goal` |
 | Fri | Verify | **Spec:** fill the tank for three nights (Fri, Sat, Sun) | `/goal` |
 | Sat | Verify | optional: zoom-in on one existing cluster, or skip | `/goal` |
@@ -298,7 +298,8 @@ Per-*issue* rigor stays with the flow labels regardless of tier: a `flow:ship` o
 
 | # | What | Stage it serves | Status |
 |---|---|---|---|
-| — | `zmcray-plan` Step 0 betting pass + Step 3.5 skeleton test | 1, 5 | **done** (Aug 7) |
+| — | ~~`zmcray-plan` betting pass + skeleton test~~ | 1, 5 | **archived** (Sep 21) — betting is now the idea shelf read against `STRATEGY.md`; the skeleton test is applied during `/ce-plan` |
+| — | `/to-chunks` bridge: plan units → Linear chunks with packets, file scope, edges, `tier:*` | 5 | **done** (Sep 21), not yet run on a real plan |
 | — | `caspian` delta D8: design-session gate, appetite-before-scope, Later Shelf | 3, 4 | **done** (Aug 7) |
 | — | `/sketch` command | — | **removed** — the design session is a walk-through, not a skill |
 | 1 | **Morning checklist emitter** in `zmcray-wrap` + `goal` Step 3: acceptance criteria per merged issue → Linear comment + digest | 7 | to build (small) |
