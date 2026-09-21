@@ -5,7 +5,7 @@ These four skills are forked from [mattpocock/skills](https://github.com/mattpoc
 | Skill | Upstream path | Role in the factory |
 |---|---|---|
 | `grilling` | `skills/productivity/grilling` | Decompose gate: interview until every packet question is answered |
-| `domain-modeling` | `skills/engineering/domain-modeling` | Maintains `CONTEXT.md` glossary + `docs/adr/` in every wired repo |
+| `domain-modeling` | `skills/engineering/domain-modeling` | Maintains `CONCEPTS.md` glossary + `docs/adr/` in every wired repo |
 | `code-review` | `skills/engineering/code-review` | Verification ladder step 2: Standards vs Spec (packet) in parallel subagents |
 | `wizard` | `skills/engineering/wizard` | Human-only steps: secrets, dashboards, App Store Connect, cutovers |
 

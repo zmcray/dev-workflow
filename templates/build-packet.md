@@ -14,9 +14,9 @@ Out of scope: [what this issue deliberately does not do]
 
 Rules:
 
-- **Grill before you write it.** A packet is produced by a `grilling` session (`skills/grilling`), run with `domain-modeling` so terms land in `CONTEXT.md`. The session ends only when the frontier is empty: nothing left silently assumed. A packet written without one is a draft, not a contract.
+- **Grill before you write it.** A packet is produced by a `grilling` session (`skills/grilling`), run with `domain-modeling` so terms land in `CONCEPTS.md`. The session ends only when the frontier is empty: nothing left silently assumed. A packet written without one is a draft, not a contract.
 - **Durable over precise.** The packet may sit in the queue for days. Describe interfaces, types, and behaviour, never file paths or line numbers (they rot); File scope is the one exception, and it names directories or globs, not lines. Say *what* the system should do, not *how* to edit the code.
-- **Use the glossary.** Packet language is `CONTEXT.md` vocabulary. A term that is not in the glossary yet gets added during grilling, not invented in the packet.
+- **Use the glossary.** Packet language is `CONCEPTS.md` vocabulary. A term that is not in the glossary yet gets added during grilling, not invented in the packet.
 
 - **Every acceptance criterion is executable** — it names the test or screenshot check that proves it. If it can't be checked by a machine, rewrite it until it can, or it stays a day-shift issue.
 - **Artboard is required for any UI work.** The approved canvas is implementation input; night agents diff their screenshots against it.
