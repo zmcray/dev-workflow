@@ -118,6 +118,10 @@ Classify by blast radius, not effort:
 
 If an issue is unlabeled, triage it in ~30 seconds, apply the label in Linear, state the call in one line, and proceed.
 
+### Chunks and tiers
+
+Work reaches the build loop as **chunks**: one issue, one PR, well under an hour of agent time, about 5 files and 300 changed lines, 1-4 machine-checkable acceptance checks. When planning (`/ce-plan` or native), size Implementation Units to that bar and give each an honest `Files` list... that list becomes the chunk's **file scope**, a fence the building agent may not leave. Two chunks whose file scopes overlap get a `blocked by` edge; chunks with disjoint scope and no edge may be built at the same time by different agents (merges stay one at a time). Each chunk carries exactly one `tier:*` label for how hard it is to get right: `tier:mechanical`, `tier:moderate`, or `tier:judgment`. The dispatcher maps tier to a model; **never write a model name in an issue, plan, or packet.** On Claude Code, `/to-chunks` turns a finished plan into labeled Linear chunks. A chunk whose issue already carries a build packet pointing at a plan unit is executed as written... do not re-plan it.
+
 ### The four phases
 
 | Phase | Role | Command implementation (use if available) | Native fallback (any tool) |
@@ -248,7 +252,7 @@ When the build session ends: move the Linear issue to **In Review** (or **Done**
 
 ### Claude Code accelerators
 
-On Claude Code, `/zmcray-build` and `/zmcray-wrap` run this exact workflow as a guided loop (flow routing, the phase sequence, Linear sync). They are conveniences layered on top of this file, not a separate process. Any other harness reads this section and runs the same workflow directly.
+On Claude Code, `/to-chunks` (plan → Linear chunks), `/goal` (overnight run), `/zmcray-build` and `/zmcray-wrap` run this exact workflow as a guided loop (flow routing, the phase sequence, Linear sync). They are conveniences layered on top of this file, not a separate process. Any other harness reads this section and runs the same workflow directly.
 
 ### shadcn registries
 
