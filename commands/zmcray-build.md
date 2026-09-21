@@ -120,6 +120,8 @@ Two orthogonal signals on the issue decide the route. The `flow:*` label says ho
 
 ## Step 4: Pre-Work (By Flow)
 
+**Chunk shortcut (check first).** If the issue body carries a `## Build packet` whose `Spec:` line points at a plan unit (`docs/plans/... § U<N>`), the planning already happened in `/ce-plan` and the cut happened in `/to-chunks`. **Skip all pre-work for every flow.** Use that plan file as the plan of record, execute only the named unit, treat `File scope` as a fence (wanting to leave it = kick back with a Linear comment, do not expand), and treat `Out of scope` as binding. Read the issue's `tier:*` label and set the model for delegated implementation work from `software-factory/DISPATCH.md` (mechanical → cheapest, moderate → mid, judgment → frontier / main thread). State both calls in one line, then go to Step 5.
+
 **Set effort first.** Assess the planning work against the AGENTS.md Effort rubric (reasoning difficulty, not blast radius). State the assessed effort level and a one-line rationale, then ask the user to confirm or override before planning. Once confirmed, set your tool's effort control. Effort is orthogonal to flow and re-tuned per phase. Print it like: **"Planning effort: [level] ([one-line rationale]). Confirm or override?"**
 
 If you arrived via Path B with an approved active plan, skip to Step 5.

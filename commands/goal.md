@@ -35,6 +35,7 @@ Strictly sequential, per the multi-issue rules in `/zmcray-build`: one issue →
 For each iteration:
 
 1. Re-query Linear for the scope's active issues (the board may have changed mid-run; Caspian kick-backs and residuals add issues). Pick the highest priority (Urgent > High > Normal > Low, then updatedAt desc).
+1a. **Pull order:** unblocked `spec-ready` issues only, highest priority first; when the argument is a parent or umbrella issue, work its sub-issue chunks in `blocked by` order (wave by wave). An empty `spec-ready` queue ends the run with "plan first"... never improvise work. Running out of credit or plan headroom is a **budget stop**: a normal ending, reported as such, with the remaining chunks left `spec-ready`.
 2. Run `/zmcray-build [ISSUE-ID]` in **autonomous mode** (its Autonomous Mode section governs: no prompts, stated decisions, delegation on, hard stops intact). It carries the issue through pre-work, /lfg, and merge-on-green.
 3. After the merge, print one progress line: **"[k/N] [ISSUE-ID] merged. [next-ID] is next."**
 4. If the objective's issue set is exhausted, exit the loop.
