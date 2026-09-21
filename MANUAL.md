@@ -8,6 +8,8 @@
 
 **Tank first.** Every daily hour opens with a 2-minute tank check: is the `spec-ready` queue at least tonight's appetite? If not, today is a spec day no matter what the calendar says. Mapping is what you do when the tank is already full. There was never enough room to do bet → shape → design → commit → spec in one Thursday; the line is the same, it is just spread across the week.
 
+**What actually runs it (usage audit, 2026-09-21).** Compound Engineering is the engine: `/ce-plan`, `/ce-work`, `/lfg`, `/ce-code-review`, `/ce-compound`. The house layer is deliberately thin and covers only what CE does not: `/caspian` (the council), `/to-chunks` (plan → Linear chunks), `/goal` + `/zmcray-build` (the night loop), `/zmcray-wrap` (Linear close-out), `/zmcray-kickoff` (wire a new repo). One tool per job: `/caspian` to decide, `/ce-brainstorm` to think through one fuzzy feature, `/ce-plan` to make it buildable. `zmcray-plan`, `-execute`, `-status`, `-checkpoint`, `-retro` are archived.
+
 ---
 
 ## 1. The line at a glance
@@ -15,14 +17,14 @@
 | # | Stage | Who | When · timebox | Runs on | Produces | Exit gate |
 |---|---|---|---|---|---|---|
 | 0 | **Capture** | You | anytime · 30 s | `/buildnote` | `Stage: Idea` issue | none — it's a shelf |
-| 1 | **Bet** | You | mapping day · 15 min / project | `/zmcray-plan` Step 0 | bets + this week's appetite | bets ≤ appetite |
+| 1 | **Bet** | You | mapping day · 15 min / project | the Linear idea shelf, read against the product's `STRATEGY.md` | bets + this week's appetite | bets ≤ appetite |
 | 2 | **Shape** | You + Claude | mapping day · 30–60 min / bet | conversation, `/office-hours`, `/diagram`, `/hagen` | shape doc | loop sentence in one line; dominant risk named; design session yes/no decided |
 | 3 | **Design session** | You drive, Claude Design draws | a mapping-day hour (or two) · when triggered | `/design` canvas (or Figma/Excalidraw) | screens + flow + actions canvas; sketch summary | walk-through passed; verdict = keep |
 | 4 | **Commit** | You + the council | mapping day · ~2 h, split across two daily hours if needed | `/caspian` | PRD with Later Shelf; labeled issues | Red Team adjudicated; M1 = skeleton only |
-| 5 | **Spec** | Agent; you for taste calls | spec days · the daily hour | `/zmcray-plan` | `spec-ready` queue | queue ≥ appetite; every issue ≥ 7; plans landed |
+| 5 | **Spec** | Agent; you for taste calls | spec days · the daily hour | `/ce-plan` → `/to-chunks` | `spec-ready` chunks | queue ≥ appetite; every issue ≥ 7; plans landed |
 | 6 | **Build** | Agents | nights | `/goal` → `/zmcray-build` → `/lfg` | merged PRs, residuals, nightly build, morning checklist | green train; hard stops surfaced, not guessed |
 | 7 | **Verify** | You | mornings · 20–30 min | checklist, `/ios-qa`, `/qa-only`, `/design-review` | issues closed or kicked back | In Review pile = 0 |
-| 8 | **Learn** | Agent-led, you read | Sun · 20 min | `/retro`, `/zmcray-retro`, `/ce-compound` | learnings promoted; board synced | AGENTS.md / templates updated |
+| 8 | **Learn** | Agent-led, you read | Sun · 20 min | `/ce-compound`, `/retro` | learnings promoted; board synced | AGENTS.md / templates updated |
 
 ---
 
@@ -45,7 +47,7 @@
 **Purpose.** The only door from the shelf into the line. Ideas enter work here and nowhere else.
 
 **You do.**
-1. Open the project's `Stage: Idea` issues (or run `/zmcray-plan` and say "betting pass" — its Step 0 walks them).
+1. Open the project's `Stage: Idea` issues next to its one-page `STRATEGY.md` (`/ce-strategy` writes it once; revisit quarterly). The page is the yardstick: most ideas clearly serve one of its tracks or clearly do not.
 2. For each: **bet** (enters this week's scope), **park** (untouched), or **kill** (cancel with one line of why). Five minutes, hard cap.
 3. State the week's **appetite** per project before any scoping: *"Motus: one weekend, ~6 issues. Saidso: two nights."* Appetite is a time budget, not an estimate — scope gets hammered to fit it, never the reverse.
 
@@ -126,10 +128,10 @@
 **Purpose.** Fill the tank so the nights can run without you.
 
 **You do.**
-1. `/zmcray-plan <prd path>` in taste mode. You answer only taste questions; everything else resolves from AGENTS.md and the PRD. For anything user-facing or ambiguous, run `/grilling` first so the questions get asked before the spec is written, not discovered at 2 a.m.
+1. `/ce-plan` with the issue (and PRD, if there is one) as input. For anything user-facing or ambiguous, run `/grilling` first so the questions get asked before the plan is written, not discovered at 2 a.m. Then `/to-chunks`: it turns the plan's Implementation Units into Linear chunks with build packets, file scope, blocking edges, and `tier:*` labels, and prints the waves.
 1a. **Cut it small.** The unit of work is a **chunk**: one issue, one PR, well under an hour of agent time, about 5 files and 300 changed lines or fewer, 1–4 machine-checkable acceptance checks. See §2a. Small chunks review in minutes, fail cheaply, and run in parallel.
 1b. **Declare file scope and tier on every chunk.** File scope decides what can run side by side; `tier:*` decides which model is worth paying for.
-2. The skeleton test runs again at decomposition (Step 3.5) — anything that snuck into M1 without breaking the loop is logged `deferred`, not `spec-ready`.
+2. Apply the skeleton test again while planning — anything that snuck into M1 without breaking the loop is logged `deferred`, not `spec-ready`.
 3. Quality gate ≥ 7 on every issue; dependency edges set; advisor pass applied; CI-impact sections where workflows change.
 4. If a spec needs more screen detail than the canvas has, **edit the canvas now**, by hand, then finish the spec. Not during Build.
 5. Stop when the `spec-ready` queue ≥ **tonight's** appetite plus one night of buffer. More is waste; less means the night stalls. The tank is topped up daily, not filled once a week.
@@ -178,9 +180,9 @@
 **Purpose.** Each week makes the next one easier.
 
 **You do.**
-1. `/retro` + `/zmcray-retro` — read, don't write.
+1. `/retro` — read, don't write.
 2. `/ce-compound` on anything solved this week that will recur.
-3. Board sync: `/zmcray-status` or `/landing-report`; stale In Progress and project statuses get corrected here, not whenever.
+3. Board sync: `/landing-report`; stale In Progress and project statuses get corrected here, not whenever.
 4. Promote durable learnings into the canonical AGENTS.md block (this repo's `deploy-agents-md.sh` carries them to the fleet).
 5. Glance at the loops' health: runner uptime, nightly pass rate, residual count trend. Set next week's appetite hints.
 
@@ -206,8 +208,8 @@ Rank by: unblocks the most (dependency fan-out) → closest to the core loop →
 | Depth | When | Run | Output |
 |---|---|---|---|
 | **PRD zoom** (REFRESH) | the milestone itself feels wrong — too big, wrong loop, stalled M1 | `/caspian refresh <prd>` under the skeleton contract: re-slice M1, shelf the rest (`deferred` + kill conditions), cancel or keep issues. If M1's *screens* are in question, run a design session first — the gate applies to REFRESHes that re-slice M1. | re-sliced PRD, issues re-labeled, Later Shelf populated |
-| **Feature zoom** (design session on an issue cluster) | a `flow:design` issue or cluster is screen-heavy or introduces a new interaction model | Stage 2 shape *for the feature* (its own loop sentence + spine) → Stage 3 design session **inside the repo** (Claude Design matches the existing components and tokens automatically, so the session is about flow, layout and actions — not brand; start from the current screens, don't reinvent them) → sketch summary attached to the issues (Linear comment + `docs/strategy/sketches/`) → `/zmcray-plan` on those issues (its Path B: existing under-specified issues) | `spec-ready` issues with a canvas behind them |
-| **Issue zoom** (spec deepening) | direction is clear, the issue is under-specified (< 7 on the executability bar) | `/zmcray-plan MCR-xxx`, or a `/ce-plan` deepening pass; skeleton test if it claims M1 | one `spec-ready` issue |
+| **Feature zoom** (design session on an issue cluster) | a `flow:design` issue or cluster is screen-heavy or introduces a new interaction model | Stage 2 shape *for the feature* (its own loop sentence + spine) → Stage 3 design session **inside the repo** (Claude Design matches the existing components and tokens automatically, so the session is about flow, layout and actions — not brand; start from the current screens, don't reinvent them) → sketch summary attached to the issues (Linear comment + `docs/strategy/sketches/`) → `/ce-plan` on those issues, then `/to-chunks` | `spec-ready` issues with a canvas behind them |
+| **Issue zoom** (spec deepening) | direction is clear, the issue is under-specified (< 7 on the executability bar) | `/ce-plan MCR-xxx` (or a deepening pass), then `/to-chunks`; skeleton test if it claims M1 | one `spec-ready` issue |
 
 **3. Close the block the same way every time.** The issue or PRD carries the artifact (sketch summary link, re-sliced milestone, or spec); labels reflect reality (`spec-ready` / `deferred` / Cancelled); the tank is fuller than when you started. A zoom-in that ends with a *new* idea instead of a sharper existing one went sideways — capture the idea (Stage 0) and come back.
 
@@ -227,7 +229,7 @@ Rank by: unblocks the most (dependency fan-out) → closest to the core loop →
 
 **Chunk.** The smallest piece that still ships something checkable on its own. One chunk = one issue = one PR. Size bar: one fresh agent context, well under an hour, about 5 files / 300 lines, 1–4 acceptance checks. If you cannot say what it makes work in one sentence, split it. Do not split below the point where it can be verified alone.
 
-**Wave.** Chunks with no blocker between them and no shared files. A wave can be built by several agents at once. `/zmcray-plan` prints the waves. Overlapping file scope always gets a `blocked by` edge, which pushes the later chunk into the next wave. Shared hot files (schema, route index, `Package.swift`, lockfiles, generated types) count as overlap. Widen waves by prefactoring the shared seam first, then fanning out.
+**Wave.** Chunks with no blocker between them and no shared files. A wave can be built by several agents at once. `/to-chunks` prints the waves. Overlapping file scope always gets a `blocked by` edge, which pushes the later chunk into the next wave. Shared hot files (schema, route index, `Package.swift`, lockfiles, generated types) count as overlap. Widen waves by prefactoring the shared seam first, then fanning out.
 
 **Tier.** How hard the chunk is to get right. It is a label on the chunk; the model is chosen at dispatch from `DISPATCH.md`. Never write a model name in an issue.
 
@@ -251,7 +253,7 @@ If most chunks come out `tier:judgment`, the cut is too coarse. Split until the 
 | **Nightly full suite + watcher** | full XCUITest/regression on `main` nightly; red → Urgent residual filed; pass rate into the digest | to build |
 | **CI babysitter** | inside every goal run: watch checks, reduce logs, fix-and-push loop on cheap tiers | exists (`/goal` delegation policy) |
 | **Morning digest** | merged / stopped / red / checklist, plus factory occupancy per project (shelf count, shaped, sketched, spec-ready, In Review) | to build as an Argus job |
-| **Weekly retro** | scheduled Sunday run of `/retro` + `/zmcray-retro` so learning doesn't depend on remembering | to schedule |
+| **Weekly retro** | scheduled Sunday run of `/retro` so learning doesn't depend on remembering | to schedule |
 | **Post-deploy canary** (web) | `/canary` after production deploys | exists, unused |
 
 ---
