@@ -56,7 +56,11 @@ Print: **"Scope: [source]. Strategy done: [yes (prd-source) / no]. Mode: [taste/
 
 ## Step 3: Decompose Into Features
 
-Break the scope into features sized for one build loop each (one branch, one PR, mergeable in one session). Rules:
+Break the scope into **chunks**: the smallest piece that still ships something checkable on its own. One chunk = one issue = one branch = one PR. Small chunks are the point... they review in minutes, they fail cheaply, and several agents can work them at the same time. Rules:
+
+0. **Chunk size (hard bar).** A chunk fits comfortably in one fresh agent context and lands in well under an hour of agent time. Guide rails: about 5 files or fewer, about 300 changed lines or fewer, one decided approach, 1-4 acceptance checks. If a feature needs more than one Implementation Unit and those units touch different files, **each unit becomes its own chunk**. If you cannot state what the chunk makes work in one sentence, split it. Do not split below the point where a chunk can be verified alone (a schema with nothing reading it is not a chunk... pair it with its first reader).
+0a. **File scope, declared per chunk.** List the directories or globs the chunk may touch. This is a fence for the building agent and the input to the parallel check below.
+0b. **Parallel-safe by construction.** Two chunks with overlapping file scope MUST have a `blocked by` edge between them (pick the order). Two chunks with disjoint file scope and no logical dependency get NO edge... they are in the same **wave** and may be built at the same time by different agents. Shared hot files (routes index, schema file, DI container, `Package.swift`, lockfiles, generated types) count as overlap... call them out. Prefer decompositions that widen the waves: prefactor a shared seam first as its own chunk, then fan out behind it.
 
 1. Split by deliverable seam, not by layer... "upload flow end-to-end", not "backend" + "frontend".
 2. Map dependencies as you split: which features must merge before which. This becomes Linear `blocked by` relations in Step 5.
@@ -73,6 +77,15 @@ Path C scope with new surface area gets one `/office-hours` pass on the overall 
 
 ### 4B: Flow triage
 Classify by blast radius exactly as build Step 3: new surface/auth/data/hard-to-reverse → `flow:design`; meaty but known territory → `flow:standard`; small, reversible → `flow:ship`. State the call in one line.
+
+### 4B.5: Tier triage (complexity of the chunk, not the model)
+Every chunk gets exactly one `tier:*` label. It records how hard the chunk is to get right, so whatever dispatches it (a `/goal` run, a Cursor cloud agent, Codex) can pick a model to match. Judge by the AGENTS.md effort axes... novelty, ambiguity, subtlety, simultaneity... not by size or blast radius:
+
+- `tier:mechanical` ... one obvious approach, well-trodden pattern already in the repo, nothing subtle. Copy, config, a field added end to end, a test backfill, a rename batch. Cheapest fast model.
+- `tier:moderate` ... real but familiar reasoning against a settled spec. Most feature chunks. Mid-tier model.
+- `tier:judgment` ... novel, several plausible approaches, or concurrency / security / data-correctness traps. Frontier model, and a candidate for `class:hard`.
+
+**Never write a model name in an issue.** Model names and prices change weekly; the tier does not. The tier-to-model map lives in one place (`software-factory/DISPATCH.md`) and is applied at dispatch time. If most chunks in a plan come out `tier:judgment`, the decomposition is too coarse... split again until the hard part is isolated in one or two chunks and the rest are moderate or mechanical. State each tier call in one line.
 
 ### 4C: Spec the feature
 Run `/ce-plan` with the feature (plus PRD section, if any) as input. Shape its output into the issue spec using CE's Implementation Unit schema. Every issue body must contain:
@@ -125,7 +138,7 @@ If this feature raised taste calls, ask them now, batched in one AskUserQuestion
 For each gated spec, create (or update, for Path B) the Linear issue on the resolved project:
 
 1. Title: imperative, one line. Body: the full spec from 4C.
-2. Labels: exactly one `flow:*`, plus `spec-ready`, plus `prd-source` if Path A.
+2. Labels: exactly one `flow:*`, exactly one `tier:*` (4B.5), plus `spec-ready`, plus `prd-source` if Path A. The body carries a `File scope:` line (Step 3, rule 0a).
 3. Priority: from the PRD/scope ordering; default Normal. Never "No priority", including on umbrella issues and their children.
 4. Milestone: required (AGENTS.md > Linear structure). Pick the live `<Epic> N: <Outcome>` milestone the feature serves; `deferred` features go to `<Epic>: later` at priority Low. If none fits, create one named as a user outcome and state it in one line. Sub-issues inherit the umbrella's milestone, and a plan-type umbrella `blocks` its children.
 5. Relations: `blocked by` links per the Step 3 dependency map. Any "before / after / must land first" wording in a spec body also gets the link. /zmcray-execute pulls only unblocked `spec-ready` issues, so these edges ARE the execution order.
@@ -140,7 +153,7 @@ Confidence-gate the findings: only surface findings a persona rates high-confide
 
 ## Step 7: Summary & Handoff
 
-Print the plan summary: feature count, flow distribution, dependency chain (as an ordered list), quality scores, taste calls made or asked, advisor findings applied. Post the same summary as a comment on the Linear project (or initiative).
+Print the plan summary: chunk count, flow distribution, **tier mix** (mechanical / moderate / judgment), the **waves** (Wave 1 = every unblocked chunk, Wave 2 = what unblocks when Wave 1 merges, and so on... this is what can run in parallel), dependency chain (as an ordered list), quality scores, taste calls made or asked, advisor findings applied. Post the same summary as a comment on the Linear project (or initiative).
 
 Close with: **"[N] issues spec-ready on [project]. Execution order: [ID → ID → ...]. Run /zmcray-execute to burn them down, or /zmcray-build [ID] for one at a time."**
 
@@ -150,7 +163,8 @@ Close with: **"[N] issues spec-ready on [project]. Execution order: [ID → ID �
 - [ ] Scope decomposed into one-build-loop features with dependency edges
 - [ ] Every logged issue scores ≥7 on the executability gate
 - [ ] M1 candidates passed the skeleton test; failures logged as `deferred`, not `spec-ready`
-- [ ] Every issue has exactly one `flow:*` label plus `spec-ready`
+- [ ] Every issue has exactly one `flow:*` label, exactly one `tier:*` label, plus `spec-ready`
+- [ ] Every chunk passes the size bar and declares its file scope; overlapping scopes have a `blocked by` edge; the waves are printed
 - [ ] `blocked by` relations encode the execution order
 - [ ] Every issue has a milestone and a priority; touched milestones carry a current `Outcome:` / `Order:` header
 - [ ] Advisor pass ran and high-confidence findings were applied
