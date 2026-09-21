@@ -66,6 +66,7 @@ Every failure fixes the **template**, not just the code: packet-template and AGE
 |---|---|
 | `night-eligible` | Packet complete; may be dispatched unattended. Human-applied only. |
 | `lane:claude` / `lane:cursor` / `lane:codex` | Dispatch-time harness routing. Never in the packet. |
+| `tier:mechanical` / `tier:moderate` / `tier:judgment` | How hard the chunk is to get right. Set at planning; the dispatcher maps it to a model via `DISPATCH.md`. Never a model name. |
 | `class:safe` | Copy/config/contained fix. Auto-merges on green + clean review once graduated (Phase 3). |
 | `class:feature` | Draft PR for morning review. Never auto-merges. |
 | `class:hard` | Best-of-3 cross-harness tournament with verifier. |

@@ -22,4 +22,5 @@ Rules:
 - **Artboard is required for any UI work.** The approved canvas is implementation input; night agents diff their screenshots against it.
 - **File scope is a fence, not a hint.** The building agent may not touch paths outside it. Wanting to = kick back with a Linear comment, don't expand.
 - **Out of scope is mandatory**, even when it feels obvious. It is what keeps an unattended agent from helpfully doing more.
-- Routing (`lane:*`) and merge trust (`class:*`) are labels, never packet fields. Dispatch decisions stay out of the spec.
+- **Keep it a chunk.** Well under an hour of agent time, about 5 files and 300 changed lines or fewer, 1-4 acceptance checks. Bigger than that, split it. File scope that overlaps another queued chunk needs a `blocked by` edge; disjoint scope with no edge means the two may be built at the same time.
+- Complexity (`tier:*`), routing (`lane:*`), and merge trust (`class:*`) are labels, never packet fields. The packet never names a model; `DISPATCH.md` maps tier to model at dispatch time. Dispatch decisions stay out of the spec.

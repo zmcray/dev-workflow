@@ -17,6 +17,8 @@ Two shifts, one handoff artifact. **Day shift** (human in the loop): product cou
 | `ARCHITECTURE.md` | The full system design: phases, lanes, labels, verification ladder, dispatch, iOS specifics |
 | `DECISIONS.md` | Decision log: every load-bearing choice, its rationale, and what it is based on |
 | `docs/research/2026-08-state-of-practice.md` | The research the design is grounded in (4 research passes, Aug 2026, with sources) |
+| `MANUAL.md` | The operating manual: nine stages, the daily hour, chunks / waves / tiers, the week. **Start here for how to run it.** |
+| `DISPATCH.md` | Tier → model map, parallel-wave rules, and how a night ends. The only place model names live |
 | `templates/build-packet.md` | The canonical build-packet template that gates the night queue |
 | `skills/` | Forked, factory-adapted agent skills (grilling, domain-modeling, code-review, wizard); provenance in `skills/UPSTREAM.md` |
 

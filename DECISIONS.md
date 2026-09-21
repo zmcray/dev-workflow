@@ -102,3 +102,13 @@ All "Based on" citations trace to `docs/research/2026-08-state-of-practice.md` u
 **Based on:** Review of https://www.aihero.dev/skills and the mattpocock/skills repo (2026-09-09); user decision (2026-09-09).
 
 **Amended 2026-09-21:** the glossary file is `CONCEPTS.md`, not `CONTEXT.md` as first written. compound-engineering already maintains `CONCEPTS.md` in the Learn phase (live in telos, argus, motus, saidso); a second file would have split the vocabulary between a read path and a write path. The forked `domain-modeling` skill now writes to `CONCEPTS.md` in CE's format. Lesson for the Learn loop: before introducing a repo-level convention, grep the wired repos for an existing one.
+
+## D-020: A daily hour replaces the Thursday factory day; tank first
+
+**Why:** Bet → shape → design → commit → spec does not fit in one day alongside everything else. The line is unchanged; it is spread across the week as one calendar hour per day plus a 20–30 minute morning verify. Two hours a week are mapping days (ideas, shaping, design, council); the rest are spec days. Every hour opens with a tank check, and a low `spec-ready` queue turns any day into a spec day, because an empty tank wastes a whole night while a late idea costs nothing. Nights are expected to end early on queue-empty or budget stop; both are normal.
+**Based on:** User decision (2026-09-21). Supersedes the "Factory day (Thursday)" rhythm in the original manual.
+
+## D-021: Small parallel-safe chunks, with complexity on the chunk and the model chosen at dispatch
+
+**Why:** Small single-purpose diffs are the proven unit (D-005): they review in minutes, fail cheaply, and let several agents work at once. Chunks declare file scope; disjoint scope with no dependency forms a wave that may build concurrently, while merges stay strictly sequential (D-010). Each chunk carries one `tier:*` label (mechanical / moderate / judgment) describing how hard it is to get right. Model names never enter an issue or packet, consistent with D-014 (routing stays out of the packet) and the canonical rule against hard-coding tier names; `DISPATCH.md` is the single tier-to-model map. A plan that is mostly mechanical and moderate also stretches a limited credit budget furthest. `/zmcray-plan` enforces the size bar, file scope, waves, and tier label as of 2026-09-21; tier-aware dispatch and parallel waves land with Phase 2.
+**Based on:** User decision (2026-09-21); D-005, D-010, D-014; AGENTS.md Delegation and Effort sections.
