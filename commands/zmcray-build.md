@@ -141,6 +141,15 @@ No pre-work. `/lfg`'s built-in plan gate (a written plan file must exist in `doc
 
 After each pre-work skill completes, print: **"[Skill] complete. Next step: [next]. Ready?"** Wait for confirmation.
 
+### Auto-chunk check (runs by itself after the plan exists... never ask the user to remember it)
+
+As soon as pre-work has produced a plan file, count its Implementation Units. **If the plan has 3 or more units, or any single unit is over the chunk bar** (about 5 files / 300 lines / an hour of agent time), invoke `/to-chunks` on it now, before Step 5. The current issue becomes the parent; its chunks become `spec-ready` sub-issues. Then:
+
+- **Autonomous mode (`/goal`):** continue straight into the chunks, in `blocked by` order, one chunk per branch and PR. Log one line on the parent: "Auto-chunked into N chunks, W waves."
+- **Interactive mode:** print the waves and tier mix, then ask once: build the first chunk now, or leave them queued for tonight?
+
+A plan with 1-2 small units is already a chunk: do not split it. Just make sure the issue carries a `tier:*` label and a `File scope:` line, then proceed.
+
 ### CI impact gate (when applicable)
 
 If the task or plan changes `.github/workflows/**`, test topology, artifact uploads, scheduled jobs, runner labels, or monorepo workflow routing, apply the canonical **CI cost discipline** before branching. The plan must state trigger/path scope, repository visibility and runner class, fast required PR checks versus full merge/manual coverage, artifact conditions/size/retention, branch-protection compatibility, and expected Actions usage change. Add the section if an older plan omitted it. Never reduce required coverage merely to save minutes.

@@ -16,6 +16,10 @@ It does not plan, re-plan, or second-guess the plan's decisions. If the plan is 
 3. **Parent.** If the plan header carries a `Linear Issue`, that issue is the parent: chunks are created as its sub-issues and inherit its milestone, `flow:*`, and `prd-source`. Otherwise create one umbrella issue named after the plan, per AGENTS.md > Linear structure, and hang the chunks under it.
 4. **Vocabulary.** Read `CONCEPTS.md` if present. Chunk titles and descriptions use its terms.
 
+**This command is normally invoked for you.** `/zmcray-build` calls it right after a plan is written, and `/goal` sweeps for un-chunked plans at the start of every night run. Running it by hand is only for spec time when you want to see the waves before bedtime.
+
+**Small-plan no-op.** A plan with 1-2 units that already fits the chunk bar is not split. Add the build packet, `File scope:` line, and `tier:*` label to the existing issue, write a one-row `## Chunks` section into the plan so the sweep does not revisit it, and stop.
+
 ## Step 2: Units → chunks
 
 Start from the plan's `### U<N>.` units (Goal, Dependencies, Files, Approach, Test scenarios, Verification). One unit is usually one chunk. Adjust only to meet the bar:
