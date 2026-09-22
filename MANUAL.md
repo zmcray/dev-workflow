@@ -8,7 +8,7 @@
 
 **Tank first.** Every daily hour opens with a 2-minute tank check: is the `spec-ready` queue at least tonight's appetite? If not, today is a spec day no matter what the calendar says. Mapping is what you do when the tank is already full. There was never enough room to do bet → shape → design → commit → spec in one Thursday; the line is the same, it is just spread across the week.
 
-**What actually runs it (usage audit, 2026-09-21).** Compound Engineering is the engine: `/ce-plan`, `/ce-work`, `/lfg`, `/ce-code-review`, `/ce-compound`. The house layer is deliberately thin and covers only what CE does not: `/caspian` (the council), `/to-chunks` (plan → Linear chunks), `/goal` + `/zmcray-build` (the night loop), `/zmcray-wrap` (Linear close-out), `/zmcray-kickoff` (wire a new repo). One tool per job: `/caspian` to decide, `/ce-brainstorm` to think through one fuzzy feature, `/ce-plan` to make it buildable. `zmcray-plan`, `-execute`, `-status`, `-checkpoint`, `-retro` are archived.
+**What actually runs it (2026-09-21).** Compound Engineering is the engine: `/ce-plan`, `/lfg`, `/ce-work`, `/ce-code-review`, `/ce-compound`. Claude Code's built-in `/goal` is the hands-off runner. The house layer is two commands: `/caspian` (the council) and `/to-chunks` (plan → Linear chunks, invoked automatically). `/zmcray-kickoff` survives only because `/caspian` calls it to wire a brand-new repo. Everything else that used to be a `zmcray-*` command is now a rule in AGENTS.md: `/lfg` never touches Linear and never merges, so merge-on-green, Linear sync, and session close come from the rule file. One tool per job: `/caspian` to decide, `/ce-brainstorm` to think through one fuzzy feature, `/ce-plan` to make it buildable.
 
 ---
 
@@ -22,7 +22,7 @@
 | 3 | **Design session** | You drive, Claude Design draws | a mapping-day hour (or two) · when triggered | `/design` canvas (or Figma/Excalidraw) | screens + flow + actions canvas; sketch summary | walk-through passed; verdict = keep |
 | 4 | **Commit** | You + the council | mapping day · ~2 h, split across two daily hours if needed | `/caspian` | PRD with Later Shelf; labeled issues | Red Team adjudicated; M1 = skeleton only |
 | 5 | **Spec** | Agent; you for taste calls | spec days · the daily hour | `/ce-plan` → `/to-chunks` | `spec-ready` chunks | queue ≥ appetite; every issue ≥ 7; plans landed |
-| 6 | **Build** | Agents | nights | `/goal` → `/zmcray-build` → `/lfg` | merged PRs, residuals, nightly build, morning checklist | green train; hard stops surfaced, not guessed |
+| 6 | **Build** | Agents | nights | built-in `/goal` → `/lfg` per chunk | merged PRs, residuals, nightly build, morning checklist | green train; hard stops surfaced, not guessed |
 | 7 | **Verify** | You | mornings · 20–30 min | checklist, `/ios-qa`, `/qa-only`, `/design-review` | issues closed or kicked back | In Review pile = 0 |
 | 8 | **Learn** | Agent-led, you read | Sun · 20 min | `/ce-compound`, `/retro` | learnings promoted; board synced | AGENTS.md / templates updated |
 
@@ -150,7 +150,7 @@
 
 **The machines do.**
 1. Pull the highest-priority unblocked `spec-ready` chunk; read its `tier:*` and pick the model from `DISPATCH.md`; run the flow's pre-work; hand to `/lfg`; PR.
-1a. **Parallel where the plan allows it.** Every chunk in the current wave (unblocked, disjoint file scope) may be built at the same time by different agents, each in its own environment. **Build in parallel, merge one at a time:** rebase on fresh `main`, re-run the smoke gate, then merge. Today `/goal` works one chunk at a time; parallel waves arrive with the Cursor cloud lane (see §6).
+1a. **Parallel where the plan allows it.** Every chunk in the current wave (unblocked, disjoint file scope) may be built at the same time by different agents, each in its own environment. **Build in parallel, merge one at a time:** rebase on fresh `main`, re-run the smoke gate, then merge. Today a `/goal` run works one chunk at a time; parallel waves arrive with the Cursor cloud lane (see §6).
 2. **Per-issue gate = smoke** (build + unit + a 10–15-test smoke UI plan, ~5–8 min). Merge on green. Residuals filed. Next issue branches from fresh `main`.
 3. **Train end = full suite**, once, on final `main`. Red → Urgent residual, fix-forward in the morning.
 4. Cut the **nightly build** (TestFlight from `main`; Vercel preview for web), tag it, and emit the **morning verification checklist**: one block per merged issue, its acceptance criteria as checkboxes.
@@ -302,10 +302,10 @@ Per-*issue* rigor stays with the flow labels regardless of tier: a `flow:ship` o
 | — | `/to-chunks` bridge: plan units → Linear chunks with packets, file scope, edges, `tier:*` | 5 | **done** (Sep 21), not yet run on a real plan |
 | — | `caspian` delta D8: design-session gate, appetite-before-scope, Later Shelf | 3, 4 | **done** (Aug 7) |
 | — | `/sketch` command | — | **removed** — the design session is a walk-through, not a skill |
-| 1 | **Morning checklist emitter** in `zmcray-wrap` + `goal` Step 3: acceptance criteria per merged issue → Linear comment + digest | 7 | to build (small) |
-| 2 | **Smoke / full gate split**: `Smoke.xctestplan` in motus + saidso; `zmcray-build` Step 7/8 + `goal` Step 3 encode per-issue = smoke, train end = full; nightly full-suite workflow | 6 | to build (biggest time win) |
+| 1 | **Morning checklist emitter** (a rule in AGENTS.md > Session close): acceptance criteria per merged issue → Linear comment + digest | 7 | to build (small) |
+| 2 | **Smoke / full gate split**: `Smoke.xctestplan` in motus + saidso; AGENTS.md encodes per-issue = smoke, train end = full; nightly full-suite workflow | 6 | to build (biggest time win) |
 | 3 | **Runner sleep + health**: `caffeinate -s` in both runner launchd plists; a saved runner-health loop prompt / scheduled task | 6, loops | to build (30 min) |
-| 4 | `goal.md` Step 1: pull only `spec-ready`; empty queue = stop with "plan first" | 5, 6 | to build (one line) |
+| 4 | Goal runs pull only `spec-ready`; empty queue = stop with "plan first" | 5, 6 | **done** (Sep 21, AGENTS.md > Autonomous runs) |
 | 5 | Shape-doc + sketch-summary **templates** into `dev-workflow/templates/` (from §7) | 2, 3 | to build (copy) |
 | 6 | **Risk tripwire** CI job (reusable workflow deployed like AGENTS.md): risky paths without `flow:design` → fail | 6 | to build |
 | 7 | **MCR-748** TestFlight from `main` + tag on cut | 6, 7 | in progress |
