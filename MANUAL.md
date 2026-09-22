@@ -8,7 +8,7 @@
 
 **Tank first.** Every daily hour opens with a 2-minute tank check: is the `spec-ready` queue at least tonight's appetite? If not, today is a spec day no matter what the calendar says. Mapping is what you do when the tank is already full. There was never enough room to do bet → shape → design → commit → spec in one Thursday; the line is the same, it is just spread across the week.
 
-**What actually runs it (2026-09-21).** Compound Engineering is the engine: `/ce-plan`, `/lfg`, `/ce-work`, `/ce-code-review`, `/ce-compound`. Claude Code's built-in `/goal` is the hands-off runner. The house layer is two commands: `/caspian` (the council) and `/to-chunks` (plan → Linear chunks, invoked automatically). `/zmcray-kickoff` survives only because `/caspian` calls it to wire a brand-new repo. Everything else that used to be a `zmcray-*` command is now a rule in AGENTS.md: `/lfg` never touches Linear and never merges, so merge-on-green, Linear sync, and session close come from the rule file. One tool per job: `/caspian` to decide, `/ce-brainstorm` to think through one fuzzy feature, `/ce-plan` to make it buildable.
+**What actually runs it (2026-09-21).** Compound Engineering is the engine: `/ce-plan`, `/lfg`, `/ce-work`, `/ce-code-review`, `/ce-compound`. Claude Code's built-in `/goal` is the hands-off runner. The house layer is two commands: `/caspian` (the council) and `/packets` (plan → Linear chunks, invoked automatically). `/zmcray-kickoff` survives only because `/caspian` calls it to wire a brand-new repo. Everything else that used to be a `zmcray-*` command is now a rule in AGENTS.md: `/lfg` never touches Linear and never merges, so merge-on-green, Linear sync, and session close come from the rule file. One tool per job: `/caspian` to decide, `/ce-brainstorm` to think through one fuzzy feature, `/ce-plan` to make it buildable.
 
 ---
 
@@ -21,7 +21,7 @@
 | 2 | **Shape** | You + Claude | mapping day · 30–60 min / bet | conversation, `/office-hours`, `/diagram`, `/hagen` | shape doc | loop sentence in one line; dominant risk named; design session yes/no decided |
 | 3 | **Design session** | You drive, Claude Design draws | a mapping-day hour (or two) · when triggered | `/design` canvas (or Figma/Excalidraw) | screens + flow + actions canvas; sketch summary | walk-through passed; verdict = keep |
 | 4 | **Commit** | You + the council | mapping day · ~2 h, split across two daily hours if needed | `/caspian` | PRD with Later Shelf; labeled issues | Red Team adjudicated; M1 = skeleton only |
-| 5 | **Spec** | Agent; you for taste calls | spec days · the daily hour | `/ce-plan` → `/to-chunks` | `spec-ready` chunks | queue ≥ appetite; every issue ≥ 7; plans landed |
+| 5 | **Spec** | Agent; you for taste calls | spec days · the daily hour | `/ce-plan` → `/packets` | `spec-ready` chunks | queue ≥ appetite; every issue ≥ 7; plans landed |
 | 6 | **Build** | Agents | nights | built-in `/goal` → `/lfg` per chunk | merged PRs, residuals, nightly build, morning checklist | green train; hard stops surfaced, not guessed |
 | 7 | **Verify** | You | mornings · 20–30 min | checklist, `/ios-qa`, `/qa-only`, `/design-review` | issues closed or kicked back | In Review pile = 0 |
 | 8 | **Learn** | Agent-led, you read | Sun · 20 min | `/ce-compound`, `/retro` | learnings promoted; board synced | AGENTS.md / templates updated |
@@ -128,7 +128,7 @@
 **Purpose.** Fill the tank so the nights can run without you.
 
 **You do.**
-1. `/ce-plan` with the issue (and PRD, if there is one) as input. For anything user-facing or ambiguous, run `/grilling` first so the questions get asked before the plan is written, not discovered at 2 a.m. Then `/to-chunks`: it turns the plan's Implementation Units into Linear chunks with build packets, file scope, blocking edges, and `tier:*` labels, and prints the waves.
+1. `/ce-plan` with the issue (and PRD, if there is one) as input. For anything user-facing or ambiguous, run `/grilling` first so the questions get asked before the plan is written, not discovered at 2 a.m. Then `/packets`: it turns the plan's Implementation Units into Linear chunks with build packets, file scope, blocking edges, and `tier:*` labels, and prints the waves.
 1a. **Cut it small.** The unit of work is a **chunk**: one issue, one PR, well under an hour of agent time, about 5 files and 300 changed lines or fewer, 1–4 machine-checkable acceptance checks. See §2a. Small chunks review in minutes, fail cheaply, and run in parallel.
 1b. **Declare file scope and tier on every chunk.** File scope decides what can run side by side; `tier:*` decides which model is worth paying for.
 2. Apply the skeleton test again while planning — anything that snuck into M1 without breaking the loop is logged `deferred`, not `spec-ready`.
@@ -208,8 +208,8 @@ Rank by: unblocks the most (dependency fan-out) → closest to the core loop →
 | Depth | When | Run | Output |
 |---|---|---|---|
 | **PRD zoom** (REFRESH) | the milestone itself feels wrong — too big, wrong loop, stalled M1 | `/caspian refresh <prd>` under the skeleton contract: re-slice M1, shelf the rest (`deferred` + kill conditions), cancel or keep issues. If M1's *screens* are in question, run a design session first — the gate applies to REFRESHes that re-slice M1. | re-sliced PRD, issues re-labeled, Later Shelf populated |
-| **Feature zoom** (design session on an issue cluster) | a `flow:design` issue or cluster is screen-heavy or introduces a new interaction model | Stage 2 shape *for the feature* (its own loop sentence + spine) → Stage 3 design session **inside the repo** (Claude Design matches the existing components and tokens automatically, so the session is about flow, layout and actions — not brand; start from the current screens, don't reinvent them) → sketch summary attached to the issues (Linear comment + `docs/strategy/sketches/`) → `/ce-plan` on those issues, then `/to-chunks` | `spec-ready` issues with a canvas behind them |
-| **Issue zoom** (spec deepening) | direction is clear, the issue is under-specified (< 7 on the executability bar) | `/ce-plan MCR-xxx` (or a deepening pass), then `/to-chunks`; skeleton test if it claims M1 | one `spec-ready` issue |
+| **Feature zoom** (design session on an issue cluster) | a `flow:design` issue or cluster is screen-heavy or introduces a new interaction model | Stage 2 shape *for the feature* (its own loop sentence + spine) → Stage 3 design session **inside the repo** (Claude Design matches the existing components and tokens automatically, so the session is about flow, layout and actions — not brand; start from the current screens, don't reinvent them) → sketch summary attached to the issues (Linear comment + `docs/strategy/sketches/`) → `/ce-plan` on those issues, then `/packets` | `spec-ready` issues with a canvas behind them |
+| **Issue zoom** (spec deepening) | direction is clear, the issue is under-specified (< 7 on the executability bar) | `/ce-plan MCR-xxx` (or a deepening pass), then `/packets`; skeleton test if it claims M1 | one `spec-ready` issue |
 
 **3. Close the block the same way every time.** The issue or PRD carries the artifact (sketch summary link, re-sliced milestone, or spec); labels reflect reality (`spec-ready` / `deferred` / Cancelled); the tank is fuller than when you started. A zoom-in that ends with a *new* idea instead of a sharper existing one went sideways — capture the idea (Stage 0) and come back.
 
@@ -229,7 +229,7 @@ Rank by: unblocks the most (dependency fan-out) → closest to the core loop →
 
 **Chunk.** The smallest piece that still ships something checkable on its own. One chunk = one issue = one PR. Size bar: one fresh agent context, well under an hour, about 5 files / 300 lines, 1–4 acceptance checks. If you cannot say what it makes work in one sentence, split it. Do not split below the point where it can be verified alone.
 
-**Wave.** Chunks with no blocker between them and no shared files. A wave can be built by several agents at once. `/to-chunks` prints the waves. Overlapping file scope always gets a `blocked by` edge, which pushes the later chunk into the next wave. Shared hot files (schema, route index, `Package.swift`, lockfiles, generated types) count as overlap. Widen waves by prefactoring the shared seam first, then fanning out.
+**Wave.** Chunks with no blocker between them and no shared files. A wave can be built by several agents at once. `/packets` prints the waves. Overlapping file scope always gets a `blocked by` edge, which pushes the later chunk into the next wave. Shared hot files (schema, route index, `Package.swift`, lockfiles, generated types) count as overlap. Widen waves by prefactoring the shared seam first, then fanning out.
 
 **Tier.** How hard the chunk is to get right. It is a label on the chunk; the model is chosen at dispatch from `DISPATCH.md`. Never write a model name in an issue.
 
@@ -266,7 +266,7 @@ Two fixed appointments every day: a **morning verify** (20–30 min) and **the d
 |---|---|---|---|
 | Mon | Verify | **Map:** Bet (15 min / project) → Shape the week's bets | `/goal` |
 | Tue | Verify | **Map:** Design session or Commit (`/caspian`), whichever the bets need | `/goal` |
-| Wed | Verify | **Spec:** grill → `/ce-plan` → `/to-chunks` | `/goal` |
+| Wed | Verify | **Spec:** grill → `/ce-plan` → `/packets` | `/goal` |
 | Thu | Verify | **Spec:** chunks, or finish a Commit that ran long | `/goal` |
 | Fri | Verify | **Spec:** fill the tank for three nights (Fri, Sat, Sun) | `/goal` |
 | Sat | Verify | optional: zoom-in on one existing cluster, or skip | `/goal` |
@@ -299,7 +299,7 @@ Per-*issue* rigor stays with the flow labels regardless of tier: a `flow:ship` o
 | # | What | Stage it serves | Status |
 |---|---|---|---|
 | — | ~~`zmcray-plan` betting pass + skeleton test~~ | 1, 5 | **archived** (Sep 21) — betting is now the idea shelf read against `STRATEGY.md`; the skeleton test is applied during `/ce-plan` |
-| — | `/to-chunks` bridge: plan units → Linear chunks with packets, file scope, edges, `tier:*` | 5 | **done** (Sep 21), not yet run on a real plan |
+| — | `/packets` bridge: plan units → Linear chunks with packets, file scope, edges, `tier:*` | 5 | **done** (Sep 21), not yet run on a real plan |
 | — | `caspian` delta D8: design-session gate, appetite-before-scope, Later Shelf | 3, 4 | **done** (Aug 7) |
 | — | `/sketch` command | — | **removed** — the design session is a walk-through, not a skill |
 | 1 | **Morning checklist emitter** (a rule in AGENTS.md > Session close): acceptance criteria per merged issue → Linear comment + digest | 7 | to build (small) |

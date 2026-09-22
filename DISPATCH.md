@@ -30,4 +30,4 @@ Fallback when one harness runs dry: Claude Code → Cursor → Codex → pause. 
 
 ## Status (2026-09-21)
 
-`tier:*` labels and chunk rules: live in the canonical AGENTS.md block and in `/to-chunks` (the bridge from `/ce-plan` to Linear). A `/goal` run reads the tier as advice for its delegated model choice. Tier-aware model choice inside `/goal`: not built. Parallel waves and the Cursor lane: not built (Phase 2, MCR-1412). Until then a `/goal` run builds one chunk at a time and the tier label is advisory.
+`tier:*` labels and chunk rules: live in the canonical AGENTS.md block and in `/packets` (the bridge from `/ce-plan` to Linear). A `/goal` run reads the tier as advice for its delegated model choice. Tier-aware model choice inside `/goal`: not built. Parallel waves and the Cursor lane: not built (Phase 2, MCR-1412). Until then a `/goal` run builds one chunk at a time and the tier label is advisory.
