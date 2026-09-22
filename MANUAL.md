@@ -20,7 +20,7 @@
 | 1 | **Bet** | You | mapping day · 15 min / project | the Linear idea shelf, read against the product's `STRATEGY.md` | bets + this week's appetite | bets ≤ appetite |
 | 2 | **Shape** | You + Claude | mapping day · 30–60 min / bet | conversation, `/office-hours`, `/diagram`, `/hagen` | shape doc | loop sentence in one line; dominant risk named; design session yes/no decided |
 | 3 | **Design session** | You drive, Claude Design draws | a mapping-day hour (or two) · when triggered | `/design` canvas (or Figma/Excalidraw) | screens + flow + actions canvas; sketch summary | walk-through passed; verdict = keep |
-| 4 | **Commit** | You + the council | mapping day · ~2 h, split across two daily hours if needed | `/caspian` | PRD with Later Shelf; labeled issues | Red Team adjudicated; M1 = skeleton only |
+| 4 | **Commit** | You + the council | mapping day · ~1 h (PACKET: 30 min) | `/caspian` v3 | PRD with Later Shelf; labeled issues | Red Team adjudicated; M1 = skeleton only |
 | 5 | **Spec** | Agent; you for taste calls | spec days · the daily hour | `/ce-plan` → `/packets` | `spec-ready` chunks | queue ≥ appetite; every issue ≥ 7; plans landed |
 | 6 | **Build** | Agents | nights | built-in `/goal` → `/lfg` per chunk | merged PRs, residuals, nightly build, morning checklist | green train; hard stops surfaced, not guessed |
 | 7 | **Verify** | You | mornings · 20–30 min | checklist, `/ios-qa`, `/qa-only`, `/design-review` | issues closed or kicked back | In Review pile = 0 |
@@ -116,8 +116,8 @@
 1. `/caspian <topic>` (NEW for a product, EXPAND for a feature on an existing PRD). Its sketch gate (delta D8) pulls in the sketch summary; if there isn't one and the scope is user-facing, it will ask you to run Stage 3 or to log `no-sketch: <reason>` — choose deliberately.
 2. State the **appetite** before scoping. Scope is hammered to fit.
 3. Apply the **skeleton contract**: a feature enters M1 only if the core loop breaks without it. Everything else goes to the PRD's **Later Shelf** with a defer rationale and kill conditions. The shelf is where your expansive thinking lives — on paper, priced by real usage, re-entering only through REFRESH.
-4. Adjudicate every **Red Team** finding (cross-model via Codex). Don't let ambition win a debate it didn't win in someone's hands.
-5. Ship gate → issues land with exactly one `flow:*` label plus `prd-source`; shelf items land as `deferred`, never as milestone issues.
+4. Adjudicate the **Red Team** and **Eng review** findings (cross-model via Codex, fresh context) in one batched round. Don't let ambition win a debate it didn't win in someone's hands.
+5. Ship gate → issues land `spec-ready` with a build-packet stub, executable acceptance criteria, exactly one `flow:*`, one `tier:*`, and `prd-source`; Later Shelf items land as `deferred` with a kill condition and re-price date. Caspian verifies its own Linear write before it reports success.
 
 **Gate.** The M1 issue list is the skeleton and nothing else; every other feature is on the shelf with a kill condition.
 
