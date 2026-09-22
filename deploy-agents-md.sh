@@ -83,6 +83,9 @@ check_skill_drift() {
     for f in "$SCRIPT_DIR"/commands/*.md; do
       echo "$f|$HOME/.claude/commands/$(basename "$f")"
     done
+    for f in "$SCRIPT_DIR"/caspian/*.md; do
+      echo "$f|$HOME/Developer/dev-workflow/caspian/$(basename "$f")"
+    done
     for f in "$SCRIPT_DIR"/codex/skills/*/SKILL.md; do
       echo "$f|$HOME/.codex/skills/$(basename "$(dirname "$f")")/SKILL.md"
     done
