@@ -1,9 +1,10 @@
 ---
-description: Bridge from a finished /ce-plan to the night queue. Turns a plan's Implementation Units into small, parallel-safe Linear chunks... one issue per chunk, each with a build packet, a file-scope fence, blocking edges, and a tier:* difficulty label. Run it right after /ce-plan during spec time. Pairs with the built-in /goal.
+name: packets
+description: Turn a finished /ce-plan into build packets...  Turns a plan's Implementation Units into small, parallel-safe Linear chunks... one issue per chunk, each with a build packet, a file-scope fence, blocking edges, and a tier:* difficulty label. Run it right after /ce-plan during spec time. Pairs with the built-in /goal.
 argument-hint: "[plan path | Linear issue ID] (default: newest plan in docs/plans/)"
 ---
 
-# To Chunks
+# Packets
 
 `/ce-plan` decides **what** to build and cuts it into Implementation Units. `/goal` builds whatever is `spec-ready` in Linear. This command is the only thing between them: it turns one reviewed plan into a set of **chunks** that separate agents (a `/goal` run tonight, Cursor cloud agents later) can pick up independently, some of them at the same time.
 
