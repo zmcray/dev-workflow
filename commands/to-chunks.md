@@ -1,5 +1,5 @@
 ---
-description: Bridge from a finished /ce-plan to the night queue. Turns a plan's Implementation Units into small, parallel-safe Linear chunks... one issue per chunk, each with a build packet, a file-scope fence, blocking edges, and a tier:* difficulty label. Run it right after /ce-plan during spec time. Pairs with /goal.
+description: Bridge from a finished /ce-plan to the night queue. Turns a plan's Implementation Units into small, parallel-safe Linear chunks... one issue per chunk, each with a build packet, a file-scope fence, blocking edges, and a tier:* difficulty label. Run it right after /ce-plan during spec time. Pairs with the built-in /goal.
 argument-hint: "[plan path | Linear issue ID] (default: newest plan in docs/plans/)"
 ---
 
@@ -16,7 +16,7 @@ It does not plan, re-plan, or second-guess the plan's decisions. If the plan is 
 3. **Parent.** If the plan header carries a `Linear Issue`, that issue is the parent: chunks are created as its sub-issues and inherit its milestone, `flow:*`, and `prd-source`. Otherwise create one umbrella issue named after the plan, per AGENTS.md > Linear structure, and hang the chunks under it.
 4. **Vocabulary.** Read `CONCEPTS.md` if present. Chunk titles and descriptions use its terms.
 
-**This command is normally invoked for you.** `/zmcray-build` calls it right after a plan is written, and `/goal` sweeps for un-chunked plans at the start of every night run. Running it by hand is only for spec time when you want to see the waves before bedtime.
+**This command is normally invoked for you.** The AGENTS.md rule has any session cut a 3+ unit plan into chunks before building or ending, and every `/goal` run opens with a chunk sweep. Running it by hand is only for spec time when you want to see the waves before bedtime.
 
 **Small-plan no-op.** A plan with 1-2 units that already fits the chunk bar is not split. Add the build packet, `File scope:` line, and `tier:*` label to the existing issue, write a one-row `## Chunks` section into the plan so the sweep does not revisit it, and stop.
 
@@ -78,5 +78,5 @@ Close with: **"[N] chunks spec-ready on [project], [W] waves, widest wave [K]. T
 ## Notes
 
 - Re-running on the same plan is safe: match existing chunks by U-ID in the title and update them rather than duplicating.
-- Today `/goal` builds one chunk at a time, in edge order, and treats `tier:*` as advice for its subagent model choice. Parallel waves and per-chunk model dispatch arrive with the Cursor cloud lane (software-factory Phase 2). Cutting the work this way now is what makes that switch free later.
-- `flow:ship` one-liners do not need this command... they go straight to `/zmcray-build`.
+- Today a `/goal` run builds one chunk at a time with `/lfg`, in edge order, and treats `tier:*` as advice for its subagent model choice. Parallel waves and per-chunk model dispatch arrive with the Cursor cloud lane (software-factory Phase 2). Cutting the work this way now is what makes that switch free later.
+- `flow:ship` one-liners do not need this command... they go straight to `/lfg`.

@@ -101,14 +101,14 @@ After shipping, close with the standard pattern from `voice.md`:
 
 > *[Product] [theme] PRD shipped. [N] Linear issues created on [Initiative ID]. PRD written to `docs/strategy/...` and pushed to the Linear project. [Registry updated / reminder to update Registry from Cowork].*
 > *Links: PRD (repo path), Initiative (linear url), Issues (list).*
-> *You've got the chart. Next: `/zmcray-build` to pick up the highest-priority issue.*
+> *You've got the chart. Next: `/ce-plan` on the top issue, or `/goal <milestone>` to build the queue hands-off.*
 
 If the session ended at "stop at the PRD doc" (lazy-kickoff option 2), close instead with: *"PRD saved to `docs/strategy/...`. Nothing wired ... no repo, no Linear. When it's real enough to build, re-run `/caspian` on this PRD and we'll kickoff + ship the issues."*
 
 ## Relationship to the other commands
 
 - **`/zmcray-kickoff`** wires a repo (git + GitHub + Linear Project shell + AGENTS.md). It does NOT create issues. Caspian is the issue-writer. Kickoff can hand off to Caspian; Caspian can run kickoff at the ship gate. Same two players, order depends on whether you start from "I'm building X" or "I have an idea."
-- **`/zmcray-build`** picks up the labeled issues Caspian created and executes them per the `flow:*` label. If a build exceeds its PRD, it kicks back to Caspian as an EXPAND session ... the build loop never expands scope.
+- **`/ce-plan` + `/lfg`** (or a built-in `/goal` run) pick up the labeled issues Caspian created and execute them per the `flow:*` label and AGENTS.md. If a build exceeds its PRD, it kicks back to Caspian as an EXPAND session ... the build loop never expands scope.
 - **The design session** (software factory Stage 3 — a walk-through in Claude Design, not a command) runs BEFORE a user-facing NEW/EXPAND session: loop sentence → spine → screens + flow + actions → walk-through → verdict. Its sketch summary file is a deliberation input here (delta D8). Design sessions probe; Caspian commits.
 - **`/plan-ceo-review`** (gstack) is in-codebase plan rigor, not product strategy. Different job. Caspian produces the strategy; plan-ceo-review pressure-tests an implementation plan.
 - **Hagen** (Cowork) is go/no-go decision pressure-testing, not product shaping. If the real question is "should I pursue this at all," that's Hagen, not Caspian.
