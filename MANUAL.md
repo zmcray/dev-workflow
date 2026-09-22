@@ -165,11 +165,12 @@
 **Purpose.** One batch pass closes the night's work. This is where grouping genuinely saves time — closure, not merging.
 
 **You do.**
-1. Read the overnight digest (Argus): what merged, what stopped, what's red.
+1. Read the overnight digest (Argus): what merged, what stopped, what's red, and the **human batch** (every `gate:human` issue, parked or queued, with its one-line ask).
 2. Install the nightly build / open the preview.
 3. Walk the checklist, one block per issue: **pass** → Done · **fail** → residual (priority, label) · **scope surprise** → a Caspian EXPAND comment on the issue, not a fix.
 4. Ten minutes of `/design-review` (web) or `/ios-design-review` (iOS) on the new screens **against the canvas** — the canvas is the contract.
 5. Triage residuals; note anything that smells like a learning for Sunday.
+6. Work the human batch in one sitting: do each `gate:human` step, remove the label (or hand the chunk to `/lfg` if the rest is agent work), and note any packet that missed its gate... that is a `/packets` learning.
 
 **Gate.** The In Review pile is zero at the end of the ritual, or each remaining item is explicitly parked with a reason.
 
@@ -241,7 +242,9 @@ Rank by: unblocks the most (dependency fan-out) → closest to the core loop →
 
 If most chunks come out `tier:judgment`, the cut is too coarse. Split until the hard part sits in one or two chunks. A good plan is mostly mechanical and moderate... that is also what makes a limited credit budget go furthest.
 
-**Four labels, four questions.** `flow:*` = how much planning rigor. `tier:*` = how smart a model. `class:*` = how much merge trust. `lane:*` = which harness took it.
+**Gate.** Can the chunk finish with nobody at the keyboard? Most can. The ones that cannot get `gate:human` at spec time, and the packet's `Human gate:` line says what the person does and when. Triggers: a person must look at images or screens and judge them (not a pixel diff a script can run), credentials / 2FA / App Store / a vendor console, a physical device, a taste or naming call, someone outside the company. `ops` stays for issues that are *entirely* human work. Neither ever enters the night queue; the morning digest lists them as one batch so you sit down once, not six times. An agent that hits an unplanned human step at night parks the chunk (draft PR + label + comment) and keeps going.
+
+**Five labels, five questions.** `flow:*` = how much planning rigor. `tier:*` = how smart a model. `class:*` = how much merge trust. `lane:*` = which harness took it. `gate:human` = a person has to be there.
 
 ---
 

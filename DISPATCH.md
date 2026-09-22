@@ -16,7 +16,7 @@ The Cursor column is intent, not verified model IDs. Cursor's cloud agents take 
 
 ## What may run at the same time
 
-A **wave** is every `spec-ready` chunk that is unblocked and whose file scope overlaps no other chunk in the wave. One agent, one chunk, one isolated environment. **Build in parallel, merge one at a time:** before merging, rebase on fresh `main` and re-run the smoke gate. Practical ceiling: 6–10 concurrent. Hitting it means PRs are not merging fast enough, which is the real problem.
+A **wave** is every `spec-ready` chunk that is unblocked, carries neither `gate:human` nor `ops`, and whose file scope overlaps no other chunk in the wave. `gate:human` chunks are never dispatched unattended; they run on the day shift with the person's step scheduled up front. One agent, one chunk, one isolated environment. **Build in parallel, merge one at a time:** before merging, rebase on fresh `main` and re-run the smoke gate. Practical ceiling: 6–10 concurrent. Hitting it means PRs are not merging fast enough, which is the real problem.
 
 ## When the night ends
 
@@ -24,6 +24,7 @@ A **wave** is every `spec-ready` chunk that is unblocked and whose file scope ov
 |---|---|---|
 | Queue empty | normal | stop; morning digest says so |
 | Budget stop | normal | credits or plan headroom ran out; remaining chunks stay `spec-ready` |
+| Human park | needs a human, but only for that chunk | a step needs a person (visual judgment, credentials, device, outside party); branch pushed, draft PR, `gate:human` added, comment says what to do; run continues on the next unblocked chunk |
 | Hard stop | needs a human | red baseline, unmergeable PR, scope kick-back, anything destructive |
 
 Fallback when one harness runs dry: Claude Code → Cursor → Codex → pause. Record who took a chunk with `lane:*`. Under a tight budget, spend frontier runs on `tier:judgment` chunks only... a plan that is mostly mechanical and moderate is what makes limited credit go furthest.
