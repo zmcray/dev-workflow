@@ -236,9 +236,11 @@ Rank by: unblocks the most (dependency fan-out) → closest to the core loop →
 
 | Label | The chunk is... | Model class |
 |---|---|---|
-| `tier:mechanical` | one obvious approach, pattern already in the repo | cheapest fast model |
-| `tier:moderate` | familiar reasoning against a settled spec (most chunks) | mid tier |
-| `tier:judgment` | novel, ambiguous, or has concurrency / security / data traps | frontier; candidate for `class:hard` |
+| `tier:mechanical` | one obvious approach, pattern already in the repo | lowest model that writes code (sonnet today) |
+| `tier:moderate` | familiar reasoning against a settled spec (most chunks) | opus |
+| `tier:judgment` | novel, ambiguous, or has concurrency / security / data traps | Fable; candidate for `class:hard` |
+
+The cheapest model (haiku) never writes code. It reads: repo exploration, log reduction, CI polling. Every chunk, even a rename batch, is built by sonnet or better.
 
 If most chunks come out `tier:judgment`, the cut is too coarse. Split until the hard part sits in one or two chunks. A good plan is mostly mechanical and moderate... that is also what makes a limited credit budget go furthest.
 

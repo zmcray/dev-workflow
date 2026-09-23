@@ -4,11 +4,14 @@ How a chunk's labels turn into an agent run. This is the ONE place model names a
 
 ## Tier → model
 
+**Haiku never writes code.** The cheapest tier is for reading: repo exploration, log reduction, CI polling, duplicate checks, formatting a comment. Anything that produces a diff starts at `sonnet`.
+
 | Tier | Claude Code | Cursor cloud agent | Codex |
 |---|---|---|---|
-| `tier:mechanical` | `haiku` | cheapest fast model Cursor offers | default |
-| `tier:moderate` | `sonnet` | mid-tier model | default |
-| `tier:judgment` | frontier (`opus` / Fable), main thread | frontier model | highest reasoning setting |
+| read-only subtask (no label; inside any run) | `haiku` | cheapest fast model | default |
+| `tier:mechanical` | `sonnet` | mid-tier model | default |
+| `tier:moderate` | `opus` | frontier model | highest reasoning setting |
+| `tier:judgment` | `fable` (Fable / Mythos class), main thread | frontier model | highest reasoning setting |
 
 The Cursor column is intent, not verified model IDs. Cursor's cloud agents take a model choice per agent launch; fill in the exact names from Cursor's current model list when the lane is wired (MCR-1412), and keep them here only.
 
@@ -27,7 +30,7 @@ A **wave** is every `spec-ready` chunk that is unblocked, carries neither `gate:
 | Human park | needs a human, but only for that chunk | a step needs a person (visual judgment, credentials, device, outside party); branch pushed, draft PR, `gate:human` added, comment says what to do; run continues on the next unblocked chunk |
 | Hard stop | needs a human | red baseline, unmergeable PR, scope kick-back, anything destructive |
 
-Fallback when one harness runs dry: Claude Code → Cursor → Codex → pause. Record who took a chunk with `lane:*`. Under a tight budget, spend frontier runs on `tier:judgment` chunks only... a plan that is mostly mechanical and moderate is what makes limited credit go furthest.
+Fallback when one harness runs dry: Claude Code → Cursor → Codex → pause. Record who took a chunk with `lane:*`. Under a tight budget, spend Fable runs on `tier:judgment` chunks only... a plan that is mostly mechanical (sonnet) and moderate (opus) is what makes limited credit go furthest.
 
 ## Status (2026-09-21)
 
