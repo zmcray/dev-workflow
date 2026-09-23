@@ -190,7 +190,7 @@ When model selection is exposed, tier by work type — **reading → cheapest ti
 |---|---|---|
 | Repo exploration, multi-file reads, existing-pattern discovery, dependency audits, TODO/FIXME scans, Linear comment formatting, duplicate-issue checks. **Read-only or prose only, never a code diff** | read | `haiku` |
 | Code with one obvious approach: copy, config, a field end to end, test backfill, a rename batch, mechanical transcription (issue spec → plan file), PROJECT.md / Build Log edits (`tier:mechanical` chunks) | mechanical | `sonnet` |
-| **GitHub and CI work** (see the rule below) | mechanical, mid if logs need real interpretation | `haiku` → `sonnet` |
+| **GitHub and CI work** (see the rule below): polling, log reduction, PR body assembly on `haiku`; workflow YAML edits and anything that produces a diff on `sonnet` | read → mechanical | `haiku` → `sonnet` |
 | Per-file review passes, test-suite triage, implementation slices against a settled spec, drafting a spec from decisions already made, summarizing what a read pass found (`tier:moderate` chunks) | moderate synthesis | `opus` |
 | Flow triage, effort setting, plan approval, architecture calls, scope and taste judgment, root-causing a CI failure, the merge decision, anything the human will be asked to decide (`tier:judgment` chunks) | judgment | `fable` (main thread) |
 
