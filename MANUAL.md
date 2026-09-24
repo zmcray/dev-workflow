@@ -17,9 +17,10 @@
 | # | Stage | Who | When · timebox | Runs on | Produces | Exit gate |
 |---|---|---|---|---|---|---|
 | 0 | **Capture** | You | anytime · 30 s | `/buildnote` | `Stage: Idea` issue | none — it's a shelf |
+| 0s | **Sort** | Agent | nightly, before `/factory` | scheduled sort job (`SORT.md`) | one `design:*` rung + one sort card per open issue | every open issue sorted, or `sort:needs-answers` with questions |
 | 1 | **Bet** | You | mapping day · 15 min / project | the Linear idea shelf, read against the product's `STRATEGY.md` | bets + this week's appetite | bets ≤ appetite |
-| 2 | **Shape** | You + Claude | mapping day · 30–60 min / bet | conversation, `/office-hours`, `/diagram`, `/hagen` | shape doc | loop sentence in one line; dominant risk named; design session yes/no decided |
-| 3 | **Design session** | You drive, Claude Design draws | a mapping-day hour (or two) · when triggered | `/design` canvas (or Figma/Excalidraw) | screens + flow + actions canvas; sketch summary | walk-through passed; verdict = keep |
+| 2 | **Shape** | You + Claude | mapping day · 30–60 min / bet | conversation, `/office-hours`, `/diagram`, `/hagen` | shape doc | loop sentence in one line; dominant risk named; design rung set |
+| 3 | **Design session** | You drive, Claude Design draws | one design block in the daily hour · on `design:screens` and up | `/design` canvas (or Figma/Excalidraw) | screens + flow + actions canvas; sketch summary | walk-through passed; verdict = keep |
 | 4 | **Commit** | You + the council | mapping day · ~1 h (PACKET: 30 min) | `/caspian` v3 | PRD with Later Shelf; labeled issues | Red Team adjudicated; M1 = skeleton only |
 | 5 | **Spec** | Agent; you for taste calls | spec days · the daily hour | `/ce-plan` → `/packets` | `spec-ready` chunks | queue ≥ appetite; every issue ≥ 7; plans landed |
 | 6 | **Build** | Agents | nights | built-in `/goal` → `/lfg` per chunk | merged PRs, residuals, nightly build, morning checklist | green train; hard stops surfaced, not guessed |
@@ -67,27 +68,28 @@
    - feasibility → a **spike**: throwaway branch, timeboxed, never merges, produces a one-paragraph finding
    - viability → `/hagen` (go/no-go) or the Caspian council (Stage 4)
 4. Fill the **shape doc** (template in §7): problem, loop, spine, appetite, dominant risk + retirement plan, rabbit holes, no-gos (seeds for the Later Shelf). `/office-hours` when the question is product, not engineering.
-5. **Decide the design session** with the rubric below.
+5. **Confirm the design rung.** The nightly sort has usually set it already (Stage 0s); overrule it here if it is wrong, and say why in the sort card thread.
 
-**When to run a design session — run one if ANY of these is true:**
+**The five design rungs.** One rule for how much drawing an issue needs. The sort picks the first rung that fits, from the top.
 
-| Trigger | Example |
-|---|---|
-| New product | anything pre-M1 |
-| New user-facing surface or screen | a Threads tab, a capture sheet |
-| New navigation or information architecture | tabs → sidebar; a new root flow |
-| The core loop's screens change | the magic screen gets a new shape |
-| New interaction model | voice, camera, share-sheet, gestures, Lock Screen controls |
-| A feature touches more than two screens | onboarding, sharing, settings that reach into flows |
-| Something users will form a habit on | daily capture, morning brief |
+| Rung | Fits when | Recipe | Time |
+|---|---|---|---|
+| `design:product` | A new app. Nothing existing to extend | `/design-consultation` if no design system; Claude Design: directions (2 to 4 variants) on the magic screen, the 3 to 5 core-loop screens, full walk-through, sketch summary (Stage 3). Then `/caspian` | 1 to 2 hours |
+| `design:journey` | Inside an existing app: 3+ connected new screens, a new interaction model, new navigation, the core loop's screens change, or a surface users will form a habit on | Claude Design in the repo: directions on the key screen only, one artboard per step, walk-through screen by screen, sketch summary (Stage 3) | 1 hour |
+| `design:screens` | 1 or 2 new screens or panels, or more than half of one screen changes | Claude Design in the repo: one artboard per named screen plus the core screen's empty, loading and error states. No directions unless the layout is truly open. No walk-through | 20 to 40 min |
+| `design:tweak` | A user would **see** a change on an existing screen whose layout survives (field, state, button, copy, mobile fix) | No mockup. Before-screenshot and the change as acceptance criteria in the packet. Morning verify compares | 0 to 5 min |
+| `design:none` | Nothing visibly changes: infra, data, API, jobs, tests, docs, behavior-only bug fixes | Straight to `/ce-plan`, or the `/lfg` plan gate on `flow:ship` | 0 |
 
-**Skip it when ALL of these hold:** backend/infra only · `flow:ship` · polish or copy on an existing screen (that's `/design-review` at Stage 7) · a bug fix.
+- **Walk every screen step by step** only on `journey` and `product`. **Variants** (directions) only where the layout is open: always on `product`, the key screen on `journey`, never below.
+- **One canvas per group**, opened inside the repo so it uses real components. Link it on every issue in the group with a `Canvas: <url>` line. Chat mockups are not the contract.
+- **Spec gate.** An issue on `screens`, `journey` or `product` cannot be `spec-ready` without its canvas link. `/packets` withholds `spec-ready`, and `/factory` skips it as `no-canvas` even if someone labels it by hand.
+- **Helpers:** Mobbin for how other apps solve a screen; `/plan-design-review` on the plan to catch missing states.
 
 **Gate.** Loop sentence in one line, dominant risk named with a retirement plan, design session decided. A bet that can't pass this gate in an hour goes back to the shelf with a note — that's a win, not a failure.
 
 ---
 
-### Stage 3 — Design session (a mapping-day hour or two, when triggered)
+### Stage 3 — Design session (`design:journey` and `design:product`; `design:screens` uses the lighter recipe in the rung table)
 
 **Purpose.** Lock the product flow, the screens, the layout and the actions *as pictures you can look at and argue with* — before a word of PRD or a line of code. Wireframe fidelity until the verdict; hi-fi is a Build-stage cost.
 
@@ -136,7 +138,7 @@
 4. If a spec needs more screen detail than the canvas has, **edit the canvas now**, by hand, then finish the spec. Not during Build.
 5. Stop when the `spec-ready` queue ≥ **tonight's** appetite plus one night of buffer. More is waste; less means the night stalls. The tank is topped up daily, not filled once a week.
 
-**Gate.** Queue ≥ appetite, all ≥ 7, every chunk carries a file scope and exactly one `tier:*`, the waves are printed, plans/specs landed **before** any branch is cut. The nights pull only `spec-ready`; an empty queue means "plan first," never "wing it."
+**Gate.** Queue ≥ appetite, all ≥ 7, every chunk carries a file scope and exactly one `tier:*`, every `screens` / `journey` / `product` chunk carries its canvas link, the waves are printed, plans/specs landed **before** any branch is cut. The nights pull only `spec-ready`; an empty queue means "plan first," never "wing it."
 
 ---
 
@@ -193,14 +195,19 @@
 
 Most planning blocks won't start from a new bet. They start from a backlog of issues, live PRDs, an In Review pile, and a residual tail. A zoom-in block is a **bet on existing work**: same gates, three depths.
 
-**1. Find candidates (5 minutes — save these as Linear views per project):**
+**1. Find candidates (5 minutes, on the Planning board).** Pulse > Build > Planning (MCR-1801) lays every open issue out by what it needs next, from the nightly sort's labels:
 
-| View | Filter | What it means |
+| Column | Holds | What it means |
 |---|---|---|
-| Needs a design session | `flow:design` · not `spec-ready` · Backlog | design-flow work nobody has drawn yet |
-| Needs a deep spec | `prd-source` · Backlog · priority ≥ High · not `spec-ready` | committed by a PRD, not yet executable |
-| Needs a decision | In Review > 3 days, or In Progress > 7 days | stalled work is a scope or design problem wearing a status |
-| Needs a REFRESH | `deferred` with expired kill conditions; any milestone whose In Review pile *is* its feature list | M1 was too big, or usage data arrived |
+| Needs answers | `sort:needs-answers` | the sort could not place it; reply in the sort card's thread and the next night re-sorts it |
+| Plan only | `design:none`, `design:tweak` | no drawing: `/ce-plan` then `/packets`, several per hour |
+| Mock up | `design:screens` | one design block, then plan |
+| Map the journey | `design:journey`, `design:product` | a Stage 3 session |
+| Stalled | In Progress > 7 days, In Review > 3 days | a scope or design problem wearing a status |
+| Ready | `spec-ready` | the tank |
+| Not sorted yet | no `design:*` label | the sort has not reached it |
+
+The header shows the tank gauge and **Today's pick**: tank low → the cheapest group to make ready; otherwise unblocks-most → current milestone → priority → age. Until the board ships, use the Linear view **Needs answers** (sidebar Favorites) plus a label filter per column. Two views survive outside the board: **Needs a deep spec** (`prd-source` · Backlog · priority ≥ High · not `spec-ready`) and **Needs a REFRESH** (`deferred` with expired kill conditions, or a milestone whose In Review pile *is* its feature list).
 
 Rank by: unblocks the most (dependency fan-out) → closest to the core loop → priority → blast radius. Pick **one** PRD or **one** cluster of related issues per block, and say the appetite: *"this evening."*
 
@@ -209,7 +216,7 @@ Rank by: unblocks the most (dependency fan-out) → closest to the core loop →
 | Depth | When | Run | Output |
 |---|---|---|---|
 | **PRD zoom** (REFRESH) | the milestone itself feels wrong — too big, wrong loop, stalled M1 | `/caspian refresh <prd>` under the skeleton contract: re-slice M1, shelf the rest (`deferred` + kill conditions), cancel or keep issues. If M1's *screens* are in question, run a design session first — the gate applies to REFRESHes that re-slice M1. | re-sliced PRD, issues re-labeled, Later Shelf populated |
-| **Feature zoom** (design session on an issue cluster) | a `flow:design` issue or cluster is screen-heavy or introduces a new interaction model | Stage 2 shape *for the feature* (its own loop sentence + spine) → Stage 3 design session **inside the repo** (Claude Design matches the existing components and tokens automatically, so the session is about flow, layout and actions — not brand; start from the current screens, don't reinvent them) → sketch summary attached to the issues (Linear comment + `docs/strategy/sketches/`) → `/ce-plan` on those issues, then `/packets` | `spec-ready` issues with a canvas behind them |
+| **Feature zoom** (design session on an issue cluster) | a `design:screens` or `design:journey` group from the board | Stage 2 shape *for the feature* (its own loop sentence + spine) → Stage 3 design session **inside the repo** (Claude Design matches the existing components and tokens automatically, so the session is about flow, layout and actions — not brand; start from the current screens, don't reinvent them) → sketch summary attached to the issues (Linear comment + `docs/strategy/sketches/`) → `/ce-plan` on those issues, then `/packets` | `spec-ready` issues with a canvas behind them |
 | **Issue zoom** (spec deepening) | direction is clear, the issue is under-specified (< 7 on the executability bar) | `/ce-plan MCR-xxx` (or a deepening pass), then `/packets`; skeleton test if it claims M1 | one `spec-ready` issue |
 
 **3. Close the block the same way every time.** The issue or PRD carries the artifact (sketch summary link, re-sliced milestone, or spec); labels reflect reality (`spec-ready` / `deferred` / Cancelled); the tank is fuller than when you started. A zoom-in that ends with a *new* idea instead of a sharper existing one went sideways — capture the idea (Stage 0) and come back.
@@ -221,7 +228,7 @@ Rank by: unblocks the most (dependency fan-out) → closest to the core loop →
 - **Saidso — PRD zoom.** M1 (MCR-818 / 820 / 822 / 826) sitting In Review *as a block* is the signal: re-slice against "type a phrase → the right photo appears." The Aug 6 seamless-capture PRD gets the design-session gate retroactively before MC1 builds.
 - **Motus — feature zoom.** MCR-858 W1 + MCR-859 W2 (plan-the-week UI + Coach draft/replan flow): screen-heavy, `flow:design`, PRD-sourced — a textbook design session. Then the recovery cluster MCR-854–864, where T2 "Today recovery explanation" is the UI spine.
 - **Acquired Taste — feature zoom.** MCR-803 Quick Taste (Urgent, `flow:design`) is the core loop's front door. MCR-850 / 852 Editorial Studio carry `flow:design` and *no priority* — decide or shelf.
-- **Argus — feature zoom.** MCR-948 conversational voice briefings is a new interaction model — exactly the rubric's trigger.
+- **Argus — feature zoom.** MCR-948 conversational voice briefings is a new interaction model — a `design:journey` rung.
 - **Pulse — needs a decision.** MCR-740 / 742 In Progress since Jul 22.
 
 ---
@@ -246,7 +253,7 @@ If most chunks come out `tier:judgment`, the cut is too coarse. Split until the 
 
 **Gate.** Can the chunk finish with nobody at the keyboard? Most can. The ones that cannot get `gate:human` at spec time, and the packet's `Human gate:` line says what the person does and when. Triggers: a person must look at images or screens and judge them (not a pixel diff a script can run), credentials / 2FA / App Store / a vendor console, a physical device, a taste or naming call, someone outside the company. `ops` stays for issues that are *entirely* human work. Neither ever enters the night queue; the morning digest lists them as one batch so you sit down once, not six times. An agent that hits an unplanned human step at night parks the chunk (draft PR + label + comment) and keeps going.
 
-**Five labels, five questions.** `flow:*` = how much planning rigor. `tier:*` = how smart a model. `class:*` = how much merge trust. `lane:*` = which harness took it. `gate:human` = a person has to be there.
+**Six labels, six questions.** `design:*` = how much drawing before planning. `flow:*` = how much planning rigor. `tier:*` = how smart a model. `class:*` = how much merge trust. `lane:*` = which harness took it. `gate:human` = a person has to be there.
 
 ---
 
@@ -254,6 +261,7 @@ If most chunks come out `tier:judgment`, the cut is too coarse. Split until the 
 
 | Loop | What it does | Status |
 |---|---|---|
+| **Nightly sort** | before `/factory`: every open, unsorted issue gets one `design:*` rung and one sort card (edited in place); `sort:needs-answers` when it cannot place one. Never plans, builds, or changes status. Rules and allowlist: `SORT.md` | rules built; scheduled task `nightly-sort` (23:30 daily) rolls out project by project from Pulse |
 | **Runner health** | both self-hosted runners online, queued-job age, auto-`launchctl kickstart`, notify on stall; `caffeinate -s` pinned to the runner launchd services so the Air never sleeps through a queue | to build (30 min) |
 | **Nightly full suite + watcher** | full XCUITest/regression on `main` nightly; red → Urgent residual filed; pass rate into the digest | to build |
 | **CI babysitter** | inside every goal run: watch checks, reduce logs, fix-and-push loop on cheap tiers | exists (`/goal` delegation policy) |
@@ -265,7 +273,7 @@ If most chunks come out `tier:judgment`, the cut is too coarse. Split until the 
 
 ## 4. The week
 
-Two fixed appointments every day: a **morning verify** (20–30 min) and **the daily hour**. The days below are defaults; the tank check overrides them.
+Two fixed appointments every day: a **morning verify** (20–30 min) and **the daily hour**, which opens on the Planning board once verify is done. The days below are defaults; the tank check overrides them.
 
 | Day | Morning (20–30 min) | The daily hour | Night |
 |---|---|---|---|
@@ -278,7 +286,8 @@ Two fixed appointments every day: a **morning verify** (20–30 min) and **the d
 | Sun | Verify | **Learn** (20 min) → set next week's appetite → top up the tank | `/factory` |
 
 **Rules of the hour.**
-1. Open with the tank check. Tank low = spec, regardless of the day.
+1. Open with the tank check. Tank low = spec, regardless of the day. Then answer the **Needs answers** cards so tonight's sort can place them.
+1a. **Rule of one:** one design group per hour (Today's pick). Plain plans can be several.
 2. One hour means one hour. A Commit or design session that needs two gets two days, not an evening.
 3. End by typing `/factory` in each repo with a non-empty queue, even if it is early. The hour is not done until tonight is queued.
 4. Mapping days feed next week's tank, spec days feed this week's. Keep about two nights of buffer so a missed hour does not stall the line.
@@ -312,6 +321,7 @@ Per-*issue* rigor stays with the flow labels regardless of tier: a `flow:ship` o
 | 3 | **Runner sleep + health**: `caffeinate -s` in both runner launchd plists; a saved runner-health loop prompt / scheduled task | 6, loops | to build (30 min) |
 | 4 | Goal runs pull only `spec-ready`; empty queue = stop with "plan first" | 5, 6 | **done** (Sep 21, AGENTS.md > Autonomous runs) |
 | 4b | `/factory`: no-arg night shift with stop time, chunk cap, run ledger, morning status update | 6, 7 | **done** (Sep 23), first real night pending |
+| 4d | **Sort stage**: nightly sort job + five design rungs + canvas spec gate in `/packets` and `/factory` | 0s, 3, 5, 6 | **done** (Sep 24), rolling out from Pulse; Planning board MCR-1801 next |
 | 4c | Wave dispatcher inside `/factory`: one worktree subagent per chunk, model from tier, merges serial, concurrency = runner slots | 6 | to build (~1 day) |
 | 5 | Shape-doc + sketch-summary **templates** into `dev-workflow/templates/` (from §7) | 2, 3 | to build (copy) |
 | 6 | **Risk tripwire** CI job (reusable workflow deployed like AGENTS.md): risky paths without `flow:design` → fail | 6 | to build |
@@ -348,7 +358,7 @@ Below the line: <steps that are real but not M1>
 ## No-gos (Later Shelf seeds)
 - <explicitly not this time>
 
-## Design session?  yes / no — <which rubric row fired>
+## Design rung:  none | tweak | screens | journey | product — <why this rung>
 ```
 
 ### Sketch summary — `docs/strategy/sketches/YYYY-MM-DD-<slug>.md`
