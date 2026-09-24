@@ -61,7 +61,7 @@ log ""
 # ~/.codex/skills) silently diverges from source here — and the next source edit either
 # clobbers or misses those changes. Warn on any divergence with the direction (which side
 # is newer) so the fix is obvious. Warn-only: this script never copies skills; reconcile,
-# then use the README's cp deploy commands.
+# then run deploy-skills.sh (portable skills) or the README's cp commands (the rest).
 check_skill_drift() {
   local src dst drift=0
   log "--- skill drift check (source vs deployed) ---"
@@ -90,6 +90,27 @@ check_skill_drift() {
       echo "$f|$HOME/.codex/skills/$(basename "$(dirname "$f")")/SKILL.md"
     done
   )
+  # Portable skills (deploy-skills.sh) also live in ~/.agents/skills (Codex) and ~/.cursor/skills (Cursor),
+  # rendered without Claude-only frontmatter, so compare against the same rendering.
+  local name rendered
+  for name in factory packets caspian; do
+    src="$SCRIPT_DIR/commands/$name.md"
+    [[ -f "$src" ]] || continue
+    for dst in "$HOME/.agents/skills/$name/SKILL.md" "$HOME/.cursor/skills/$name/SKILL.md"; do
+    if [[ ! -f "$dst" ]]; then
+      drift=1; log "DRIFT: $src has no Codex/Cursor copy at $dst — run deploy-skills.sh"; continue
+    fi
+    rendered="$(grep -v '^argument-hint:' "$src")"
+    if [[ "$rendered" != "$(cat "$dst")" ]]; then
+      drift=1
+      if [[ "$dst" -nt "$src" ]]; then
+        log "DRIFT: deployed $dst is NEWER than source — fold its edits into $src, then run deploy-skills.sh"
+      else
+        log "DRIFT: source $src is newer than $dst — run deploy-skills.sh"
+      fi
+    fi
+    done
+  done
   [[ $drift -eq 0 ]] && log "Skill sources and deployed copies are in sync."
   log ""
 }

@@ -45,14 +45,18 @@ Exactly one per chunk. Judge how hard it is to get **right** (novelty, ambiguity
 - `tier:moderate` ... familiar reasoning against a settled spec. Most chunks.
 - `tier:judgment` ... novel, several plausible approaches, or concurrency / security / data-correctness traps.
 
-**Never write a model name in an issue.** The tier-to-model map lives in `software-factory/DISPATCH.md` and is applied at dispatch. If more than about a third of the chunks are `tier:judgment`, the cut is too coarse: split until the hard part sits in one or two chunks. State each call in one line.
+**Never write a model name in an issue.** The tier-to-model map lives in `software-factory/DISPATCH.md` and is applied at dispatch. Note the floor: even `tier:mechanical` is built by a model that writes code well (sonnet today); the cheapest model only reads. If more than about a third of the chunks are `tier:judgment`, the cut is too coarse: split until the hard part sits in one or two chunks. State each call in one line.
+
+## Step 4b: Human-gate triage
+
+For every chunk ask: **can this finish overnight with nobody present?** Apply `gate:human` when any step needs a person: a human judging images or screens (not a scripted screenshot diff), credentials / 2FA / App Store or a vendor console, a physical device, a taste or naming call, an outside party. Write the packet's `Human gate:` line as one sentence naming what the person does and when (`before build`, `mid-build`, `before merge`). Chunks with no such step get no label and `Human gate: none`. A `gate:human` chunk never enters the night queue; `/goal` skips it. Prefer splitting so the human step is its own small chunk and the rest stays hands-off. State each call in one line.
 
 ## Step 5: Write the chunks to Linear
 
 One issue per chunk, created in dependency order so edges can reference real IDs. Follow AGENTS.md > Linear structure (milestone required, priority never None, sub-issues inherit the parent's milestone).
 
 - **Title:** `U3: <imperative, one line>`
-- **Labels:** the parent's `flow:*`, exactly one `tier:*`, `spec-ready`, and `prd-source` if the parent has it. Never apply `night-eligible`... that label is human-applied.
+- **Labels:** the parent's `flow:*`, exactly one `tier:*`, `spec-ready`, `prd-source` if the parent has it, and `gate:human` from Step 4b where it applies. Never apply `night-eligible`... that label is human-applied.
 - **Relations:** native `blocked by` links from Step 3.
 - **Body** (the build packet, `software-factory/templates/build-packet.md`):
 
