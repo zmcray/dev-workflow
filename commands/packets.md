@@ -56,7 +56,7 @@ For every chunk ask: **can this finish overnight with nobody present?** Apply `g
 One issue per chunk, created in dependency order so edges can reference real IDs. Follow AGENTS.md > Linear structure (milestone required, priority never None, sub-issues inherit the parent's milestone).
 
 - **Title:** `U3: <imperative, one line>`
-- **Labels:** the parent's `flow:*`, exactly one `tier:*`, `spec-ready`, `prd-source` if the parent has it, and `gate:human` from Step 4b where it applies. Never apply `night-eligible`... that label is human-applied.
+- **Labels:** the parent's `flow:*`, the parent's `design:*`, exactly one `tier:*`, `spec-ready`, `prd-source` if the parent has it, and `gate:human` from Step 4b where it applies. Never apply `night-eligible`... that label is human-applied.
 - **Relations:** native `blocked by` links from Step 3.
 - **Body** (the build packet, `software-factory/templates/build-packet.md`):
 
@@ -69,6 +69,8 @@ Artboard: <approved canvas link from the plan, or "n/a (no UI)">
 File scope: <dirs / globs>
 Out of scope: <what this chunk deliberately does not do; name the sibling chunks that own it>
 ```
+
+**Design gate.** If the parent is `design:screens`, `design:journey`, or `design:product`, every chunk that touches UI needs a real canvas URL on its `Artboard:` line (AGENTS.md > Spec gate). No canvas on the parent or the plan → create the chunks without `spec-ready` and comment "design first: no canvas yet" on the parent. Never write `n/a (no UI)` to get past it.
 
 Acceptance criteria come from the unit's Test scenarios and Verification, rewritten so each names the check that proves it. A criterion a machine cannot check is rewritten or the chunk loses `spec-ready` with a comment saying why. Describe behaviour and interfaces, not line numbers.
 
