@@ -13,10 +13,11 @@ templates/
   AGENTS.md.template        AGENTS.md scaffold: {{REPO}} header + {{CANONICAL_WORKFLOW}} marker
   CLAUDE.md.template        the CLAUDE.md @AGENTS.md import file
 README.md                   this file
-commands/                   the zmcray-* Claude Code skill sources (build, plan, execute,
-                            wrap, kickoff, status, checkpoint, retro, ss)
-codex/skills/               the zmcray-* Codex skill sources (each a <name>/SKILL.md +
-                            agents/openai.yaml), deployed to ~/.codex/skills/
+commands/                   Claude Code command sources. factory, packets, and caspian are
+                            portable: deploy-skills.sh also ships them to Codex and Cursor
+codex/skills/               Codex-only skill sources (zmcray-kickoff), each a <name>/SKILL.md +
+                            agents/openai.yaml, deployed to ~/.codex/skills/
+deploy-skills.sh            ships the portable skills to all three harnesses
 ```
 
 ## How it works
@@ -42,7 +43,20 @@ Idempotent and non-destructive: re-running re-syncs the block, backs up any repl
 
 The script also runs a **skill drift check** first: it compares every `commands/*.md` and `codex/skills/*/SKILL.md` source against its deployed copy (`~/.claude/commands/`, `~/.codex/skills/`) and warns with the direction — a deployed copy newer than source means someone edited the live file and it must be synced back before touching source; a newer source means the deploy cp below hasn't run. Warn-only; it never copies skills itself.
 
-## Deploy the Claude Code skills
+## Deploy the portable skills (factory, packets, caspian)
+
+One source file each in `commands/`, three harnesses:
+
+```bash
+bash ~/Developer/dev-workflow/deploy-skills.sh --dry-run   # preview
+bash ~/Developer/dev-workflow/deploy-skills.sh             # apply
+```
+
+It copies each file to `~/.claude/commands/` (Claude Code) and renders it without Claude-only frontmatter to `~/.agents/skills/<name>/SKILL.md` (Codex) and `~/.cursor/skills/<name>/SKILL.md` (Cursor did not pick up the shared folder, 2026-09-24). A stale fork in `~/.codex/skills/<name>` is moved to `~/.codex/skills-archive/` so Codex never loads two. Never edit a deployed copy; the drift check in `deploy-agents-md.sh` flags it if you do.
+
+Each harness still needs its own Linear connection and an unattended permission setup before it can run `/factory`; the skill's preflight step hard-stops without them. See "Running on each harness" in `commands/factory.md`.
+
+## Deploy the other Claude Code skills
 
 ```bash
 cp ~/Developer/dev-workflow/commands/*.md ~/.claude/commands/
