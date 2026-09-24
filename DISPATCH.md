@@ -21,11 +21,25 @@ The Cursor column is intent, not verified model IDs. Cursor's cloud agents take 
 
 A **wave** is every `spec-ready` chunk that is unblocked, carries neither `gate:human` nor `ops`, and whose file scope overlaps no other chunk in the wave. `gate:human` chunks are never dispatched unattended; they run on the day shift with the person's step scheduled up front. One agent, one chunk, one isolated environment. **Build in parallel, merge one at a time:** before merging, rebase on fresh `main` and re-run the smoke gate. Practical ceiling: 6–10 concurrent. Hitting it means PRs are not merging fast enough, which is the real problem.
 
+## Night budget
+
+`/factory` reads these defaults, then the `factory` key in the repo's `.linear-project.json`, then invocation flags. Stop time is local. No chunk starts after `stop_at` minus 45 minutes; nothing is killed mid-PR.
+
+| Key | Default | iOS repos (single Mac runner) |
+|---|---|---|
+| `stop_at` | `06:00` | `06:00` |
+| `max_chunks` merged per night | 6 | 3 |
+| `concurrency` | 1 (sequential until the wave dispatcher lands; then ≤ CI runner slots) | 1, later 2 |
+| `max_turns_per_chunk` | 150 | 150 |
+
+Ledger: `docs/factory/runs/YYYY-MM-DD.json` in the repo, one row per chunk, written at chunk start and end. Argus reads these for the cross-repo digest later.
+
 ## When the night ends
 
 | Ending | Meaning | What happens |
 |---|---|---|
 | Queue empty | normal | stop; morning digest says so |
+| Chunk cap / deadline | normal | `/factory` budget reached between chunks; remaining chunks stay `spec-ready` |
 | Budget stop | normal | credits or plan headroom ran out; remaining chunks stay `spec-ready` |
 | Human park | needs a human, but only for that chunk | a step needs a person (visual judgment, credentials, device, outside party); branch pushed, draft PR, `gate:human` added, comment says what to do; run continues on the next unblocked chunk |
 | Hard stop | needs a human | red baseline, unmergeable PR, scope kick-back, anything destructive |

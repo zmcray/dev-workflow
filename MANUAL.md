@@ -269,18 +269,18 @@ Two fixed appointments every day: a **morning verify** (20–30 min) and **the d
 
 | Day | Morning (20–30 min) | The daily hour | Night |
 |---|---|---|---|
-| Mon | Verify | **Map:** Bet (15 min / project) → Shape the week's bets | `/goal` |
-| Tue | Verify | **Map:** Design session or Commit (`/caspian`), whichever the bets need | `/goal` |
-| Wed | Verify | **Spec:** grill → `/ce-plan` → `/packets` | `/goal` |
-| Thu | Verify | **Spec:** chunks, or finish a Commit that ran long | `/goal` |
-| Fri | Verify | **Spec:** fill the tank for three nights (Fri, Sat, Sun) | `/goal` |
-| Sat | Verify | optional: zoom-in on one existing cluster, or skip | `/goal` |
-| Sun | Verify | **Learn** (20 min) → set next week's appetite → top up the tank | `/goal` |
+| Mon | Verify | **Map:** Bet (15 min / project) → Shape the week's bets | `/factory` |
+| Tue | Verify | **Map:** Design session or Commit (`/caspian`), whichever the bets need | `/factory` |
+| Wed | Verify | **Spec:** grill → `/ce-plan` → `/packets` | `/factory` |
+| Thu | Verify | **Spec:** chunks, or finish a Commit that ran long | `/factory` |
+| Fri | Verify | **Spec:** fill the tank for three nights (Fri, Sat, Sun) | `/factory` |
+| Sat | Verify | optional: zoom-in on one existing cluster, or skip | `/factory` |
+| Sun | Verify | **Learn** (20 min) → set next week's appetite → top up the tank | `/factory` |
 
 **Rules of the hour.**
 1. Open with the tank check. Tank low = spec, regardless of the day.
 2. One hour means one hour. A Commit or design session that needs two gets two days, not an evening.
-3. End by typing the night's `/goal` line, even if it is early. The hour is not done until tonight is queued.
+3. End by typing `/factory` in each repo with a non-empty queue, even if it is early. The hour is not done until tonight is queued.
 4. Mapping days feed next week's tank, spec days feed this week's. Keep about two nights of buffer so a missed hour does not stall the line.
 
 Any spare block is a **zoom-in** (above): one existing PRD or issue cluster. Freehand projects (§5) live outside this calendar on purpose. Blue-sky capture happens on any day, at any hour, and changes nothing about the week.
@@ -311,6 +311,8 @@ Per-*issue* rigor stays with the flow labels regardless of tier: a `flow:ship` o
 | 2 | **Smoke / full gate split**: `Smoke.xctestplan` in motus + saidso; AGENTS.md encodes per-issue = smoke, train end = full; nightly full-suite workflow | 6 | to build (biggest time win) |
 | 3 | **Runner sleep + health**: `caffeinate -s` in both runner launchd plists; a saved runner-health loop prompt / scheduled task | 6, loops | to build (30 min) |
 | 4 | Goal runs pull only `spec-ready`; empty queue = stop with "plan first" | 5, 6 | **done** (Sep 21, AGENTS.md > Autonomous runs) |
+| 4b | `/factory`: no-arg night shift with stop time, chunk cap, run ledger, morning status update | 6, 7 | **done** (Sep 23), first real night pending |
+| 4c | Wave dispatcher inside `/factory`: one worktree subagent per chunk, model from tier, merges serial, concurrency = runner slots | 6 | to build (~1 day) |
 | 5 | Shape-doc + sketch-summary **templates** into `dev-workflow/templates/` (from §7) | 2, 3 | to build (copy) |
 | 6 | **Risk tripwire** CI job (reusable workflow deployed like AGENTS.md): risky paths without `flow:design` → fail | 6 | to build |
 | 7 | **MCR-748** TestFlight from `main` + tag on cut | 6, 7 | in progress |
@@ -390,5 +392,7 @@ Result: done / residual: <MCR-###> / kick back: <reason>
 ### Overnight kickoff (the whole Stage 6 human contribution)
 
 ```
-/goal <milestone name | MCR-123 MCR-124 | "the spec-ready queue">
+/factory
 ```
+
+One line per repo, no arguments. It drains everything `spec-ready` and ungated under the night budget (DISPATCH.md) and leaves `docs/factory/runs/<date>.json` plus a project status update for the morning. `/goal <milestone | IDs>` is still there when you want to focus a night on one thing.
