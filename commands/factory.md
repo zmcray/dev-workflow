@@ -27,7 +27,7 @@ Standing contract: **never ask the user anything.** Every would-be question is a
 
 ## Step 2: Read the queue
 
-Query the project's issues: `spec-ready`, state type not started/completed/canceled, not `gate:human`, not `ops`, no open `blocked by`. Order: priority (Urgent > High > Medium > Low), then wave from the parent plan's `## Chunks` table when the issue is a chunk, then oldest first.
+Query the project's issues: `spec-ready`, state type not started/completed/canceled, not `gate:human`, not `ops`, no open `blocked by`. Then drop any issue labeled `design:screens`, `design:journey`, or `design:product` that has no canvas link (a Linear attachment, or a `Canvas: <url>` or `Artboard: <url>` line in the description). That is the AGENTS.md Spec gate: `spec-ready` without a canvas means someone skipped the design block, and the night never builds screens nobody drew. Order: priority (Urgent > High > Medium > Low), then wave from the parent plan's `## Chunks` table when the issue is a chunk, then oldest first.
 
 Run the **chunk sweep** first, exactly as AGENTS.md describes it, so plans written today are cut before the queue is read.
 
@@ -35,7 +35,7 @@ Print the shift plan once and start. No confirmation.
 
 ```
 Factory: <project>. <E> eligible, will attempt up to <max_chunks>, no new chunk after <last_dispatch>, stop by <stop_at>.
-Skipped: <n> gate:human (<IDs>), <n> ops, <n> blocked.
+Skipped: <n> gate:human (<IDs>), <n> ops, <n> blocked, <n> no-canvas (<IDs>).
 Order: <IDs in order>.
 ```
 
@@ -53,7 +53,7 @@ Write `docs/factory/runs/YYYY-MM-DD.json` in the repo (create the directory; it 
   "started_at": "2026-09-23T23:40:00-05:00",
   "budget": { "stop_at": "06:00", "last_dispatch": "05:15", "max_chunks": 6, "concurrency": 1 },
   "eligible": ["MCR-1710", "MCR-1711"],
-  "skipped": [{ "issue": "MCR-1714", "reason": "gate:human" }],
+  "skipped": [{ "issue": "MCR-1714", "reason": "gate:human" }, { "issue": "MCR-1716", "reason": "no-canvas" }],
   "items": [],
   "stopped_at": null,
   "stop_reason": null
@@ -89,6 +89,7 @@ Per-chunk delegation follows DISPATCH.md: the builder gets the model (or reasoni
 Factory <date> (<lane>): <k> merged, <p> parked for a human, <f> failed, stopped: <reason> at <time>.
 Merged: MCR-… (PR), MCR-… (PR)
 Human batch: MCR-… — <one-line ask>
+Needs design first: MCR-… (spec-ready but no canvas; omit the line at zero)
 Failed: MCR-… — <one line>
 Next: <first eligible issue left in the queue, or "queue empty: plan first">
 

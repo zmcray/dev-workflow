@@ -43,7 +43,7 @@ Agents create the issues; Zack reads the board. Linear must answer, in under a m
   ```
 
 - **Superseding a plan means closing it out:** when a PRD refresh replaces a phase, re-home every open issue into a live milestone or cancel it with a comment. Never rename a milestone "Historical" and leave open issues inside. Put scope changes into structure (milestone, labels, links), not only into the description.
-- **Labels are not structure:** never invent labels that mirror milestones (`mvp:c1`). Labels carry cross-cutting facts only: `flow:*`, `prd-source`, `spec-ready`, `Bug`, `ops`, `deferred`.
+- **Labels are not structure:** never invent labels that mirror milestones (`mvp:c1`). Labels carry cross-cutting facts only: `flow:*`, `design:*`, `tier:*`, `gate:human`, `prd-source`, `spec-ready`, `sort:needs-answers`, `Bug`, `ops`, `deferred`.
 - **Duplicates:** before filing, search open issues on the same file or module. Extend the existing issue instead of filing a near-copy.
 
 **Hygiene check (read-only, targets all zero).** Run at session close and on status; print the counts every time:
@@ -113,6 +113,20 @@ Classify by blast radius, not effort:
 - `flow:ship` ... small, reversible, well-specced (copy change, config tweak, contained bug fix).
 
 If an issue is unlabeled, triage it in ~30 seconds, apply the label in Linear, state the call in one line, and proceed.
+
+### Design rung (how much drawing before planning)
+
+Every open issue also carries exactly one `design:*` label. The nightly sort sets it (rules: `~/Developer/software-factory/SORT.md`); planning may overrule it in one line. It is a separate axis from flow: flow is how much rigor, the rung is how much drawing happens before the plan.
+
+- `design:none` ... nothing a user sees changes: infra, data, API, jobs, tests, docs, behavior-only bug fixes.
+- `design:tweak` ... a visible change on an existing screen whose layout survives. No mockup: the before-screenshot and the change go in the acceptance criteria.
+- `design:screens` ... 1 or 2 new screens or panels, or more than half of one screen changes.
+- `design:journey` ... inside an existing app: 3+ connected new screens, a new interaction model, new navigation, the core loop's screens change, or a surface users will form a habit on.
+- `design:product` ... a new app with nothing existing to extend.
+
+`sort:needs-answers` means the sort could not place the issue; its **sort card** comment carries the questions. An issue with no `design:*` label is unsorted: planning sets the rung, states it in one line, and proceeds.
+
+**Spec gate:** an issue on `design:screens`, `design:journey`, or `design:product` may not be marked `spec-ready` until it has a **canvas link**... a Linear attachment, or a `Canvas: <url>` (or build packet `Artboard: <url>`) line in the description, pointing at the Claude Design (or Figma) canvas. Planning (`/ce-plan`, `/packets`, `/caspian`) that meets such an issue without one stops at "design first" and never invents the screens.
 
 ### Chunks and tiers
 
@@ -204,7 +218,7 @@ Tier names are owned by the tool and change over time... map by intent to what y
 
 A fourth axis: does the run pause for the human? Default is interactive (confirm between pre-work steps). In **goal mode** the human sets an objective spanning one or more issues and the agent runs to completion without prompting: every would-be question becomes a stated one-line judgment call, logged to the relevant Linear issue so decisions stay auditable. Planning, flow/effort decisions, and architecture calls stay in the main thread; execution subtasks are delegated per the Delegation section above. Goal runs work issues strictly sequentially under the merge-on-green rule and end only when the objective is met or a hard stop fires: an unmergeable PR, red baseline, the kick-back rule, or anything destructive the plan doesn't cover — never skip past a stuck issue. On Claude Code this is the built-in `/goal <objective>` command, which keeps the session working until the objective is met, and `/factory`, which runs `/goal` over the whole `spec-ready` queue with a budget (see DISPATCH.md > Night budget); build each issue with Compound Engineering `/lfg` and apply this file's rules between issues (merge on green, Linear sync, session close). On other harnesses, apply this contract natively when the user asks for a hands-off run.
 
-**Every goal run, in this order:** (1) **Chunk sweep**... find plans in `docs/plans/` that belong to the objective's issues and have no `## Chunks` section; any with 3+ Implementation Units or a unit over the chunk bar gets cut into chunks first (`/packets`). (2) **Pull** only unblocked `spec-ready` issues that carry neither `gate:human` nor `ops`, highest priority first; for a parent issue, work its chunks in `blocked by` order. An empty queue ends the run with "plan first"... never improvise work. (3) **Per issue:** if the issue carries a build packet pointing at a plan unit, do not re-plan; execute that unit, stay inside its file scope, and pick the model for delegated work from its `tier:*` label. (4) **Human gate discovered mid-build:** if a step turns out to need a person (the packet missed it), do not wait, guess, or fake the check. Push the branch, open a draft PR, add `gate:human`, post a one-line Linear comment saying exactly what the human must do, and move to the next unblocked issue. This is a **park**, not a hard stop: chunks whose file scope overlaps the parked one are skipped too. (5) **Endings:** queue empty and budget stop (credit or plan headroom ran out) are both normal... report which, leave the rest `spec-ready`, and list every parked `gate:human` issue in the run report so the morning batch is one list.
+**Every goal run, in this order:** (1) **Chunk sweep**... find plans in `docs/plans/` that belong to the objective's issues and have no `## Chunks` section; any with 3+ Implementation Units or a unit over the chunk bar gets cut into chunks first (`/packets`). (2) **Pull** only unblocked `spec-ready` issues that carry neither `gate:human` nor `ops`, highest priority first; skip any `design:screens`, `design:journey`, or `design:product` issue that has no canvas link (Spec gate), even when it is `spec-ready`, and report it as `no-canvas`; for a parent issue, work its chunks in `blocked by` order. An empty queue ends the run with "plan first"... never improvise work. (3) **Per issue:** if the issue carries a build packet pointing at a plan unit, do not re-plan; execute that unit, stay inside its file scope, and pick the model for delegated work from its `tier:*` label. (4) **Human gate discovered mid-build:** if a step turns out to need a person (the packet missed it), do not wait, guess, or fake the check. Push the branch, open a draft PR, add `gate:human`, post a one-line Linear comment saying exactly what the human must do, and move to the next unblocked issue. This is a **park**, not a hard stop: chunks whose file scope overlaps the parked one are skipped too. (5) **Endings:** queue empty and budget stop (credit or plan headroom ran out) are both normal... report which, leave the rest `spec-ready`, and list every parked `gate:human` issue in the run report so the morning batch is one list.
 
 ### Discipline that holds on every flow
 
