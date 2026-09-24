@@ -307,7 +307,7 @@ Per-*issue* rigor stays with the flow labels regardless of tier: a `flow:ship` o
 | — | `/packets` bridge: plan units → Linear chunks with packets, file scope, edges, `tier:*` | 5 | **done** (Sep 21), not yet run on a real plan |
 | — | `caspian` delta D8: design-session gate, appetite-before-scope, Later Shelf | 3, 4 | **done** (Aug 7) |
 | — | `/sketch` command | — | **removed** — the design session is a walk-through, not a skill |
-| 1 | **Morning checklist emitter** (a rule in AGENTS.md > Session close): acceptance criteria per merged issue → Linear comment + digest | 7 | to build (small) |
+| 1 | **Morning checklist emitter**: one consolidated list per run, only criteria CI cannot prove → Factory status update + ledger `checklist`; Pulse renders it | 7 | **emitter done** (Sep 24, `/factory` Step 5); Pulse panel to build |
 | 2 | **Smoke / full gate split**: `Smoke.xctestplan` in motus + saidso; AGENTS.md encodes per-issue = smoke, train end = full; nightly full-suite workflow | 6 | to build (biggest time win) |
 | 3 | **Runner sleep + health**: `caffeinate -s` in both runner launchd plists; a saved runner-health loop prompt / scheduled task | 6, loops | to build (30 min) |
 | 4 | Goal runs pull only `spec-ready`; empty queue = stop with "plan first" | 5, 6 | **done** (Sep 21, AGENTS.md > Autonomous runs) |
@@ -379,7 +379,7 @@ empty · loading · result · error · first-run
 - ...
 ```
 
-### Morning verification checklist (emitted by wrap; one block per merged issue)
+### Morning verification checklist (one consolidated list per run, in the Factory status update and the ledger; per-issue blocks below are its building units)
 
 ```markdown
 ## MCR-### — <title>   build: <tag / preview URL>
