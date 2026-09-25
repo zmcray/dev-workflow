@@ -82,6 +82,7 @@
 
 - **Walk every screen step by step** only on `journey` and `product`. **Variants** (directions) only where the layout is open: always on `product`, the key screen on `journey`, never below.
 - **One canvas per group**, opened inside the repo so it uses real components. Link it on every issue in the group with a `Canvas: <url>` line. Chat mockups are not the contract.
+- **Design brief.** When planning stops at "design first", it writes a brief for the group (`templates/design-brief.md` → `docs/design/briefs/` in the project repo): your steps, a paste-ready Claude Design prompt with the screens and design rules inlined, and a "Done when" checklist. It prints the steps and waits. You open Claude Design, paste, draw, and reply `canvas <url>`; planning links it on every issue and carries on. You never have to go find what to draw.
 - **Spec gate.** An issue on `screens`, `journey` or `product` cannot be `spec-ready` without its canvas link. `/packets` withholds `spec-ready`, and `/factory` skips it as `no-canvas` even if someone labels it by hand.
 - **Helpers:** Mobbin for how other apps solve a screen; `/plan-design-review` on the plan to catch missing states.
 
@@ -95,7 +96,7 @@
 
 **You do** (in Claude Design — `/design` in Claude Code — or Figma/Excalidraw; same steps, same output):
 
-1. **Bring the shape doc.** Each spine step is a candidate screen. Run `/design` with a brief: product, loop sentence, spine, device, *wireframe fidelity*. Inside an existing app's repo it matches your real components and tokens automatically — then the session is about layout and flow, not brand.
+1. **Bring the design brief** (planning writes it at the design-first stop; for a new product, write it from the shape doc). Each spine step is a candidate screen. Run `/design` with a brief: product, loop sentence, spine, device, *wireframe fidelity*. Inside an existing app's repo it matches your real components and tokens automatically — then the session is about layout and flow, not brand.
 2. **Directions (30 min).** 2–4 genuinely different low-fi artboards of the **moment-of-magic screen**, each on a named axis (one-screen vs stepped, dense vs airy, list-first vs canvas-first). Pick one. Once picked, it stays picked.
 3. **Screens + flow (60–90 min).** In the chosen direction, one artboard per spine step. Organize the canvas into pages:
    - **Flow** — screens left→right in loop order; a sticky note on every transition: *trigger → destination*.
