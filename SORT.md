@@ -21,8 +21,9 @@ Next, smallest first: Saidso, O2 Quoting, Operating System, Argus, Sonar, telos,
 For each allowlisted project, list open issues (state type backlog or unstarted: Backlog, Todo). An issue is **eligible** when any of these holds:
 
 1. **Unsorted:** no `design:*` label, and it is not `spec-ready`, `deferred`, or `ops`.
-2. **Answered:** it carries `sort:needs-answers` and its sort card has a reply (a comment whose parent is the card) created after the card's `updatedAt`.
-3. **Changed:** it has a sort card, and the issue's `updatedAt` is more than 10 minutes after the card's `updatedAt` (the margin absorbs the job's own label writes), and it is not `spec-ready`, `deferred`, or `ops`.
+2. **Answered:** its sort card has a reply (a comment whose parent is the card) created after the card's `updatedAt`. This holds with or without `sort:needs-answers`: placed issues can carry questions too.
+3. **Labeled by hand:** it has a `design:*` label but no sort card, and it is not `spec-ready`, `deferred`, or `ops`. Keep the rung unless it clearly does not fit the table; if you change it, say why on the card's Design line.
+4. **Changed:** it has a sort card, and the issue's `updatedAt` is more than 10 minutes after the card's `updatedAt` (the margin absorbs the job's own label writes), and it is not `spec-ready`, `deferred`, or `ops`.
 
 The sort card is the one top-level comment whose body starts with `Sort card`. More than one is a bug: keep the newest, edit it, and say so in the run log.
 
