@@ -89,7 +89,7 @@ Per-chunk delegation follows DISPATCH.md: the builder gets the model (or reasoni
 Factory <date> (<lane>): <k> merged, <p> parked for a human, <f> failed, stopped: <reason> at <time>.
 Merged: MCR-… (PR), MCR-… (PR)
 Human batch: MCR-… — <one-line ask>
-Needs design first: MCR-… (spec-ready but no canvas; omit the line at zero)
+Needs design first: MCR-… → brief docs/design/briefs/<file> (spec-ready but no canvas; write the brief per AGENTS.md > Design brief if none exists; omit the line at zero)
 Failed: MCR-… — <one line>
 Next: <first eligible issue left in the queue, or "queue empty: plan first">
 
