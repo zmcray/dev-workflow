@@ -70,7 +70,7 @@ File scope: <dirs / globs>
 Out of scope: <what this chunk deliberately does not do; name the sibling chunks that own it>
 ```
 
-**Design gate.** If the parent is `design:screens`, `design:journey`, or `design:product`, every chunk that touches UI needs a real canvas URL on its `Artboard:` line (AGENTS.md > Spec gate). No canvas on the parent or the plan → create the chunks without `spec-ready` and comment "design first: no canvas yet" on the parent. Never write `n/a (no UI)` to get past it.
+**Design gate.** If the parent is `design:screens`, `design:journey`, or `design:product`, every chunk that touches UI needs a real canvas URL on its `Artboard:` line (AGENTS.md > Spec gate). No canvas on the parent or the plan → create the chunks without `spec-ready`, write the **design brief** for the group (AGENTS.md > Design brief; template `~/Developer/software-factory/templates/design-brief.md`) to `docs/design/briefs/`, comment "design first: brief at <path>" on the parent and each UI chunk, and end the handoff (Step 6) with the brief's table and "Your steps". Never write `n/a (no UI)` to get past it, and never hand off a bare "draw the canvas".
 
 Acceptance criteria come from the unit's Test scenarios and Verification, rewritten so each names the check that proves it. A criterion a machine cannot check is rewritten or the chunk loses `spec-ready` with a comment saying why. Describe behaviour and interfaces, not line numbers.
 
