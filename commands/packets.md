@@ -16,6 +16,7 @@ It does not plan, re-plan, or second-guess the plan's decisions. If the plan is 
 2. **Linear project.** Read `.linear-project.json` at the repo root (monorepo: the app's own link file). No link file → stop and say to run `/zmcray-kickoff`.
 3. **Parent.** If the plan header carries a `Linear Issue`, that issue is the parent: chunks are created as its sub-issues and inherit its milestone, `flow:*`, and `prd-source`. Otherwise create one umbrella issue named after the plan, per AGENTS.md > Linear structure, and hang the chunks under it.
 4. **Vocabulary.** Read `CONCEPTS.md` if present. Chunk titles and descriptions use its terms.
+5. **Rung (sort on touch).** The parent (or the umbrella you are about to create) has no `design:*` label → sort it now, before cutting: `~/Developer/software-factory/SORT.md` Steps 2 to 4 for that one issue, which writes the label and the sort card. State the rung in one line. Cannot place it and no best guess → print the questions and stop. Otherwise continue; the Design gate in Step 5 does the rest. `/ce-plan` usually sorted it already; this is the backstop, so planning never waits on the nightly job.
 
 **This command is normally invoked for you.** The AGENTS.md rule has any session cut a 3+ unit plan into chunks before building or ending, and every `/goal` run opens with a chunk sweep. Running it by hand is only for spec time when you want to see the waves before bedtime.
 

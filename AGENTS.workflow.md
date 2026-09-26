@@ -117,7 +117,7 @@ If an issue is unlabeled, triage it in ~30 seconds, apply the label in Linear, s
 
 ### Design rung (how much drawing before planning)
 
-Every open issue also carries exactly one `design:*` label. The nightly sort sets it (rules: `~/Developer/software-factory/SORT.md`); planning may overrule it in one line. It is a separate axis from flow: flow is how much rigor, the rung is how much drawing happens before the plan.
+Every open issue also carries exactly one `design:*` label. The first planning step that touches an unsorted issue sets it (sort on touch, below); the nightly sort is the backup sweep for issues nobody has touched. Rules for both: `~/Developer/software-factory/SORT.md`. Planning may overrule a rung in one line. It is a separate axis from flow: flow is how much rigor, the rung is how much drawing happens before the plan.
 
 - `design:none` ... nothing a user sees changes: infra, data, API, jobs, tests, docs, behavior-only bug fixes.
 - `design:tweak` ... a visible change on an existing screen whose layout survives. No mockup: the before-screenshot and the change go in the acceptance criteria.
@@ -125,7 +125,7 @@ Every open issue also carries exactly one `design:*` label. The nightly sort set
 - `design:journey` ... inside an existing app: 3+ connected new screens, a new interaction model, new navigation, the core loop's screens change, or a surface users will form a habit on.
 - `design:product` ... a new app with nothing existing to extend.
 
-`sort:needs-answers` means the sort could not place the issue; its **sort card** comment carries the questions. An issue with no `design:*` label is unsorted: planning sets the rung, states it in one line, and proceeds.
+`sort:needs-answers` means the sort could not place the issue; its **sort card** comment carries the questions. **Sort on touch:** an issue with no `design:*` label is unsorted. The first planning step that touches it (`/ce-plan`, `/caspian`, `/packets`) sorts that one issue before planning it, using SORT.md Steps 2 to 4: read it, pick the rung, write the label and the sort card (the Planning board and the nightly job read the card, so never skip it). State the rung in one line. `none` or `tweak` → carry on. `screens`, `journey`, or `product` → the spec gate below applies: design first, before the plan is written. Cannot place it → `sort:needs-answers`, print the questions, and stop on that issue.
 
 **Spec gate:** an issue on `design:screens`, `design:journey`, or `design:product` may not be marked `spec-ready` until it has a **canvas link**... a Linear attachment, or a `Canvas: <url>` (or build packet `Artboard: <url>`) line in the description, pointing at the Claude Design (or Figma) canvas. Planning (`/ce-plan`, `/packets`, `/caspian`) that meets such an issue without one stops at "design first" and never invents the screens.
 
