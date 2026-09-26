@@ -1,6 +1,11 @@
-# The nightly sort
+# The sort
 
-The rulebook for Stage 0s (MANUAL §1). One scheduled job, every night, across the projects on the allowlist below. It reads every open issue that has not been sorted, decides how much drawing it needs before it can be planned, and says so on the issue. It never plans, builds, or moves anything.
+The rulebook for Stage 0s (MANUAL §1). Two ways in:
+
+1. **Sort on touch (primary).** Any planning step (`/ce-plan`, `/caspian`, `/packets`) that meets an issue with no `design:*` label runs Steps 2 to 4 below on that one issue before it plans (AGENTS.md > Design rung). The rung is decided the moment someone works on the issue, not the next night. The Never list does not apply here: that session goes on to plan.
+2. **Nightly sweep (backup).** The scheduled job catches every issue nobody has touched, so the Planning board shows the whole backlog, and re-sorts answered or changed issues. Issues sorted on touch already carry a label and a card, so Step 1 skips them.
+
+The rest of this page is written for the nightly job. One scheduled job, every night, across the projects on the allowlist below. It reads every open issue that has not been sorted, decides how much drawing it needs before it can be planned, and says so on the issue. It never plans, builds, or moves anything.
 
 The job is the Claude desktop scheduled task `nightly-sort`. Its prompt only says "follow SORT.md", so **change the rules here, never in the task**. Plan and reasoning: `docs/plans/2026-09-24-001-feat-sort-stage-planning-board.md`. Issue: MCR-1797.
 

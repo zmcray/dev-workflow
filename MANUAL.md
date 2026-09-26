@@ -17,7 +17,7 @@
 | # | Stage | Who | When · timebox | Runs on | Produces | Exit gate |
 |---|---|---|---|---|---|---|
 | 0 | **Capture** | You | anytime · 30 s | `/buildnote` | `Stage: Idea` issue | none — it's a shelf |
-| 0s | **Sort** | Agent | nightly, before `/factory` | scheduled sort job (`SORT.md`) | one `design:*` rung + one sort card per open issue | every open issue sorted, or `sort:needs-answers` with questions |
+| 0s | **Sort** | Agent | the first time planning touches an issue; nightly sweep before `/factory` as backup | the planning step itself, or the scheduled sort job (`SORT.md`) | one `design:*` rung + one sort card per open issue | every open issue sorted, or `sort:needs-answers` with questions |
 | 1 | **Bet** | You | mapping day · 15 min / project | the Linear idea shelf, read against the product's `STRATEGY.md` | bets + this week's appetite | bets ≤ appetite |
 | 2 | **Shape** | You + Claude | mapping day · 30–60 min / bet | conversation, `/office-hours`, `/diagram`, `/hagen` | shape doc | loop sentence in one line; dominant risk named; design rung set |
 | 3 | **Design session** | You drive, Claude Design draws | one design block in the daily hour · on `design:screens` and up | `/design` canvas (or Figma/Excalidraw) | screens + flow + actions canvas; sketch summary | walk-through passed; verdict = keep |
@@ -68,7 +68,7 @@
    - feasibility → a **spike**: throwaway branch, timeboxed, never merges, produces a one-paragraph finding
    - viability → `/hagen` (go/no-go) or the Caspian council (Stage 4)
 4. Fill the **shape doc** (template in §7): problem, loop, spine, appetite, dominant risk + retirement plan, rabbit holes, no-gos (seeds for the Later Shelf). `/office-hours` when the question is product, not engineering.
-5. **Confirm the design rung.** The nightly sort has usually set it already (Stage 0s); overrule it here if it is wrong, and say why in the sort card thread.
+5. **Confirm the design rung.** Planning sorts an unsorted issue the moment it touches it, and the nightly sweep catches the rest (Stage 0s); overrule it here if it is wrong, and say why in the sort card thread.
 
 **The five design rungs.** One rule for how much drawing an issue needs. The sort picks the first rung that fits, from the top.
 
@@ -262,7 +262,7 @@ If most chunks come out `tier:judgment`, the cut is too coarse. Split until the 
 
 | Loop | What it does | Status |
 |---|---|---|
-| **Nightly sort** | before `/factory`: every open, unsorted issue gets one `design:*` rung and one sort card (edited in place); `sort:needs-answers` when it cannot place one. Never plans, builds, or changes status. Rules and allowlist: `SORT.md` | rules built; scheduled task `nightly-sort` (23:30 daily) rolls out project by project from Pulse |
+| **Nightly sort** | backup sweep before `/factory` (planning sorts on touch first): every open issue still unsorted gets one `design:*` rung and one sort card (edited in place); `sort:needs-answers` when it cannot place one. Never plans, builds, or changes status. Rules and allowlist: `SORT.md` | rules built; scheduled task `nightly-sort` (23:30 daily) rolls out project by project from Pulse |
 | **Runner health** | both self-hosted runners online, queued-job age, auto-`launchctl kickstart`, notify on stall; `caffeinate -s` pinned to the runner launchd services so the Air never sleeps through a queue | to build (30 min) |
 | **Nightly full suite + watcher** | full XCUITest/regression on `main` nightly; red → Urgent residual filed; pass rate into the digest | to build |
 | **CI babysitter** | inside every goal run: watch checks, reduce logs, fix-and-push loop on cheap tiers | exists (`/goal` delegation policy) |

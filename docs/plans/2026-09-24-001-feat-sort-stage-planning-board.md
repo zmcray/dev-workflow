@@ -105,6 +105,7 @@ Questions: none
 - 2026-09-24: sort runs nightly as one job across projects, before `/factory`.
 - 2026-09-24: five rungs.
 - 2026-09-24 review: `design:flow` renamed `design:journey` (it read as the reverse of `flow:design`); `sort:done` retired (a `design:*` label already says "sorted"); `tweak` moved to the Plan only column (it needs no mockup); Today's pick and the gauge computed in Pulse; backfill folded into the job's rollout (MCR-1798 canceled); the rung table replaces the old design-session rubric; Linear onboarding issues MCR-1 to MCR-4 canceled.
+- 2026-09-25: sort on touch. The first planning step that meets an unsorted issue (`/ce-plan`, `/caspian`, `/packets`) sorts it inline with the same rules, label and card. The nightly job becomes the backup sweep for untouched issues and re-sorts.
 
 ## 11. Trial (Pulse, 23 issues, 2026-09-24)
 
