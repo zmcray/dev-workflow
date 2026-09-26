@@ -106,7 +106,7 @@ Where to look: <tab / screen / URL>
 
 - **Do not shadow built-ins.** This command wraps goal mode; it must never be renamed to `goal`, `loop`, or `schedule` (D-022). Claude Code, Codex, and Cursor all ship a built-in with at least one of those names.
 - **Anything the harness refuses to run unattended is a human gate.** A prod migration apply, a dashboard toggle, a command that returns pending approval (Claude's auto-mode classifier, a Codex sandbox escalation, a Cursor run prompt). Park it, do not wait on it. If `/packets` missed the gate, say so in the morning report so the packet rule improves.
-- **iOS repos.** Set `max_chunks` lower (3) in the link file. One Mac runner builds one PR at a time; the deadline is what stops the run, not the cap.
+- **iOS repos.** Set `max_chunks` lower (3) in the link file. One Mac runner builds one PR at a time, so land chunks in groups (AGENTS.md > Landing: group PRs): CI runs once per group, not per chunk. The deadline is what stops the run, not the cap.
 - **Spend cap.** Not enforced interactively. When the factory moves to a headless Routine launch, pass `--max-budget-usd` and add `budget` as a stop reason.
 
 ## Running on each harness
