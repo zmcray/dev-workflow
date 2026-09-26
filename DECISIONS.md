@@ -129,3 +129,15 @@ All "Based on" citations trace to `docs/research/2026-08-state-of-practice.md` u
 
 **Why:** Typing `/goal <objective>` per night made the human choose the work; the queue already knows. `/factory` takes no argument, drains everything `spec-ready` and ungated in the repo, and stops on the first of: queue empty, chunk cap, stop time (no new chunk after stop minus 45 min, never kill mid-PR), or a hard stop. Prior art converged on per-item budgets plus a ceiling, "don't start what you can't finish", two stop paths (graceful finishes and merges; hard parks the branch unmerged), and an incrementally written ledger so a crash still leaves a morning. Claude Code natively gives the keep-going loop, dollar and turn caps, and typed stop reasons; wall clock, chunk cap, and ledger are the skill's. Recommendations taken: interactive v1 in a terminal (headless Routine launch waits on the unattended-approval problem), ledger as `docs/factory/runs/<date>.json` in-repo (an `os.factory_runs` table when the migrations pipeline owner is found), budget config as a `factory` key in the existing `.linear-project.json` with defaults in DISPATCH.md. Not named `goal` (D-022).
 **Based on:** `docs/research/2026-09-23-factory-run-shape.md`; user decision (2026-09-23, "I'll take your recos").
+
+## D-025: Chunks land in group PRs; CI is tiered by default
+
+**Why:** D-021's small chunks are the right unit of work and review, but at one PR per chunk they made CI the bottleneck. On Motus a 12-chunk feature cost about 8 runner-hours on one iMac, and each PR spent about 10 of its 19 minutes on UI tests unrelated to the change. The fix separates the review unit from the CI unit:
+- A **landing group** of about 4 consecutive chunks on one epic chain shares a branch and a PR, with one commit per chunk.
+- Group PRs rebase-merge, so one revert still undoes one chunk.
+- Escalation-list and `gate:human` chunks still land alone.
+- Every repo's CI is tiered: a path-mapped PR gate under about 10 minutes, one build reused by every test step, and full suites, archives and deploy jobs on the default branch as the backstop.
+- Flaky tests are quarantined, not deleted, and a runner is added before coverage is cut.
+
+This extends D-010: merges stay strictly sequential, now per group.
+**Based on:** `docs/research/2026-09-26-ci-speed-vs-fidelity.md`; user decision (2026-09-26, "do the reco… all repos, now and in the future"). Canonical text: zmcray/dev-workflow#9.
