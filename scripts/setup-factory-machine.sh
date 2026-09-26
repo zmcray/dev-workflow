@@ -93,9 +93,11 @@ if have codex; then
     act "add Linear MCP"
     run codex mcp add linear --url https://mcp.linear.app/mcp || fix "Codex: add Linear MCP"
   else ok "Linear MCP"; fi
-  [[ -f "$HOME/.codex/AGENTS.md" ]] && grep -q "COMPOUND CODEX TOOL MAP" "$HOME/.codex/AGENTS.md" \
-    && ok "CE tool map in ~/.codex/AGENTS.md" \
-    || fix "Codex: CE tool map missing from ~/.codex/AGENTS.md (open Codex once after the plugin installs)"
+  # The native CE plugin needs no ~/.codex/AGENTS.md tool map; the old Bun-era block is obsolete
+  # and tells Codex to run subagents on the main thread. Flag it for removal if present.
+  grep -q "BEGIN COMPOUND CODEX TOOL MAP" "$HOME/.codex/AGENTS.md" 2>/dev/null \
+    && fix "Codex: remove the obsolete COMPOUND CODEX TOOL MAP block from ~/.codex/AGENTS.md" \
+    || ok "no obsolete CE tool map"
 fi
 
 echo "== Cursor"
@@ -107,7 +109,7 @@ done
 echo
 echo "== Always by hand (sign-ins and unattended settings are not scripted)"
 echo "  - Claude Code: run /mcp once and sign in to Linear; use auto mode for the night."
-echo "  - Codex: run 'codex mcp login linear' once; set unattended mode per the factory skill's"
+echo "  - Codex: if Linear did not sign in above, run 'codex mcp login linear'; set unattended mode per the factory skill's"
 echo "    'Running on each harness' table."
 echo "  - Cursor: sign in to Linear in the plugin; turn auto-run on for each repo."
 echo "  - Every repo you run the factory in: clone it under ~/Developer and open it once in each app to trust it."
