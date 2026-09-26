@@ -36,6 +36,7 @@ Start from the plan's `### U<N>.` units (Goal, Dependencies, Files, Approach, Te
 2. **Edges.** Add `blocked by` for every plan `Dependencies` entry. Then run the **overlap check**: any two chunks whose file scopes intersect MUST have an edge (pick the order that lands the more foundational one first). Shared hot files count as overlap and are easy to miss... schema and migration dirs, route or navigation index, DI container, `Package.swift`, lockfiles, generated types, shared design tokens.
 3. **Widen the waves.** If one shared file forces a long serial chain, propose a small **prefactor chunk** that isolates the seam (extract the registry, split the index), then fan the rest out behind it. Propose it; do not silently add scope. Taste call → ask once, batched.
 4. **Waves.** Wave 1 = chunks with no blockers. Wave N+1 = chunks unblocked once wave N merges. Chunks inside a wave share no files and may be built simultaneously. Merges are always one at a time.
+5. **Landing groups (group PRs).** Separately from build waves, group the chunks into PRs per AGENTS.md > Landing: consecutive chunks of one epic on one `blocked by` chain share a branch and a PR, one commit each, capped at about 4 chunks or ~800 changed lines. A chunk on the escalation list (auth, sessions, tokens, RLS or grants, migrations, deletion or export, payments, outbound fetch) or carrying `gate:human` lands alone. Name each group (`<epic> PR 1`, `PR 2`...). CI runs once per group, so fewer, fuller groups save the most time on slow CI (iOS).
 
 ## Step 4: Tier triage
 
@@ -68,6 +69,7 @@ Acceptance criteria:
 Artboard: <approved canvas link from the plan, or "n/a (no UI)">
 File scope: <dirs / globs>
 Out of scope: <what this chunk deliberately does not do; name the sibling chunks that own it>
+Lands in: <landing group name> (commit <k> of <n>; one commit per chunk; the PR opens after the last chunk)
 ```
 
 **Design gate.** If the parent is `design:screens`, `design:journey`, or `design:product`, every chunk that touches UI needs a real canvas URL on its `Artboard:` line (AGENTS.md > Spec gate). No canvas on the parent or the plan → create the chunks without `spec-ready`, write the **design brief** for the group (AGENTS.md > Design brief; template `~/Developer/software-factory/templates/design-brief.md`) to `docs/design/briefs/`, comment "design first: brief at <path>" on the parent and each UI chunk, and end the handoff (Step 6) with the brief's table and "Your steps". Never write `n/a (no UI)` to get past it, and never hand off a bare "draw the canvas".
@@ -78,7 +80,7 @@ If a `tier:*` label does not exist in the workspace yet, create it (workspace-le
 
 ## Step 6: Summary and handoff
 
-Print: chunk count · tier mix · the waves (IDs per wave) · any split, merge, or prefactor decisions in one line each · anything that failed the bar. Append a `## Chunks` section to the plan file listing `U-ID → issue ID → wave → tier`, so the plan stays the index.
+Print: chunk count · tier mix · the waves (IDs per wave) · any split, merge, or prefactor decisions in one line each · anything that failed the bar. Append a `## Chunks` section to the plan file listing `U-ID → issue ID → wave → landing group → tier`, so the plan stays the index.
 
 Close with: **"[N] chunks spec-ready on [project], [W] waves, widest wave [K]. Tonight: `/goal <parent ID>`."**
 
