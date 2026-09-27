@@ -1,7 +1,7 @@
 ---
 name: factory
-description: The night shift. With no arguments, drains everything spec-ready in this repo's Linear project overnight under a budget (stop time, chunk cap), skips anything that needs a human, and leaves a run ledger plus a morning report. Wraps the harness's goal mode (Claude Code, Codex, or Cursor); the build rules stay in AGENTS.md. Use for "/factory", "run the factory", "start the night shift", "drain the queue". NOT for a single issue (/lfg) or a named objective (/goal <objective>).
-argument-hint: "(none) | --dry-run | --stop-at HH:MM | --max-chunks N"
+description: The night shift. With no arguments, drains everything spec-ready in this repo's Linear project overnight under a budget (stop time, 12-hour run limit), skips anything that needs a human, and leaves a run ledger plus a morning report. Wraps the harness's goal mode (Claude Code, Codex, or Cursor); the build rules stay in AGENTS.md. Use for "/factory", "run the factory", "start the night shift", "drain the queue". NOT for a single issue (/lfg) or a named objective (/goal <objective>).
+argument-hint: "(none) | --dry-run | --stop-at HH:MM | --max-hours N"
 ---
 
 # Factory
@@ -19,10 +19,13 @@ Standing contract: **never ask the user anything.** Every would-be question is a
 2. **Budget.** Merge, lowest to highest precedence: defaults from `~/Developer/software-factory/DISPATCH.md` > Night budget → the `factory` key in `.linear-project.json` → flags on this invocation.
 
 ```json
-"factory": { "stop_at": "06:00", "max_chunks": 6, "concurrency": 1, "max_turns_per_chunk": 150 }
+"factory": { "stop_at": "06:00", "max_hours": 12, "concurrency": 1, "max_turns_per_chunk": 150 }
 ```
 
-3. **Deadline math.** `stop_at` is local time, tomorrow if it is already past. `last_dispatch = stop_at - 45 min`. No chunk starts after `last_dispatch`. Nothing is ever killed mid-PR.
+3. **Deadline math.** Two clocks, and whichever trips first ends the shift. There is no chunk cap: the night builds as many chunks as the clocks allow.
+   - **Stop time.** `stop_at` is local time, tomorrow if it is already past. `last_dispatch = stop_at - 45 min`. No chunk starts after `last_dispatch`.
+   - **Run limit.** `hour_limit = started_at + max_hours`. Once the run has been going `max_hours`, no new chunk starts; the chunk already in flight finishes and the shift closes.
+   - Nothing is ever killed mid-PR. A leftover `max_chunks` key in a link file is retired and ignored.
 4. **Baseline.** Fresh default branch, CI green on `main`, working tree clean. Red baseline is a hard stop before anything is pulled.
 
 ## Step 2: Read the queue
@@ -34,7 +37,7 @@ Run the **chunk sweep** first, exactly as AGENTS.md describes it, so plans writt
 Print the shift plan once and start. No confirmation.
 
 ```
-Factory: <project>. <E> eligible, will attempt up to <max_chunks>, no new chunk after <last_dispatch>, stop by <stop_at>.
+Factory: <project>. <E> eligible, no new chunk after <last_dispatch> or <hour_limit> (whichever is first), stop by <stop_at>.
 Skipped: <n> gate:human (<IDs>), <n> ops, <n> blocked, <n> no-canvas (<IDs>).
 Order: <IDs in order>.
 ```
@@ -51,7 +54,7 @@ Write `docs/factory/runs/YYYY-MM-DD.json` in the repo (create the directory; it 
   "project": "Pulse",
   "lane": "claude",
   "started_at": "2026-09-23T23:40:00-05:00",
-  "budget": { "stop_at": "06:00", "last_dispatch": "05:15", "max_chunks": 6, "concurrency": 1 },
+  "budget": { "stop_at": "06:00", "last_dispatch": "05:15", "max_hours": 12, "hour_limit": "11:40", "concurrency": 1 },
   "eligible": ["MCR-1710", "MCR-1711"],
   "skipped": [{ "issue": "MCR-1714", "reason": "gate:human" }, { "issue": "MCR-1716", "reason": "no-canvas" }],
   "items": [],
@@ -72,9 +75,9 @@ Every item row is written **when the chunk starts** and updated when it ends, so
 
 Arm the harness's goal mode (see **Running on each harness**) with this condition and let it drive:
 
-> Goal: drain the factory queue for <project> under the budget in `docs/factory/runs/<date>.json`. Before starting any chunk: re-read the ledger, stop if `items` with status done reaches `max_chunks`, stop if the clock is past `last_dispatch`, re-query Linear for the next eligible issue (the board may have changed). Build each chunk per AGENTS.md > Autonomous runs. Update the ledger row at start and end of every chunk. Ending conditions are queue empty, chunk cap, deadline, or hard stop; write `stop_reason` and finish with Step 5.
+> Goal: drain the factory queue for <project> under the budget in `docs/factory/runs/<date>.json`. Before starting any chunk: re-read the ledger, stop if the clock is past `last_dispatch` or past `hour_limit`, re-query Linear for the next eligible issue (the board may have changed). Build each chunk per AGENTS.md > Autonomous runs. Update the ledger row at start and end of every chunk. Ending conditions are queue empty, deadline, run limit, or hard stop; write `stop_reason` and finish with Step 5.
 
-The budget check happens **between chunks, never inside one**. A chunk that is running at `stop_at` finishes; it is the 45-minute margin's job to make that rare.
+The budget check happens **between chunks, never inside one**. A chunk that is running at `stop_at` or `hour_limit` finishes; it is the 45-minute margin's job to make the `stop_at` case rare. The run limit has no margin: at `hour_limit` the in-flight chunk completes and nothing new starts.
 
 Per-chunk delegation follows DISPATCH.md: the builder gets the model (or reasoning setting) in the running harness's column for the chunk's `tier:*`, and `max_turns_per_chunk` as its turn cap. Two failed attempts on one chunk (one tier up on the retry) mark it `failed`, post the comment, and move on... a failed chunk is not a hard stop unless its branch broke `main`.
 
@@ -82,8 +85,8 @@ Per-chunk delegation follows DISPATCH.md: the builder gets the model (or reasoni
 
 ## Step 5: Close the shift
 
-1. Write `stopped_at` and `stop_reason` (`queue-empty | chunk-cap | deadline | budget | hard-stop`) to the ledger.
-2. Post **one project status update** in Linear (health per the run: on track for queue-empty or chunk-cap, at risk for deadline with parks, off track for hard stop):
+1. Write `stopped_at` and `stop_reason` (`queue-empty | deadline | hour-limit | budget | hard-stop`) to the ledger.
+2. Post **one project status update** in Linear (health per the run: on track for queue-empty or hour-limit, at risk for deadline with parks, off track for hard stop):
 
 ```
 Factory <date> (<lane>): <k> merged, <p> parked for a human, <f> failed, stopped: <reason> at <time>.
@@ -107,7 +110,7 @@ Where to look: <tab / screen / URL>
 
 - **Do not shadow built-ins.** This command wraps goal mode; it must never be renamed to `goal`, `loop`, or `schedule` (D-022). Claude Code, Codex, and Cursor all ship a built-in with at least one of those names.
 - **Anything the harness refuses to run unattended is a human gate.** A prod migration apply, a dashboard toggle, a command that returns pending approval (Claude's auto-mode classifier, a Codex sandbox escalation, a Cursor run prompt). Park it, do not wait on it. If `/packets` missed the gate, say so in the morning report so the packet rule improves.
-- **iOS repos.** Set `max_chunks` lower (3) in the link file. One Mac runner builds one PR at a time, so land chunks in groups (AGENTS.md > Landing: group PRs): CI runs once per group, not per chunk. The deadline is what stops the run, not the cap.
+- **iOS repos.** One Mac runner builds one PR at a time, so land chunks in groups (AGENTS.md > Landing: group PRs): CI runs once per group, not per chunk. The clocks stop the run, same as web.
 - **Spend cap.** Not enforced interactively. When the factory moves to a headless Routine launch, pass `--max-budget-usd` and add `budget` as a stop reason.
 
 ## Running on each harness
