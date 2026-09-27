@@ -282,7 +282,7 @@ When the build session ends: move the Linear issue to **In Review** (or **Done**
 
 ### Claude Code accelerators
 
-On Claude Code the workflow runs on Compound Engineering plus two conveniences: `/ce-plan` (Plan), `/lfg` (Execute, one issue through a green PR), `/ce-code-review`, `/ce-compound` (Learn), `/packets` (plan → labeled Linear chunks), the built-in `/goal` (hands-off run across issues), and `/factory` (the night shift: `/goal` over everything `spec-ready` in the repo under a stop time and chunk cap, with a run ledger in `docs/factory/runs/`). `/lfg` itself never touches Linear and never merges... the rules in this file do that: after `/lfg` reports a green PR, apply merge-on-green, post the Linear comment, and run session close. These commands are conveniences layered on this file, not a separate process. Any other harness reads this section and runs the same workflow directly.
+On Claude Code the workflow runs on Compound Engineering plus two conveniences: `/ce-plan` (Plan), `/lfg` (Execute, one issue through a green PR), `/ce-code-review`, `/ce-compound` (Learn), `/packets` (plan → labeled Linear chunks), the built-in `/goal` (hands-off run across issues), and `/factory` (the night shift: `/goal` over everything `spec-ready` in the repo until 6:00 AM or 12 hours, whichever comes first, with a run ledger in `docs/factory/runs/`). `/lfg` itself never touches Linear and never merges... the rules in this file do that: after `/lfg` reports a green PR, apply merge-on-green, post the Linear comment, and run session close. These commands are conveniences layered on this file, not a separate process. Any other harness reads this section and runs the same workflow directly.
 
 ### shadcn registries
 
