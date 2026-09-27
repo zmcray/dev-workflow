@@ -23,12 +23,12 @@ A **wave** is every `spec-ready` chunk that is unblocked, carries neither `gate:
 
 ## Night budget
 
-`/factory` reads these defaults, then the `factory` key in the repo's `.linear-project.json`, then invocation flags. Stop time is local. No chunk starts after `stop_at` minus 45 minutes; nothing is killed mid-PR.
+`/factory` reads these defaults, then the `factory` key in the repo's `.linear-project.json`, then invocation flags. Stop time is local. No chunk starts after `stop_at` minus 45 minutes, or once the run has gone `max_hours` (the in-flight chunk finishes first). There is no chunk cap. Nothing is killed mid-PR.
 
 | Key | Default | iOS repos (single Mac runner) |
 |---|---|---|
 | `stop_at` | `06:00` | `06:00` |
-| `max_chunks` merged per night | 6 | 3 |
+| `max_hours` per run | 12 | 12 |
 | `concurrency` | 1 (sequential until the wave dispatcher lands; then ≤ CI runner slots) | 1, later 2 |
 | `max_turns_per_chunk` | 150 | 150 |
 
@@ -39,7 +39,7 @@ Ledger: `docs/factory/runs/YYYY-MM-DD.json` in the repo, one row per chunk, writ
 | Ending | Meaning | What happens |
 |---|---|---|
 | Queue empty | normal | stop; morning digest says so |
-| Chunk cap / deadline | normal | `/factory` budget reached between chunks; remaining chunks stay `spec-ready` |
+| Deadline / run limit | normal | `/factory` hit `stop_at` or `max_hours` between chunks; remaining chunks stay `spec-ready` |
 | Budget stop | normal | credits or plan headroom ran out; remaining chunks stay `spec-ready` |
 | Human park | needs a human, but only for that chunk | a step needs a person (visual judgment, credentials, device, outside party); branch pushed, draft PR, `gate:human` added, comment says what to do; run continues on the next unblocked chunk |
 | Hard stop | needs a human | red baseline, unmergeable PR, scope kick-back, anything destructive |
