@@ -93,7 +93,7 @@ If `.github/workflows/` is absent or empty, record "no workflows" and continue; 
 
 1. Record repository visibility and runner class.
 2. Apply safe defaults where missing: workflow/ref concurrency with cancellation, short artifact retention, failure-only diagnostics, and secret/config preflights for scheduled or external-service jobs.
-3. Identify safe docs-only or monorepo path filters, but first confirm a skipped workflow is not a required branch-protection check that would remain pending.
+3. Check that docs-only or monorepo path skipping goes through the **change-classification gate** in `AGENTS.md`: one always-running required gate, no workflow-level `paths:` filters on required checks, unknown paths run full CI. Verify the branch-protection required checks before changing triggers or check names.
 4. Flag expensive runner tiers, duplicated matrices, tiny fragmented jobs, large artifacts, and full suites on every push. Prefer a fast required PR gate plus full merge/manual coverage without weakening required coverage.
 5. Keep scheduled workflows disabled until required secrets and configuration are confirmed.
 6. Check the **CI tiers** rule in `AGENTS.md`: a path-mapped PR gate under ~10 minutes, one build reused by every test step, full suites and release/archive/deploy jobs on the default branch only, and flaky tests quarantined. If the repo breaks any of these and the fix is not a safe mechanical edit, file one `Platform: hardening` issue to bring CI in line (priority Medium, `flow:standard`, `ops`) and say so in the handoff.
