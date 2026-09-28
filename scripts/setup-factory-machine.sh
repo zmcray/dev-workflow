@@ -9,6 +9,8 @@
 #   4. Claude Code: Compound Engineering + Linear plugins.
 #   5. Codex: Compound Engineering plugin and Linear MCP.
 #   6. Cursor: checks the CE + Linear plugins (installed from the Cursor app, not here).
+#   7. Installs the daily skill-sync launch agent (install-skill-sync.sh), so this Mac pulls
+#      and reinstalls changed skills on its own from then on.
 #   Ends with a checklist of what still needs a person (sign-ins, unattended-mode settings).
 #
 # Non-destructive: installs and copies only. Never deletes, never overwrites a dirty repo.
@@ -105,6 +107,14 @@ echo "== Cursor"
 for p in compound-engineering linear; do
   [[ -d "$CURSOR_PLUGINS/$p" ]] && ok "$p plugin" || fix "Cursor: install the $p plugin from Cursor > Plugins"
 done
+
+echo "== Daily skill sync"
+if [[ -f "$DEV/dev-workflow/scripts/install-skill-sync.sh" ]]; then
+  act "install daily skill-sync (17:00)"
+  run bash "$DEV/dev-workflow/scripts/install-skill-sync.sh" || fix "Daily skill sync did not install"
+else
+  fix "install-skill-sync.sh missing; daily sync not installed"
+fi
 
 echo
 echo "== Always by hand (sign-ins and unattended settings are not scripted)"
