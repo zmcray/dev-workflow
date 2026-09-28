@@ -9,8 +9,8 @@
 #   2. Re-runs deploy-skills.sh only when a deployed skill no longer matches its source.
 #      No change upstream = nothing reinstalled.
 #
-# software-factory needs no deploy step: the skills read DISPATCH.md and SORT.md from the
-# repo at run time, so the pull is enough.
+# software-factory's docs (DISPATCH.md, SORT.md) are read from the repo at run time, so the
+# pull is enough for them; its folder skills (wizard) are checked and reinstalled like the rest.
 #
 # Log: ~/Library/Logs/skill-sync.log
 
@@ -42,6 +42,16 @@ for n in "${PORTABLE[@]}"; do
   cmp -s "$src" "$HOME/.claude/commands/$n.md" || { stale+=("$n"); continue; }
   for d in "$HOME/.agents/skills" "$HOME/.cursor/skills"; do
     grep -v '^argument-hint:' "$src" | cmp -s - "$d/$n/SKILL.md" || { stale+=("$n"); break; }
+  done
+done
+
+# Folder skills (software-factory/skills): any file that differs or is missing counts.
+for n in wizard; do
+  src="$DEV/software-factory/skills/$n"
+  [[ -d "$src" ]] || continue
+  for d in "$HOME/.claude/skills" "$HOME/.agents/skills" "$HOME/.cursor/skills"; do
+    diff -rq "$src" "$d/$n" 2>/dev/null | grep -q "^Only in $src\|^Files " && { stale+=("$n"); break; }
+    [[ -d "$d/$n" ]] || { stale+=("$n"); break; }
   done
 done
 

@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
+# Re-syncs the canonical AGENTS.md block into every wired repo, one PR each.
+# Usage: sync-agents-md-prs.sh <scratch-dir> <branch> "<topic>" "<PR body line>"
+#   e.g. sync-agents-md-prs.sh /tmp/wt chore/sync-agents-md-wizards "wizards for human procedures" "Adds ..."
 set -uo pipefail
 WF=$HOME/Developer/dev-workflow/AGENTS.workflow.md
-WT=$1; BR=chore/sync-agents-md-design-brief
+WT=$1; BR=$2; TOPIC=$3; WHY=$4
 cd $HOME/Developer
 for d in */; do r=${d%/}; [[ $r == dev-workflow ]] && continue
   [[ -d $r/.git && -f $r/AGENTS.md ]] || continue
@@ -16,10 +19,10 @@ for d in */; do r=${d%/}; [[ $r == dev-workflow ]] && continue
     !inblock { print }' $p/AGENTS.md > $p/AGENTS.md.tmp && mv $p/AGENTS.md.tmp $p/AGENTS.md
   if git -C $p diff --quiet; then echo "$r: already current"
   else
-    git -C $p commit -q -am "chore: re-sync canonical workflow block (design brief handoff) [MCR-1796]
+    git -C $p commit -q -am "chore: re-sync canonical workflow block ($TOPIC)
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git -C $p push -q -u origin $BR 2>/dev/null
-    url=$(cd $p && gh pr create -B $def --title "chore: re-sync canonical workflow block (design brief handoff) [MCR-1796]" --body "Re-syncs the canonical AGENTS.md block from zmcray/dev-workflow#6: planning that stops at \"design first\" now writes a design brief and waits for the canvas link.
+    url=$(cd $p && gh pr create -B $def --title "chore: re-sync canonical workflow block ($TOPIC)" --body "Re-syncs the canonical AGENTS.md block from zmcray/dev-workflow. $WHY
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)" 2>&1 | tail -1)
     echo "$r: PR open $url"

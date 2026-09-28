@@ -51,7 +51,7 @@ Exactly one per chunk. Judge how hard it is to get **right** (novelty, ambiguity
 
 ## Step 4b: Human-gate triage
 
-For every chunk ask: **can this finish overnight with nobody present?** Apply `gate:human` when any step needs a person: a human judging images or screens (not a scripted screenshot diff), credentials / 2FA / App Store or a vendor console, a physical device, a taste or naming call, an outside party. Write the packet's `Human gate:` line as one sentence naming what the person does and when (`before build`, `mid-build`, `before merge`). Chunks with no such step get no label and `Human gate: none`. A `gate:human` chunk never enters the night queue; `/goal` skips it. Prefer splitting so the human step is its own small chunk and the rest stays hands-off. State each call in one line.
+For every chunk ask: **can this finish overnight with nobody present?** Apply `gate:human` when any step needs a person: a human judging images or screens (not a scripted screenshot diff), credentials / 2FA / App Store or a vendor console, a physical device, a taste or naming call, an outside party. Write the packet's `Human gate:` line as one sentence naming what the person does and when (`before build`, `mid-build`, `before merge`), starting with `procedure:` (clicking, copying, pasting only the person can do; `/factory` writes it a wizard) or `judgment:` (looking and deciding; stays a checklist ask). See AGENTS.md > Wizards for human procedures. Chunks with no such step get no label and `Human gate: none`. A `gate:human` chunk never enters the night queue; `/goal` skips it. Prefer splitting so the human step is its own small chunk and the rest stays hands-off. State each call in one line.
 
 ## Step 5: Write the chunks to Linear
 
