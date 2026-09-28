@@ -71,6 +71,12 @@ Every item row is written **when the chunk starts** and updated when it ends, so
   "pr": "https://github.com/...", "turns": 0, "retries": 0, "note": "one line" }
 ```
 
+## Step 3b: Write the morning wizards
+
+Before the first chunk, so the human batch is ready even on a short night. Find the project's open `gate:human` issues whose human step is a **procedure** (AGENTS.md > Wizards for human procedures) and that have no `Wizard:` line in the description or comments. A `Human gate:` line without a `procedure:` or `judgment:` prefix is classified from its wording; unsure means judgment, no wizard. Highest priority first, at most 5 a night; the rest wait for tomorrow.
+
+For each, write the wizard with the `wizard` skill (unattended rules in AGENTS.md), all of them in one `chore:` PR with no issue IDs in the branch, title or commit subjects and `Part of MCR-…` lines in the body, so the issues stay open. Merge on green, then comment `Wizard: bash scripts/wizards/<file>.sh` on each issue with the stage list. Record `"wizards": [{ "issue", "file" }]` in the ledger. A red wizard PR is not a hard stop: close it, note it in the ledger, and start the shift.
+
 ## Step 4: The shift
 
 Arm the harness's goal mode (see **Running on each harness**) with this condition and let it drive:
@@ -91,7 +97,7 @@ Per-chunk delegation follows DISPATCH.md: the builder gets the model (or reasoni
 ```
 Factory <date> (<lane>): <k> merged, <p> parked for a human, <f> failed, stopped: <reason> at <time>.
 Merged: MCR-… (PR), MCR-… (PR)
-Human batch: MCR-… — <one-line ask>
+Human batch: MCR-… — <one-line ask> (procedure: `Run: bash scripts/wizards/<file>.sh`)
 Needs design first: MCR-… → brief docs/design/briefs/<file> (spec-ready but no canvas; write the brief per AGENTS.md > Design brief if none exists; omit the line at zero)
 Failed: MCR-… — <one line>
 Next: <first eligible issue left in the queue, or "queue empty: plan first">
@@ -104,7 +110,7 @@ Where to look: <tab / screen / URL>
 3. **One consolidated morning checklist, never one per issue, and only what needs a person.** Go through every merged issue's acceptance criteria (MANUAL §7). A criterion that a merged test asserts is **dropped**: CI already verified it and the human does not see it. Keep only what CI cannot prove: UI or layout, a live-schema or prod read the builder could not run, anything the builder noted as "not run" or "not screenshotted", a taste call. Group what is left by issue under `## Morning review` in the status update above. Zero items left → write `Morning review: nothing needs your eyes.` Merged issues close to Done on merge (GitHub integration); the checklist is the review surface, and a kick back reopens the issue. Write the same list to the ledger as `"checklist": [{ "issue", "title", "criterion", "where" }]` so Pulse can render it. Per-issue merge comments keep the PR summary and judgment calls but **do not** carry a checklist block; they end with one line: `Morning review: see the Factory <date> status update.`
    **Times are ET (America/New_York), always.** Every time a human reads (status update, checklist, merge comments) is written in ET, e.g. `6:00 AM ET`, never UTC. Convert cron and workflow schedules (`10:00 UTC` → `6:00 AM ET` in EDT, `5:00 AM ET` in EST) using the date the reader will act on.
 4. Open a `docs:` PR with the ledger file and any archived plans, merge on green. It is the last PR of the night.
-5. Close with one line: **"Factory done: <k>/<E> merged, stopped on <reason>. Morning batch: <p> issues."**
+5. Close with one line: **"Factory done: <k>/<E> merged, stopped on <reason>. Morning batch: <p> issues, <w> with a wizard."**
 
 ## Notes
 

@@ -7,6 +7,11 @@
 #                       ->  ~/.agents/skills/<name>/SKILL.md    (Codex)
 #                       ->  ~/.cursor/skills/<name>/SKILL.md    (Cursor; it did not pick up ~/.agents/skills)
 #
+# Folder skills owned by software-factory (skills/<name>/, e.g. wizard) ship whole:
+#
+#   ~/Developer/software-factory/skills/<name>/  ->  ~/.claude/skills/<name>/, ~/.agents/skills/<name>/,
+#                                                    ~/.cursor/skills/<name>/
+#
 # The SKILL.md copy drops Claude-only frontmatter (argument-hint). A stale per-harness fork
 # in ~/.codex/skills/<name> is moved to ~/.codex/skills-archive/ so Codex does not load two
 # copies. Non-destructive: copies and moves only, never deletes.
@@ -49,6 +54,25 @@ for name in "${PORTABLE[@]}"; do
     fi
   done
 
+  if [[ -d "$CODEX_DIR/$name" ]]; then
+    dest="$CODEX_ARCHIVE/$name-$(date +%Y%m%d-%H%M%S)"
+    say "archive stale Codex fork $CODEX_DIR/$name -> $dest"
+    if [[ $DRY_RUN -eq 0 ]]; then mkdir -p "$CODEX_ARCHIVE"; mv "$CODEX_DIR/$name" "$dest"; fi
+  fi
+done
+
+# Folder skills from software-factory. Copy over (never delete), then archive any stale
+# Codex fork so Codex only loads the ~/.agents copy.
+SF_SKILLS="$HOME/Developer/software-factory/skills"
+FOLDER_SKILLS=( wizard )
+for name in "${FOLDER_SKILLS[@]}"; do
+  src="$SF_SKILLS/$name"
+  [[ -d "$src" ]] || { echo "SKIP $name: $src not found (clone software-factory)"; continue; }
+  echo "SKILL $name (folder)"
+  for dir in "$HOME/.claude/skills" "$AGENTS_DIR" "$CURSOR_DIR"; do
+    say "copy -> $dir/$name/"
+    if [[ $DRY_RUN -eq 0 ]]; then mkdir -p "$dir/$name"; cp -R "$src/." "$dir/$name/"; fi
+  done
   if [[ -d "$CODEX_DIR/$name" ]]; then
     dest="$CODEX_ARCHIVE/$name-$(date +%Y%m%d-%H%M%S)"
     say "archive stale Codex fork $CODEX_DIR/$name -> $dest"
