@@ -10,7 +10,7 @@ Acceptance criteria:            # EARS-style; each maps to a test or screenshot 
 Artboard: [link to approved design canvas, or "n/a (no UI)"]
 File scope: [paths this issue may touch]        # overlap with another queued issue = dependency edge, run sequentially
 Out of scope: [what this issue deliberately does not do]
-Human gate: [none | what a person must do and when: before build / mid-build / before merge]
+Human gate: [none | procedure: … | judgment: … — what a person must do and when: before build / mid-build / before merge]
 ```
 
 Rules:
@@ -22,7 +22,7 @@ Rules:
 - **Every acceptance criterion is executable** — it names the test or screenshot check that proves it. If it can't be checked by a machine, rewrite it until it can, or it stays a day-shift issue.
 - **Artboard is required for any UI work.** The approved canvas is implementation input; night agents diff their screenshots against it.
 - **File scope is a fence, not a hint.** The building agent may not touch paths outside it. Wanting to = kick back with a Linear comment, don't expand.
-- **Human gate is mandatory.** `none` means the chunk can finish overnight with nobody present. Anything else (a person judging images or screens, credentials / 2FA / App Store / vendor console, a physical device, a taste call, an outside party) gets named here and the issue carries `gate:human`; it never enters the night queue. If the human step can be its own small chunk, split it so the rest stays hands-off.
+- **Human gate is mandatory.** `none` means the chunk can finish overnight with nobody present. Anything else (a person judging images or screens, credentials / 2FA / App Store / vendor console, a physical device, a taste call, an outside party) gets named here and the issue carries `gate:human`; it never enters the night queue. Start the line with `procedure:` (clicking, copying, pasting only the person can do; it gets a wizard script) or `judgment:` (looking and deciding; it stays a checklist ask). If the human step can be its own small chunk, split it so the rest stays hands-off.
 - **Out of scope is mandatory**, even when it feels obvious. It is what keeps an unattended agent from helpfully doing more.
 - **Keep it a chunk.** Well under an hour of agent time, about 5 files and 300 changed lines or fewer, 1-4 acceptance checks. Bigger than that, split it. File scope that overlaps another queued chunk needs a `blocked by` edge; disjoint scope with no edge means the two may be built at the same time.
 - Complexity (`tier:*`), routing (`lane:*`), and merge trust (`class:*`) are labels, never packet fields. The packet never names a model; `DISPATCH.md` maps tier to model at dispatch time. Dispatch decisions stay out of the spec.

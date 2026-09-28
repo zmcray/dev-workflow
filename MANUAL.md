@@ -173,7 +173,7 @@
 3. Walk the checklist, one block per issue: **pass** → Done · **fail** → residual (priority, label) · **scope surprise** → a Caspian EXPAND comment on the issue, not a fix.
 4. Ten minutes of `/design-review` (web) or `/ios-design-review` (iOS) on the new screens **against the canvas** — the canvas is the contract.
 5. Triage residuals; note anything that smells like a learning for Sunday.
-6. Work the human batch in one sitting: do each `gate:human` step, remove the label (or hand the chunk to `/lfg` if the rest is agent work), and note any packet that missed its gate... that is a `/packets` learning.
+6. Work the human batch in one sitting: for a procedure, run its wizard (`bash scripts/wizards/<file>.sh`, written overnight by `/factory`); for a judgment, look and decide. Do each `gate:human` step, remove the label (or hand the chunk to `/lfg` if the rest is agent work), and note any packet that missed its gate... that is a `/packets` learning.
 
 **Gate.** The In Review pile is zero at the end of the ritual, or each remaining item is explicitly parked with a reason.
 
@@ -252,7 +252,7 @@ The cheapest model (haiku) never writes code. It reads: repo exploration, log re
 
 If most chunks come out `tier:judgment`, the cut is too coarse. Split until the hard part sits in one or two chunks. A good plan is mostly mechanical and moderate... that is also what makes a limited credit budget go furthest.
 
-**Gate.** Can the chunk finish with nobody at the keyboard? Most can. The ones that cannot get `gate:human` at spec time, and the packet's `Human gate:` line says what the person does and when. Triggers: a person must look at images or screens and judge them (not a pixel diff a script can run), credentials / 2FA / App Store / a vendor console, a physical device, a taste or naming call, someone outside the company. `ops` stays for issues that are *entirely* human work. Neither ever enters the night queue; the morning digest lists them as one batch so you sit down once, not six times. An agent that hits an unplanned human step at night parks the chunk (draft PR + label + comment) and keeps going.
+**Gate.** Can the chunk finish with nobody at the keyboard? Most can. The ones that cannot get `gate:human` at spec time, and the packet's `Human gate:` line says what the person does and when. Triggers: a person must look at images or screens and judge them (not a pixel diff a script can run), credentials / 2FA / App Store / a vendor console, a physical device, a taste or naming call, someone outside the company. The `Human gate:` line says which kind: a **procedure** (clicking, copying and pasting only you can do: keys, dashboards, App Store, a prod migration) gets a **wizard**, a guided script that opens each page, says what to click, takes what you paste and saves it where it belongs; `/factory` writes missing ones at the start of each night. A **judgment** (looking and deciding) stays a checklist line. `ops` stays for issues that are *entirely* human work. Neither ever enters the night queue; the morning digest lists them as one batch so you sit down once, not six times. An agent that hits an unplanned human step at night parks the chunk (draft PR + label + comment) and keeps going.
 
 **Six labels, six questions.** `design:*` = how much drawing before planning. `flow:*` = how much planning rigor. `tier:*` = how smart a model. `class:*` = how much merge trust. `lane:*` = which harness took it. `gate:human` = a person has to be there.
 

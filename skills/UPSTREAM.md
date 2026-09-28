@@ -17,4 +17,4 @@ Back-port check: during the monthly platform-primitive audit (D-015), diff the f
 git clone -q --depth 50 https://github.com/mattpocock/skills.git /tmp/mp && cd /tmp/mp && git diff 3cca18b3 -- skills/productivity/grilling skills/engineering/domain-modeling skills/engineering/code-review skills/engineering/wizard
 ```
 
-Deploy: copy `skills/<name>` to `~/.claude/skills/<name>` (Claude Code) and `~/.codex/skills/<name>` (Codex). `dev-workflow/deploy-agents-md.sh` warns on drift between source and deployed copies.
+Deploy: `wizard` ships with `dev-workflow/deploy-skills.sh` to Claude Code (`~/.claude/skills/`), Codex (`~/.agents/skills/`) and Cursor (`~/.cursor/skills/`), and the daily skill sync keeps it current on every factory Mac. The other three are still copied by hand to `~/.claude/skills/<name>`. `dev-workflow/deploy-agents-md.sh` warns on drift between source and deployed copies.
