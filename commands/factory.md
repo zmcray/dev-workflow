@@ -6,7 +6,7 @@ argument-hint: "(none) | --dry-run | --stop-at HH:MM | --max-hours N"
 
 # Factory
 
-`/packets` fills the queue during the day. `/factory` drains it at night and stops before you wake up. It adds exactly three things on top of AGENTS.md > Autonomous runs: a queue read with no argument, a budget checked before every chunk, and a ledger the morning can read. Everything about how a chunk is built (chunk sweep, pull order, human parks, merge on green, session close, delegation by tier) is the existing goal-mode contract and is not restated here. If a build rule needs to change, change AGENTS.md, not this file.
+`/packets` fills the queue during the day. `/factory` drains it at night and stops before you wake up. It adds exactly four things on top of AGENTS.md > Autonomous runs: a queue read with no argument, a budget checked before every chunk, a ledger the morning can read, and a stored list of what the run needs from Zack (asks) that Pulse shows until he closes each one. Everything about how a chunk is built (chunk sweep, pull order, human parks, merge on green, session close, delegation by tier) is the existing goal-mode contract and is not restated here. If a build rule needs to change, change AGENTS.md, not this file.
 
 Standing contract: **never ask the user anything.** Every would-be question is a one-line judgment call logged to the relevant Linear issue. The only exits are the four endings in `~/Developer/software-factory/DISPATCH.md`: queue empty, budget stop, human park (per chunk, run continues), hard stop.
 
@@ -14,7 +14,7 @@ Standing contract: **never ask the user anything.** Every would-be question is a
 
 ## Step 1: Resolve the repo and the budget
 
-0. **Preflight.** Before anything else, prove the run can finish without a person: a Linear tool answers (list one issue from the project), `gh auth status` passes, and a trial `git fetch` does not stop for approval. Any failure is a hard stop now, with the missing piece named in one line. A shift that stalls at 2am on an approval prompt is worse than one that never starts. Record which harness is running as `lane` (`claude`, `codex`, or `cursor`).
+0. **Preflight.** Before anything else, prove the run can finish without a person: a Linear tool answers (list one issue from the project), `gh auth status` passes, and a trial `git fetch` does not stop for approval. Any failure is a hard stop now, with the missing piece named in one line. A shift that stalls at 2am on an approval prompt is worse than one that never starts. Record which harness is running as `lane` (`claude`, `codex`, or `cursor`), and this run's **`run_id`**: `<YYYY-MM-DD>-<lane>-<HHMM>`, the start date and time in ET (`2026-09-30-claude-2340`). The run_id names this run everywhere: the ledger, every ask it files, its sync marker, and `run:<run_id>` in the first line of its status update. Pulse matches it exactly, so never reformat it mid-run.
 1. **Project.** Read `.linear-project.json` at the repo root (monorepo: the app's own file). No link file → stop and say to run `/zmcray-kickoff`. `"automerge": false` → stop; a factory run cannot leave PRs queued.
 2. **Budget.** Merge, lowest to highest precedence: defaults from `~/Developer/software-factory/DISPATCH.md` > Night budget → the `factory` key in `.linear-project.json` → flags on this invocation.
 
@@ -26,7 +26,19 @@ Standing contract: **never ask the user anything.** Every would-be question is a
    - **Stop time.** `stop_at` is local time, tomorrow if it is already past. `last_dispatch = stop_at - 45 min`. No chunk starts after `last_dispatch`.
    - **Run limit.** `hour_limit = started_at + max_hours`. Once the run has been going `max_hours`, no new chunk starts; the chunk already in flight finishes and the shift closes.
    - Nothing is ever killed mid-PR. A leftover `max_chunks` key in a link file is retired and ignored.
-4. **Baseline.** Fresh default branch, CI green on `main`, working tree clean. Red baseline is a hard stop before anything is pulled.
+4. **Asks check.** Run `test -x ~/.local/bin/factory-asks && ~/.local/bin/factory-asks check`. It prints the writer token's expiry, never the token. A missing helper, or exit 3 (token missing, expired or unreadable), is **not** a stop: hold the reason as the asks warning (see **Asks** below), skip every helper call tonight, and go on. A renewal notice in its output goes in the status update.
+5. **Baseline.** Fresh default branch, CI green on `main`, working tree clean. Red baseline is a hard stop before anything is pulled: run Step 1b, then go straight to Step 5, which files a `restore-baseline` follow-up.
+
+## Step 1b: Asks at run start
+
+Before the queue, so the night knows what is already waiting on Zack and never files it twice. The rules (keys, runbooks, what closes) are in **Asks** below. In this order:
+
+1. **Replay `asks_pending`.** Earlier ledgers in `docs/factory/runs/` (the last 7 days) may hold calls a run could not send. Send each again with the helper (`upsert` from the stored ask, `resolve` from its stored arguments), then remove the ones that went through from that ledger's `asks_pending`. Calls that fail again move to this run's `asks_pending`.
+2. **Read open asks.** `factory-asks open <project_id>` prints the project's open asks, one JSON row each (id, issue, kind, key, generation, trigger_pr, first seen). Keep them for the rest of the run.
+3. **Resolve per R5.** Read each open ask's issue in Linear (state, labels, merged PRs) and close what the rules close, with `factory-asks resolve <ask_id> <project_id> <run_id> "<why, one line>"`.
+4. **Upsert human steps, for actionable gates only.** For each open `gate:human` issue in the project whose person-only step can be done now (KTD4, below), `factory-asks upsert` a `human_step` ask with key `gate`. An open ask for the same gate is refreshed, not duplicated.
+
+With an asks warning from Step 1.4, do only the ledger part of item 1: carry every earlier `asks_pending` entry into this run's, so nothing is lost. Hold the counts (open at start, resolved, written); Step 3 writes them into the ledger.
 
 ## Step 2: Read the queue
 
@@ -50,7 +62,7 @@ Write `docs/factory/runs/YYYY-MM-DD.json` in the repo (create the directory; it 
 
 ```json
 {
-  "run_id": "2026-09-24-pulse",
+  "run_id": "2026-09-24-claude-2340",
   "project": "Pulse",
   "lane": "claude",
   "started_at": "2026-09-23T23:40:00-05:00",
@@ -58,10 +70,14 @@ Write `docs/factory/runs/YYYY-MM-DD.json` in the repo (create the directory; it 
   "eligible": ["MCR-1710", "MCR-1711"],
   "skipped": [{ "issue": "MCR-1714", "reason": "gate:human" }, { "issue": "MCR-1716", "reason": "no-canvas" }],
   "items": [],
+  "asks": { "open_at_start": 0, "resolved": 0, "written": 0, "synced": false, "warning": null },
+  "asks_pending": [],
   "stopped_at": null,
   "stop_reason": null
 }
 ```
+
+`asks.warning` is one line (`token expired on 2026-12-29`, `helper missing`, `server unreachable`) or null. Each `asks_pending` entry is a call that did not go through: `{ "op": "upsert", "ask": { ...the ask file... } }` or `{ "op": "resolve", "args": ["<ask_id>", "<project_id>", "<run_id>", "<note>"] }`.
 
 Every item row is written **when the chunk starts** and updated when it ends, so a dead session still leaves a readable file:
 
@@ -92,10 +108,16 @@ Per-chunk delegation follows DISPATCH.md: the builder gets the model (or reasoni
 ## Step 5: Close the shift
 
 1. Write `stopped_at` and `stop_reason` (`queue-empty | deadline | hour-limit | budget | hard-stop`) to the ledger.
-2. Post **one project status update** in Linear (health per the run: on track for queue-empty or hour-limit, at risk for deadline with parks, off track for hard stop):
+2. **File the asks** (rules in **Asks** below), in this order:
+   - **Checks.** Upsert one `check` per Morning review item from item 4: key `ac-<n>`, `trigger_pr` = the PR that merged the issue, `where_to_look` from its `Where to look:` line, a runbook, and the fix prompt.
+   - **Follow-ups.** Upsert one `follow_up` per thing the night needs Zack to decide or do that is not a gate: a scope kick-back (`decide-scope`), a migration to apply (`apply-migration`), a red baseline (`restore-baseline`), a blocked dependency (`unblock-dependency`), anything else as `other-<slug>`. Set `seen_again: true` when Step 1b found an earlier generation of the same key closed and the cause is back tonight.
+   - **Human steps, second pass.** Run the Step 1b item 4 pass again, for issues parked tonight.
+   - **Sync marker.** When every call went through, `factory-asks record-sync <project_id> <run_id> <asks written this run>` and set `asks.synced: true`. When any call failed, skip the marker, put the failed calls in the ledger's `asks_pending` (the next run replays them), and set `asks.warning`. Never record a marker for a run whose asks did not all land: Pulse reads the marker as "this run's list is complete".
+3. Post **one project status update** in Linear (health per the run: on track for queue-empty or hour-limit, at risk for deadline with parks, off track for hard stop):
 
 ```
-Factory <date> (<lane>): <k> merged, <p> parked for a human, <f> failed, stopped: <reason> at <time>.
+Factory <date> (<lane>, run:<run_id>): <k> merged, <p> parked for a human, <f> failed, stopped: <reason> at <time>.
+Asks: <w> filed, <r> resolved, <o> open. (or) Asks not synced: <asks.warning>. The Morning review below is the record for this run.
 Merged: MCR-… (PR), MCR-… (PR)
 Human batch: MCR-… — <one-line ask> (procedure: `Run: bash scripts/wizards/<file>.sh`)
 Needs design first: MCR-… → brief docs/design/briefs/<file> (spec-ready but no canvas; write the brief per AGENTS.md > Design brief if none exists; omit the line at zero)
@@ -107,10 +129,97 @@ Next: <first eligible issue left in the queue, or "queue empty: plan first">
 Where to look: <tab / screen / URL>
 ```
 
-3. **One consolidated morning checklist, never one per issue, and only what needs a person.** Go through every merged issue's acceptance criteria (MANUAL §7). A criterion that a merged test asserts is **dropped**: CI already verified it and the human does not see it. Keep only what CI cannot prove: UI or layout, a live-schema or prod read the builder could not run, anything the builder noted as "not run" or "not screenshotted", a taste call. Group what is left by issue under `## Morning review` in the status update above. Zero items left → write `Morning review: nothing needs your eyes.` Merged issues close to Done on merge (GitHub integration); the checklist is the review surface, and a kick back reopens the issue. Write the same list to the ledger as `"checklist": [{ "issue", "title", "criterion", "where" }]` so Pulse can render it. Per-issue merge comments keep the PR summary and judgment calls but **do not** carry a checklist block; they end with one line: `Morning review: see the Factory <date> status update.`
+   **The first line starts `Factory <date> (<lane>, run:<run_id>)`**, exactly. Pulse keeps only updates that start with `Factory `, reads the date from that line, and matches `run:<run_id>` against the sync markers; a run id anywhere else counts as unsynced. Keep the `## Morning review` section even when the asks synced: it is the human-readable record.
+4. **One consolidated morning checklist, never one per issue, and only what needs a person.** Go through every merged issue's acceptance criteria (MANUAL §7). A criterion that a merged test asserts is **dropped**: CI already verified it and the human does not see it. Keep only what CI cannot prove: UI or layout, a live-schema or prod read the builder could not run, anything the builder noted as "not run" or "not screenshotted", a taste call. Group what is left by issue under `## Morning review` in the status update above. Zero items left → write `Morning review: nothing needs your eyes.` Merged issues close to Done on merge (GitHub integration); the checklist is the review surface, and a kick back reopens the issue. Write the same list to the ledger as `"checklist": [{ "issue", "title", "criterion", "where" }]` so Pulse can render it. Per-issue merge comments keep the PR summary and judgment calls but **do not** carry a checklist block; they end with one line: `Morning review: see the Factory <date> status update.`
    **Times are ET (America/New_York), always.** Every time a human reads (status update, checklist, merge comments) is written in ET, e.g. `6:00 AM ET`, never UTC. Convert cron and workflow schedules (`10:00 UTC` → `6:00 AM ET` in EDT, `5:00 AM ET` in EST) using the date the reader will act on.
-4. Open a `docs:` PR with the ledger file and any archived plans, merge on green. It is the last PR of the night.
-5. Close with one line: **"Factory done: <k>/<E> merged, stopped on <reason>. Morning batch: <p> issues, <w> with a wizard."**
+5. Open a `docs:` PR with the ledger file (and any earlier ledger whose `asks_pending` changed) and any archived plans, merge on green. It is the last PR of the night.
+6. Close with one line: **"Factory done: <k>/<E> merged, stopped on <reason>. Morning batch: <p> issues, <w> with a wizard. Asks: <o> open (<synced | not synced: reason>)."**
+
+## Asks
+
+Everything a run needs from Zack is also stored as an **ask**: a row in `os.factory_asks` on mcray-os. Pulse's Build tab shows each open ask until Zack closes it (Done, or Dismiss for checks and follow-ups), whatever night filed it. Pulse, never the factory, tells Linear about a close. The factory reaches the table only through `~/.local/bin/factory-asks` (source `scripts/factory-asks.sh` in dev-workflow, installed by `deploy-skills.sh`), which reads the writer token from the Keychain and never prints it.
+
+**Kinds.**
+- `check`: a merged issue's acceptance criterion that CI cannot prove; one per Morning review item.
+- `human_step`: the person-only step of a `gate:human` issue.
+- `follow_up`: anything else the night needs Zack to decide or do.
+
+**Keys (KTD2). Rule-based, never invented per run:**
+- Human step: `gate`.
+- Check: `ac-<n>`, the criterion's position in the issue's full acceptance list, before CI-proven criteria are dropped. Rewording a criterion refreshes the same row.
+- Follow-up: a slug from this list, `decide-scope`, `apply-migration`, `restore-baseline`, `unblock-dependency`, or `other-<slug>` (kebab-case, at most 30 characters, derived from the ask). The RPC validates the shape.
+
+An ask's identity is its issue's UUID, kind and key. Filing it again refreshes the open row (text, steps, prompt, last seen). A closed ask never reopens; a new generation opens only for a human step whose last one was done or resolved, a check filed for a different PR, or a follow-up whose last one was done or resolved and that carries `seen_again: true`.
+
+**Human steps for actionable gates only (KTD4).** File a `human_step` only when the step can be done now: the issue was parked mid-build (a park comment or a draft PR), or its packet's `Human gate:` line puts the step before the build. A post-PR gate on an unbuilt chunk gets no ask until the factory parks it at that step. Zack's Done on a human step removes `gate:human`, which puts the issue back in the queue.
+
+**What closes an ask (R5).** The factory resolves, with a one-line reason:
+- human steps and follow-ups whose issue is Done or Canceled;
+- human steps whose issue no longer carries `gate:human`;
+- checks 14 days after `first_seen_at`, checks whose issue was Canceled, and checks whose issue has a merged PR newer than the ask's `trigger_pr`.
+
+Nothing else closes an ask. Zack closes the rest in Pulse.
+
+**The ask file.** One JSON object per ask, written to a temp file and sent with `factory-asks upsert <file>`. Validate first with `factory-asks dry-run upsert <file>`, which prints the request and sends nothing.
+
+```json
+{
+  "linear_issue_id": "<the issue's UUID from the Linear tool, not MCR-123>",
+  "issue_identifier": "MCR-123",
+  "project_id": "<id from .linear-project.json>",
+  "project_name": "<name from .linear-project.json>",
+  "kind": "check",
+  "ask_key": "ac-2",
+  "ask": "Check the Zone 2 card shows this week's minutes",
+  "prompt_md": "<the fix prompt below, filled in>",
+  "steps": [
+    { "text": "Open Pulse on the preview", "action": { "type": "open", "value": "https://<preview URL>" } },
+    { "text": "Today > This week > tap the Zone 2 card" },
+    { "text": "Compare the minutes with Strava's weekly total" }
+  ],
+  "done_when": "The card's minutes match Strava's weekly total",
+  "run_id": "2026-09-30-claude-2340",
+  "trigger_pr": 123,
+  "where_to_look": "Today > This week > Zone 2 card"
+}
+```
+
+`trigger_pr` and `where_to_look` are for checks only, and both are required there. A human step or follow-up with a wizard adds `"wizard": "bash scripts/wizards/<file>.sh"`. A follow-up whose cause came back adds `"seen_again": true`.
+
+**Runbook (KTD14).** Every ask is runnable without context: Zack opens it and knows what to do next.
+- 1 to 8 numbered steps. Each is one plain instruction on one line, at most 200 characters, with at most one action: `open` (an `https://` URL only), `run` (one shell command of at most 300 characters, which Pulse shows with a Copy button and never runs), or `copy` (text of at most 500 characters).
+- Steps name exact places: a screen path ("Today > This week > tap the Zone 2 card"), a URL, a file, a command. "Verify X works" is not a step.
+- Write them from what the build actually touched (the screens, URLs, commands and TestFlight build in the diff and the PR), never guessed. Where the exact path is not known from the repo or the vendor's docs, the step says so and links the docs: no invented clicks (the wizard rule).
+- A human step with a wizard makes running the wizard one of its steps: a `run` action whose value equals `wizard`.
+- `done_when`: one line of at most 300 characters saying what good looks like, so Zack knows when to press Done.
+- No secrets in any field. The helper refuses a malformed runbook, a bad key or a secret before anything is sent, and the RPC checks it all again.
+
+**Prompt for a human step or follow-up** (`prompt_md`, 5 to 10 lines; it starts the work in a fresh session):
+
+```
+<What to do, in one sentence.> This is <MCR-123>: <issue title>.
+<With a wizard: Run `bash scripts/wizards/<file>.sh` from the repo root and follow its stages.>
+<Context the next session needs, one or two lines: the PR, the park comment, the options for a decision.>
+Done looks like: <done_when>.
+Report back on <MCR-123>: what you did and anything that surprised you.
+```
+
+**Fix prompt for a check** (`prompt_md`, 5 to 10 lines; Zack copies it when the check fails):
+
+```
+This check failed. <MCR-123>: <issue title>, shipped in <PR URL>.
+The criterion: <the acceptance criterion as written>.
+The step that failed: step <n>, "<step text>".
+What I saw: <Zack fills this in>
+Reproduce it, then fix it on a branch, or file a Bug in the issue's `<Epic>: hardening` milestone if it is bigger than a fix.
+```
+
+**Not an ask.** An item with nothing for Zack to do stays in the status update's prose:
+- a report of what shipped;
+- a note that the run skipped its own evidence (a screenshot, a live read): the factory redoes it, or files a follow-up for the part only Zack can do;
+- a question hidden in a criterion: that becomes a `follow_up` with key `decide-scope` and the real question.
+
+**When the helper cannot write.** Exit 3 (no usable token, a missing tool) or a missing helper: record `asks.warning` in the ledger and `Asks not synced: <reason>` in the status update, keep the Morning review section as the record, and go on; the run never stops for asks. Exit 2 (the server refused or could not be reached): put the call in `asks_pending` and go on. Exit 1 (the helper refused the ask): fix the ask and send it once more; a second refusal is a one-line ledger note, and the item stays in the Morning review. Pulse shows every stored open ask whether or not tonight's marker landed, and says "asks not synced for this run" when it did not.
 
 ## Notes
 
