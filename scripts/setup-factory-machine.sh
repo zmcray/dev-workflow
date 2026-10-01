@@ -4,8 +4,9 @@
 # Wires a Mac so /factory runs on Claude Code, Codex, and Cursor. Safe to re-run.
 #
 #   1. Checks the CLIs and gh auth.
-#   2. Clones or fast-forwards ~/Developer/dev-workflow and ~/Developer/software-factory.
-#   3. Runs deploy-skills.sh (every skill in both repos -> all three harnesses).
+#   2. Clones ~/Developer/dev-workflow and ~/Developer/software-factory if missing.
+#   3. Runs the skill sync (scripts/sync-skills.sh): installs approved changes, proposes this
+#      Mac's own edits as a pull request, deploys every skill to all three harnesses.
 #   4. Claude Code: Compound Engineering + Linear plugins.
 #   5. Codex: Compound Engineering plugin and Linear MCP.
 #   6. Cursor: checks the CE + Linear plugins (installed from the Cursor app, not here).
@@ -13,8 +14,8 @@
 #      approved skill changes and proposes its own edits as a pull request from then on.
 #   Ends with a checklist of what still needs a person (sign-ins, unattended-mode settings).
 #
-# Non-destructive: installs and copies only. Never deletes. A repo with local edits is pulled
-# around them (--autostash); the skill sync proposes those edits for review.
+# Non-destructive: installs and copies only. Never deletes. Local edits are kept and proposed
+# for review by the skill sync, never overwritten.
 #
 # Usage:
 #   bash setup-factory-machine.sh --dry-run   # report only, change nothing
@@ -53,18 +54,19 @@ for r in "${REPOS[@]}"; do
     act "clone $GH_OWNER/$r"
     run gh repo clone "$GH_OWNER/$r" "$p" -- -q || fix "Clone $GH_OWNER/$r failed"
   elif [[ "$(git -C "$p" symbolic-ref --short -q HEAD)" != "main" ]]; then
-    fix "$r is not on main; switch back to main, then re-run (not pulled)"
+    fix "$r is not on main; switch back to main, then re-run (not synced)"
   else
-    act "pull $r (local edits kept)"
-    run git -C "$p" pull -q --rebase --autostash || fix "$r pull failed (diverged or conflicting edits)"
+    ok "$r cloned (the skill sync below updates it)"
   fi
 done
 
 echo "== Skills (every skill in dev-workflow and software-factory)"
-if [[ -f "$DEV/dev-workflow/deploy-skills.sh" ]]; then
-  mkdir -p "$HOME/.claude/commands"
-  if [[ $DRY_RUN -eq 1 ]]; then bash "$DEV/dev-workflow/deploy-skills.sh" --dry-run
-  else bash "$DEV/dev-workflow/deploy-skills.sh"; fi
+# The skill sync installs approved changes, proposes this Mac's own edits, captures edited
+# installed copies first, then deploys. Never deploy without it: that could overwrite an edit.
+if [[ -f "$DEV/dev-workflow/scripts/sync-skills.sh" ]]; then
+  if [[ $DRY_RUN -eq 1 ]]; then SKILL_SYNC_DRY=1 SKILL_SYNC_NO_NOTIFY=1 bash "$DEV/dev-workflow/scripts/sync-skills.sh"
+  else SKILL_SYNC_NO_NOTIFY=1 bash "$DEV/dev-workflow/scripts/sync-skills.sh" | tee /dev/stderr | grep -q 'status: ok' \
+    || fix "Skill sync needs attention: read the lines above (or ~/Library/Logs/skill-sync.log)"; fi
 else
   fix "dev-workflow missing; skills not deployed"
 fi
