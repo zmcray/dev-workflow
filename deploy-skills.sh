@@ -12,6 +12,10 @@
 #   ~/Developer/software-factory/skills/<name>/  ->  ~/.claude/skills/<name>/, ~/.agents/skills/<name>/,
 #                                                    ~/.cursor/skills/<name>/
 #
+# Helper scripts the skills call ship as commands on PATH:
+#
+#   scripts/factory-asks.sh  ->  ~/.local/bin/factory-asks   (/factory files and reads its asks)
+#
 # The SKILL.md copy drops Claude-only frontmatter (argument-hint). A stale per-harness fork
 # in ~/.codex/skills/<name> is moved to ~/.codex/skills-archive/ so Codex does not load two
 # copies. Non-destructive: copies and moves only, never deletes.
@@ -78,6 +82,18 @@ for name in "${FOLDER_SKILLS[@]}"; do
     say "archive stale Codex fork $CODEX_DIR/$name -> $dest"
     if [[ $DRY_RUN -eq 0 ]]; then mkdir -p "$CODEX_ARCHIVE"; mv "$CODEX_DIR/$name" "$dest"; fi
   fi
+done
+
+# Helper scripts. Copied over the installed file, executable, so every harness finds the same one.
+BIN_DIR="$HOME/.local/bin"
+HELPERS=( "factory-asks.sh:factory-asks" )
+for pair in "${HELPERS[@]}"; do
+  src="$SCRIPT_DIR/scripts/${pair%%:*}"
+  dest="$BIN_DIR/${pair##*:}"
+  [[ -f "$src" ]] || { echo "FATAL: $src not found"; exit 1; }
+  echo "HELPER ${pair##*:}"
+  say "install -> $dest"
+  [[ $DRY_RUN -eq 1 ]] || { mkdir -p "$BIN_DIR"; cp "$src" "$dest"; chmod 755 "$dest"; }
 done
 
 echo "done.$([[ $DRY_RUN -eq 1 ]] && echo ' Dry run only. Re-run without --dry-run to apply.')"
