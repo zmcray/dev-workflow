@@ -1,0 +1,4 @@
+# Skill folders in ~/.claude/skills that sync-skills.sh must never adopt into software-factory,
+# one name per line. gstack skills and names starting with _ are skipped without being listed.
+# proof: installed and updated by its own installer (proofeditor.ai).
+proof
