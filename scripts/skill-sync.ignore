@@ -2,3 +2,14 @@
 # one name per line. gstack skills and names starting with _ are skipped without being listed.
 # proof: installed and updated by its own installer (proofeditor.ai).
 proof
+# Retired 2026-09-21 (commits 75e19b3, 0551df0): replaced by Compound Engineering and the
+# built-in /goal. A leftover copy on a Mac must never be adopted back; goal.md would shadow
+# the built-in /goal.
+goal
+zmcray-build
+zmcray-checkpoint
+zmcray-execute
+zmcray-plan
+zmcray-retro
+zmcray-status
+zmcray-wrap
