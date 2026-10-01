@@ -2,8 +2,8 @@
 #
 # install-skill-sync.sh
 # Installs (or refreshes) the com.mcray.skill-sync launch agent: sync-skills.sh once a day
-# at 17:00 local, before the night shift. If the Mac is asleep at 17:00, launchd runs it
-# at the next wake. Safe to re-run.
+# at 17:00 local, before the night shift, and once at login. If the Mac is asleep at 17:00,
+# launchd runs it at the next wake. /factory also runs it before every shift. Safe to re-run.
 #
 # Remove:  launchctl bootout gui/$(id -u)/com.mcray.skill-sync
 #          rm ~/Library/LaunchAgents/com.mcray.skill-sync.plist
@@ -41,7 +41,7 @@ cat > "$PLIST" <<EOF
         <integer>0</integer>
     </dict>
     <key>RunAtLoad</key>
-    <false/>
+    <true/>
 
     <key>StandardOutPath</key>
     <string>$HOME/Library/Logs/skill-sync.log</string>
@@ -56,4 +56,4 @@ EOF
 
 launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
 launchctl bootstrap "gui/$(id -u)" "$PLIST"
-echo "installed $LABEL: daily 17:00, log ~/Library/Logs/skill-sync.log"
+echo "installed $LABEL: daily 17:00 and at login, log ~/Library/Logs/skill-sync.log"

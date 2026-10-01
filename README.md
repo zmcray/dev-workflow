@@ -43,38 +43,38 @@ Idempotent and non-destructive: re-running re-syncs the block, backs up any repl
 
 The script also runs a **skill drift check** first: it compares every `commands/*.md` and `codex/skills/*/SKILL.md` source against its deployed copy (`~/.claude/commands/`, `~/.codex/skills/`) and warns with the direction — a deployed copy newer than source means someone edited the live file and it must be synced back before touching source; a newer source means the deploy cp below hasn't run. Warn-only; it never copies skills itself.
 
-## Deploy the portable skills (factory, packets, caspian)
+## Deploy the skills
 
-One source file each in `commands/`, three harnesses:
+Every skill in this repo and in `software-factory` ships by discovery, no hand lists:
 
 ```bash
 bash ~/Developer/dev-workflow/deploy-skills.sh --dry-run   # preview
 bash ~/Developer/dev-workflow/deploy-skills.sh             # apply
 ```
 
-It copies each file to `~/.claude/commands/` (Claude Code) and renders it without Claude-only frontmatter to `~/.agents/skills/<name>/SKILL.md` (Codex) and `~/.cursor/skills/<name>/SKILL.md` (Cursor did not pick up the shared folder, 2026-09-24). A stale fork in `~/.codex/skills/<name>` is moved to `~/.codex/skills-archive/` so Codex never loads two. Never edit a deployed copy; the drift check in `deploy-agents-md.sh` flags it if you do.
+- `commands/<name>.md` (here or in `software-factory/commands/`) → `~/.claude/commands/` (Claude Code), rendered without Claude-only frontmatter to `~/.cursor/skills/<name>/SKILL.md` (Cursor) and `~/.agents/skills/<name>/SKILL.md` (Codex, unless a native Codex version exists).
+- `codex/skills/<name>/` → `~/.codex/skills/<name>/` (Codex-native skills, a different format).
+- `software-factory/skills/<name>/` → `~/.claude/skills/`, `~/.agents/skills/`, `~/.cursor/skills/`.
+- A stale fork in `~/.codex/skills/<name>` of a skill with no native Codex version is moved to `~/.codex/skills-archive/` so Codex never loads two. Copies and moves only, never deletes.
 
 Each harness still needs its own Linear connection and an unattended permission setup before it can run `/factory`; the skill's preflight step hard-stops without them. See "Running on each harness" in `commands/factory.md`.
 
-## Deploy the other Claude Code skills
+## Keeping both Macs the same (review-gated sync)
 
-```bash
-cp ~/Developer/dev-workflow/commands/*.md ~/.claude/commands/
-```
+`scripts/sync-skills.sh` runs daily at 17:00 and at login (launch agent `com.mcray.skill-sync`, installed by `scripts/install-skill-sync.sh`), and `/factory` runs it before every shift. For both repos' main checkouts:
 
-## Deploy the Codex skills
+1. **Capture.** An edit made to an installed copy is copied back into its repo. A skill written straight into `~/.claude/skills/<name>/` is adopted into `software-factory/skills/` (gstack skills and `scripts/skill-sync.ignore` excepted).
+2. **Install approved.** Fast-forward to `origin/main`: merged changes only. Another Mac's unmerged edits never arrive.
+3. **Propose local.** Any local change left becomes one commit on this Mac's `sync/<host>` branch, secret-scanned with `gitleaks` (fail closed; this repo is public), pushed, and opened as a pull request. **Merging it is the approval.** The job never merges and never pushes to `main`.
+4. **Deploy** everything above.
 
-Codex discovers skills by scanning `~/.codex/skills/<name>/SKILL.md`, so deploy is a recursive copy that preserves the per-skill directory layout (Codex reads the deployed copy exactly as before — the source just lives here now):
-
-```bash
-cp -R ~/Developer/dev-workflow/codex/skills/* ~/.codex/skills/
-```
+You get one macOS notification when something needs you: a proposal to review (rule files such as `AGENTS.md`, `SORT.md` and `commands/factory.md` named), a secret hit, a collision (the approved version wins on disk; your edit stays in `git stash list`), or a failure. Preview without writing anything: `SKILL_SYNC_DRY=1 bash scripts/sync-skills.sh`. Log: `~/Library/Logs/skill-sync.log`. Stop it: `launchctl bootout gui/$(id -u)/com.mcray.skill-sync`.
 
 ## Updating
 
-1. Edit `AGENTS.workflow.md` (the workflow block), a file in `templates/` (the AGENTS.md/CLAUDE.md scaffolds), a file in `commands/` (a Claude Code skill), or a file under `codex/skills/` (a Codex skill).
-2. Re-run the relevant deploy command above.
-3. Commit. The repo's git history is the version record.
+1. Edit `AGENTS.workflow.md` (the workflow block), a file in `templates/` (the AGENTS.md/CLAUDE.md scaffolds), a file in `commands/` (a Claude Code skill), or a file under `codex/skills/` (a Codex skill), on either Mac.
+2. Commit and open a PR yourself, or leave it: the next sync proposes it for you.
+3. Merge. Both Macs install it on their next sync, and `/factory` before its next shift.
 
 Note: a skill's *steps* are dual-sourced — `commands/<name>.md` (Claude) and `codex/skills/<name>/SKILL.md` (Codex) are separate files in different formats. When you change what a skill *does*, update both so the tools stay in lockstep. Tool-agnostic build and CI cost rules live once in `AGENTS.workflow.md` and reach every tool via each repo's `AGENTS.md`; only the thin per-tool skill wrappers are duplicated.
 
