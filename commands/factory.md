@@ -26,19 +26,19 @@ Standing contract: **never ask the user anything.** Every would-be question is a
    - **Stop time.** `stop_at` is local time, tomorrow if it is already past. `last_dispatch = stop_at - 45 min`. No chunk starts after `last_dispatch`.
    - **Run limit.** `hour_limit = started_at + max_hours`. Once the run has been going `max_hours`, no new chunk starts; the chunk already in flight finishes and the shift closes.
    - Nothing is ever killed mid-PR. A leftover `max_chunks` key in a link file is retired and ignored.
-4. **Asks check.** Run `test -x ~/.local/bin/factory-asks && ~/.local/bin/factory-asks check`. It prints the writer token's expiry, never the token. A missing helper, or exit 3 (token missing, expired or unreadable), is **not** a stop: hold the reason as the asks warning (see **Asks** below), skip every helper call tonight, and go on. A renewal notice in its output goes in the status update.
-5. **Baseline.** Fresh default branch, CI green on `main`, working tree clean. Red baseline is a hard stop before anything is pulled: run Step 1b, then go straight to Step 5, which files a `restore-baseline` follow-up.
+4. **Asks check.** Run `test -x ~/.local/bin/factory-asks && ~/.local/bin/factory-asks check`. It prints the writer token's expiry, never the token. A missing helper, or exit 3 (token missing, expired or unreadable), is **not** a stop: hold the reason as the asks warning (see **Asks** below), queue tonight's helper calls in `asks_pending` instead of sending them, and go on. A renewal notice in its output goes in the status update.
+5. **Baseline.** Fresh default branch, CI green on `main`, working tree clean. Red baseline is a hard stop before anything is pulled: run Step 1b, write the Step 3 ledger with nothing eligible, then go to Step 5, which files a `restore-baseline` follow-up. That night's docs PR cannot merge on a red `main`: leave it open and say so in the status update.
 
 ## Step 1b: Asks at run start
 
 Before the queue, so the night knows what is already waiting on Zack and never files it twice. The rules (keys, runbooks, what closes) are in **Asks** below. In this order:
 
-1. **Replay `asks_pending`.** Earlier ledgers in `docs/factory/runs/` (the last 7 days) may hold calls a run could not send. Send each again with the helper (`upsert` from the stored ask, `resolve` from its stored arguments), then remove the ones that went through from that ledger's `asks_pending`. Calls that fail again move to this run's `asks_pending`.
-2. **Read open asks.** `factory-asks open <project_id>` prints the project's open asks, one JSON row each (id, issue, kind, key, generation, trigger_pr, first seen). Keep them for the rest of the run.
-3. **Resolve per R5.** Read each open ask's issue in Linear (state, labels, merged PRs) and close what the rules close, with `factory-asks resolve <ask_id> <project_id> <run_id> "<why, one line>"`.
-4. **Upsert human steps, for actionable gates only.** For each open `gate:human` issue in the project whose person-only step can be done now (KTD4, below), `factory-asks upsert` a `human_step` ask with key `gate`. An open ask for the same gate is refreshed, not duplicated.
+1. **Replay `asks_pending`.** Earlier ledgers in `docs/factory/runs/` (the last 7 days) may hold calls a run could not send. Move each entry out of its old ledger and send it again (`upsert` from the stored ask, `resolve` from its stored arguments). An entry that fails again with exit 2 or 3 goes into this run's `asks_pending`; exit 4 is dropped with a one-line note in this run's ledger. Entries are moved, never copied, so no call is sent twice.
+2. **Read open asks.** `~/.local/bin/factory-asks open <project_id>` prints the project's open asks, one JSON row each (id, issue, kind, key, generation, trigger_pr, first seen). Keep them for the rest of the run.
+3. **Resolve per R5.** Read each open ask's issue in Linear (state, labels, merged PRs) and close what the rules close, with `~/.local/bin/factory-asks resolve <ask_id> <project_id> <run_id> "<why, one line>"`.
+4. **Upsert human steps, for actionable gates only.** For each open `gate:human` issue in the project whose person-only step can be done now (KTD4, below), `~/.local/bin/factory-asks upsert` a `human_step` ask with key `gate`. An open ask for the same gate is refreshed, not duplicated.
 
-With an asks warning from Step 1.4, do only the ledger part of item 1: carry every earlier `asks_pending` entry into this run's, so nothing is lost. Hold the counts (open at start, resolved, written); Step 3 writes them into the ledger.
+With an asks warning from Step 1.4, send nothing: move every earlier `asks_pending` entry into this run's, and queue the resolves and human steps you would have sent there too, so a renewed token catches up next run. Hold the counts (open at start, resolved, written); Step 3 writes them into the ledger.
 
 ## Step 2: Read the queue
 
@@ -58,14 +58,14 @@ Order: <IDs in order>.
 
 ## Step 3: Open the ledger
 
-Write `docs/factory/runs/YYYY-MM-DD.json` in the repo (create the directory; it is committed with the morning docs PR, never with a chunk PR):
+Write `docs/factory/runs/YYYY-MM-DD.json` in the repo (create the directory; it is committed with the morning docs PR, never with a chunk PR). If that file already exists (another lane or a rerun the same day), write `docs/factory/runs/<run_id>.json` instead: never overwrite an earlier run's ledger.
 
 ```json
 {
-  "run_id": "2026-09-24-claude-2340",
+  "run_id": "2026-09-23-claude-2340",
   "project": "Pulse",
   "lane": "claude",
-  "started_at": "2026-09-23T23:40:00-05:00",
+  "started_at": "2026-09-23T23:40:00-04:00",
   "budget": { "stop_at": "06:00", "last_dispatch": "05:15", "max_hours": 12, "hour_limit": "11:40", "concurrency": 1 },
   "eligible": ["MCR-1710", "MCR-1711"],
   "skipped": [{ "issue": "MCR-1714", "reason": "gate:human" }, { "issue": "MCR-1716", "reason": "no-canvas" }],
@@ -108,12 +108,13 @@ Per-chunk delegation follows DISPATCH.md: the builder gets the model (or reasoni
 ## Step 5: Close the shift
 
 1. Write `stopped_at` and `stop_reason` (`queue-empty | deadline | hour-limit | budget | hard-stop`) to the ledger.
-2. **File the asks** (rules in **Asks** below), in this order:
-   - **Checks.** Upsert one `check` per Morning review item from item 4: key `ac-<n>`, `trigger_pr` = the PR that merged the issue, `where_to_look` from its `Where to look:` line, a runbook, and the fix prompt.
+2. **One consolidated morning checklist, never one per issue, and only what needs a person.** Go through every merged issue's acceptance criteria (MANUAL §7). A criterion that a merged test asserts is **dropped**: CI already verified it and the human does not see it. Keep only what CI cannot prove: UI or layout, a live-schema or prod read the builder could not run, anything the builder noted as "not run" or "not screenshotted", a taste call. Group what is left by issue under `## Morning review` in the status update (item 4). Zero items left → write `Morning review: nothing needs your eyes.` Merged issues close to Done on merge (GitHub integration); the checklist is the review surface, and a kick back reopens the issue. Write the same list to the ledger as `"checklist": [{ "issue", "title", "criterion", "where" }]` so Pulse can render it. Per-issue merge comments keep the PR summary and judgment calls but **do not** carry a checklist block; they end with one line: `Morning review: see the Factory <date> status update.`
+3. **File the asks** (rules in **Asks** below), in this order:
+   - **Checks.** Upsert one `check` per Morning review item from item 2: key `ac-<n>`, `trigger_pr` = the PR that merged the issue, `where_to_look` from its `Where to look:` line, a runbook, and the fix prompt.
    - **Follow-ups.** Upsert one `follow_up` per thing the night needs Zack to decide or do that is not a gate: a scope kick-back (`decide-scope`), a migration to apply (`apply-migration`), a red baseline (`restore-baseline`), a blocked dependency (`unblock-dependency`), anything else as `other-<slug>`. Set `seen_again: true` when Step 1b found an earlier generation of the same key closed and the cause is back tonight.
    - **Human steps, second pass.** Run the Step 1b item 4 pass again, for issues parked tonight.
-   - **Sync marker.** When every call went through, `factory-asks record-sync <project_id> <run_id> <asks written this run>` and set `asks.synced: true`. When any call failed, skip the marker, put the failed calls in the ledger's `asks_pending` (the next run replays them), and set `asks.warning`. Never record a marker for a run whose asks did not all land: Pulse reads the marker as "this run's list is complete".
-3. Post **one project status update** in Linear (health per the run: on track for queue-empty or hour-limit, at risk for deadline with parks, off track for hard stop):
+   - **Sync marker.** When no call tonight ended in exit 2 or 3, run `~/.local/bin/factory-asks record-sync <project_id> <run_id> <written>` and set `asks.synced: true`. `<written>` counts the upserts that came back `action=inserted` or `action=refreshed`; `unchanged` (an ask Zack already closed) and `stale` (an older PR's check) are not written. When any call ended in exit 2 or 3, skip the marker, queue those calls in the ledger's `asks_pending` (the next run replays them), and set `asks.warning`. A call dropped with exit 1 or 4 does not block the marker: its item stays in the Morning review and the ledger notes why. Never record a marker for a run whose asks did not all land: Pulse reads the marker as "this run's list is complete".
+4. Post **one project status update** in Linear (health per the run: on track for queue-empty or hour-limit, at risk for deadline with parks, off track for hard stop):
 
 ```
 Factory <date> (<lane>, run:<run_id>): <k> merged, <p> parked for a human, <f> failed, stopped: <reason> at <time>.
@@ -130,19 +131,20 @@ Where to look: <tab / screen / URL>
 ```
 
    **The first line starts `Factory <date> (<lane>, run:<run_id>)`**, exactly. Pulse keeps only updates that start with `Factory `, reads the date from that line, and matches `run:<run_id>` against the sync markers; a run id anywhere else counts as unsynced. Keep the `## Morning review` section even when the asks synced: it is the human-readable record.
-4. **One consolidated morning checklist, never one per issue, and only what needs a person.** Go through every merged issue's acceptance criteria (MANUAL §7). A criterion that a merged test asserts is **dropped**: CI already verified it and the human does not see it. Keep only what CI cannot prove: UI or layout, a live-schema or prod read the builder could not run, anything the builder noted as "not run" or "not screenshotted", a taste call. Group what is left by issue under `## Morning review` in the status update above. Zero items left → write `Morning review: nothing needs your eyes.` Merged issues close to Done on merge (GitHub integration); the checklist is the review surface, and a kick back reopens the issue. Write the same list to the ledger as `"checklist": [{ "issue", "title", "criterion", "where" }]` so Pulse can render it. Per-issue merge comments keep the PR summary and judgment calls but **do not** carry a checklist block; they end with one line: `Morning review: see the Factory <date> status update.`
    **Times are ET (America/New_York), always.** Every time a human reads (status update, checklist, merge comments) is written in ET, e.g. `6:00 AM ET`, never UTC. Convert cron and workflow schedules (`10:00 UTC` → `6:00 AM ET` in EDT, `5:00 AM ET` in EST) using the date the reader will act on.
 5. Open a `docs:` PR with the ledger file (and any earlier ledger whose `asks_pending` changed) and any archived plans, merge on green. It is the last PR of the night.
 6. Close with one line: **"Factory done: <k>/<E> merged, stopped on <reason>. Morning batch: <p> issues, <w> with a wizard. Asks: <o> open (<synced | not synced: reason>)."**
 
 ## Asks
 
-Everything a run needs from Zack is also stored as an **ask**: a row in `os.factory_asks` on mcray-os. Pulse's Build tab shows each open ask until Zack closes it (Done, or Dismiss for checks and follow-ups), whatever night filed it. Pulse, never the factory, tells Linear about a close. The factory reaches the table only through `~/.local/bin/factory-asks` (source `scripts/factory-asks.sh` in dev-workflow, installed by `deploy-skills.sh`), which reads the writer token from the Keychain and never prints it.
+Everything a run needs from Zack is also stored as an **ask**: a row in `os.factory_asks` on mcray-os. Pulse's Build tab shows each open ask until Zack closes it (Done, or Dismiss for checks and follow-ups), whatever night filed it. Pulse, never the factory, tells Linear about a close. The factory reaches the table only through `~/.local/bin/factory-asks` (source `scripts/factory-asks.sh` in dev-workflow, installed by `deploy-skills.sh`), which reads the writer token from the Keychain and never prints it. Always call it by that full path: `~/.local/bin` may not be on the harness's PATH.
 
 **Kinds.**
 - `check`: a merged issue's acceptance criterion that CI cannot prove; one per Morning review item.
 - `human_step`: the person-only step of a `gate:human` issue.
 - `follow_up`: anything else the night needs Zack to decide or do.
+
+**Every ask hangs on one Linear issue.** A check or human step hangs on its own issue; a follow-up on the issue it is about. A follow-up with no issue (a red baseline, a broken shared dependency) hangs on a Bug filed for the break in `Platform: hardening`, or on the open one already there for the same break.
 
 **Keys (KTD2). Rule-based, never invented per run:**
 - Human step: `gate`.
@@ -160,7 +162,7 @@ An ask's identity is its issue's UUID, kind and key. Filing it again refreshes t
 
 Nothing else closes an ask. Zack closes the rest in Pulse.
 
-**The ask file.** One JSON object per ask, written to a temp file and sent with `factory-asks upsert <file>`. Validate first with `factory-asks dry-run upsert <file>`, which prints the request and sends nothing.
+**The ask file.** One JSON object per ask, written to a temp file and sent with `~/.local/bin/factory-asks upsert <file>`. Validate first with `~/.local/bin/factory-asks dry-run upsert <file>`, which prints the request and sends nothing. Exit 0 or 3 from a dry run means the ask is valid (3 only says there is no usable token); exit 1 lists what to fix.
 
 ```json
 {
@@ -219,7 +221,13 @@ Reproduce it, then fix it on a branch, or file a Bug in the issue's `<Epic>: har
 - a note that the run skipped its own evidence (a screenshot, a live read): the factory redoes it, or files a follow-up for the part only Zack can do;
 - a question hidden in a criterion: that becomes a `follow_up` with key `decide-scope` and the real question.
 
-**When the helper cannot write.** Exit 3 (no usable token, a missing tool) or a missing helper: record `asks.warning` in the ledger and `Asks not synced: <reason>` in the status update, keep the Morning review section as the record, and go on; the run never stops for asks. Exit 2 (the server refused or could not be reached): put the call in `asks_pending` and go on. Exit 1 (the helper refused the ask): fix the ask and send it once more; a second refusal is a one-line ledger note, and the item stays in the Morning review. Pulse shows every stored open ask whether or not tonight's marker landed, and says "asks not synced for this run" when it did not.
+**When the helper cannot write.** Its exit code says what to do; the run never stops for asks.
+- **Exit 1** (the helper refused the ask; nothing sent): fix the ask and send it once more. A second refusal is a one-line ledger note, and the item stays in the Morning review.
+- **Exit 2** (unreachable, timed out, rate-limited, server error): queue the call in `asks_pending`; the next run replays it.
+- **Exit 3** (no usable token, or a missing tool) or a missing helper: queue the call in `asks_pending`, set `asks.warning`, and write `Asks not synced: <reason>` in the status update.
+- **Exit 4** (the server refused the call for good: `invalid_*`, `secret_detected`, `project_mismatch`, `ask_not_found`): never queue or retry it. Note it in the ledger; a check or follow-up stays in the Morning review.
+
+A resolve that finds the ask already closed (Zack pressed Done first) exits 0. Pulse shows every stored open ask whether or not tonight's marker landed, and says "asks not synced for this run" when it did not.
 
 ## Notes
 

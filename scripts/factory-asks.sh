@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash -p
 #
 # factory-asks.sh
 # The night factory's one door to its asks (os.factory_asks on mcray-os): what a run needs
@@ -25,19 +25,42 @@
 # so it is never in a command line, in ps, or in any output. Output is the HTTP status and
 # the returned status fields; `open` also prints one JSON row per ask.
 #
-# Exit codes: 0 ok; 1 refused here, nothing sent; 2 the server said no or could not be
-# reached; 3 no usable token or a missing tool (the factory records a warning and goes on).
+# Exit codes (the factory's asks rules in commands/factory.md act on each):
+#   0 ok (a resolve that finds the ask already closed is ok too)
+#   1 refused here, nothing sent: fix the ask
+#   2 not delivered: unreachable, timed out, rate-limited or a server error; retry next run
+#   3 no usable token (missing, expired, not a JWT, or refused by the server) or a missing tool
+#   4 the server refused the call for good (invalid_*, secret_detected, project_mismatch,
+#     ask_not_found): retrying the same call can never work
 #
 # Runs on macOS /bin/bash 3.2: no associative arrays, no ${x,,}, no mapfile.
+#
+# Hardened against the caller's environment, since the caller is an unattended agent:
+# privileged mode (-p) ignores BASH_ENV, SHELLOPTS and exported functions, so nothing can
+# turn on tracing or wrap a tool; tools are called by absolute path; curl runs with -q (no
+# .curlrc), an empty environment (no proxy, CA or key-log variables), https only.
 
+# jq programs name their $variables inside single quotes on purpose.
+# shellcheck disable=SC2016
+
+# `bash factory-asks.sh` skips the shebang: start again in privileged mode.
+case $- in *p*) ;; *) exec /bin/bash -p "$0" "$@" ;; esac
+set +xv
 set -uo pipefail
 
 # Fixed on purpose: no environment override, so nothing can point the token at another host.
 SUPABASE_URL="https://mtypgfwcebzsdlbuojef.supabase.co"
 # Public by design (the publishable key ships in the Pulse client); not a secret.
 SUPABASE_PUBLISHABLE_KEY="sb_publishable_Hu1RxVfMkKKS6MpZcUjdZw_O3qx0Y4D"
-# Overridable only to test the missing-token path.
-KEYCHAIN_SERVICE="${FACTORY_ASKS_KEYCHAIN_SERVICE:-PULSE_FACTORY_WRITER_JWT}"
+KEYCHAIN_SERVICE="PULSE_FACTORY_WRITER_JWT"
+CURL=/usr/bin/curl
+SECURITY=/usr/bin/security
+CA_BUNDLE=/etc/ssl/cert.pem
+# macOS 15 ships jq; older Macs use Homebrew's.
+JQ=""
+for c in /usr/bin/jq /opt/homebrew/bin/jq /usr/local/bin/jq; do
+  if [[ -x "$c" ]]; then JQ="$c"; break; fi
+done
 RENEW_WARN_DAYS=14
 
 UUID_RE='^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
@@ -54,7 +77,7 @@ die() { printf 'factory-asks: %s\n' "$2" >&2; exit "$1"; }
 need_tools() {
   local t
   for t in "$@"; do
-    command -v "$t" >/dev/null 2>&1 || die 3 "missing tool: $t (warn in the ledger and the status update, then go on)"
+    [[ -n "$t" && -x "$t" ]] || die 3 "missing tool: ${t:-jq} (warn in the ledger and the status update, then go on)"
   done
 }
 
@@ -63,7 +86,7 @@ need_tools() {
 # Shared jq definitions. Oniguruma regexes; lengths are code points, like char_length.
 # The secret patterns copy public.prompt_text_has_secret.
 read -r -d '' JQ_DEFS <<'JQ'
-def ctl: "[\\x00-\\x1f\\x7f]";
+def ctl: "[\\x00-\\x1f\\x7f\\x{80}-\\x{9f}\\x{2028}\\x{2029}]";
 def hidden: "[\\x{200b}-\\x{200f}\\x{202a}-\\x{202e}\\x{2066}-\\x{2069}\\x{feff}]";
 def trimmed: sub("^\\s+"; "") | sub("\\s+$"; "");
 def str: type == "string";
@@ -134,7 +157,8 @@ else
               else
                 ( (keys[] | select(. != "text" and . != "action") | "runbook: step \($n) has an unknown field: \(.)"),
                   (select((.text | oneline and filled and length <= 200) | not) | "runbook: step \($n) text is one line of 1 to 200 characters"),
-                  (select(.action != null) | .action
+                  # has(), not != null: the server rejects "action": null
+                  (select(has("action")) | .action
                     | if (type != "object") or ((.type | str) | not) or ((.value | str) | not) then "runbook: step \($n) action is {type, value} with string values"
                       elif (keys - ["type", "value"]) != [] then "runbook: step \($n) action holds type and value, nothing else"
                       elif .type == "open" then
@@ -165,11 +189,11 @@ ${ASK_BODY}"
 
 validate_ask() {  # validate_ask FILE -> prints problems, returns 1 if any
   local problems
-  if ! jq -e . "$1" >/dev/null 2>&1; then
+  if ! "$JQ" -e . "$1" >/dev/null 2>&1; then
     printf 'refused: the ask is not valid JSON\n'
     return 1
   fi
-  problems=$(jq -r "$ASK_RULES" "$1" 2>&1) || { printf 'refused: validator failed: %s\n' "$problems"; return 1; }
+  problems=$("$JQ" -r "$ASK_RULES" "$1" 2>&1) || { printf 'refused: validator failed: %s\n' "$problems"; return 1; }
   if [[ -n "$problems" ]]; then
     printf '%s\n' "$problems" | sed 's/^/refused: /'
     return 1
@@ -179,7 +203,6 @@ validate_ask() {  # validate_ask FILE -> prints problems, returns 1 if any
 
 is_uuid() { [[ "$1" =~ $UUID_RE ]]; }
 is_run_id() { [[ "$1" =~ $RUN_ID_RE ]]; }
-has_ctl() { [[ "$1" =~ [[:cntrl:]] ]]; }
 
 # ── the token ──
 
@@ -188,13 +211,20 @@ has_ctl() { [[ "$1" =~ [[:cntrl:]] ]]; }
 # or 3 with TOKEN_NOTE saying what is wrong.
 load_token() {
   local exp now days
-  TOKEN=$(security find-generic-password -s "$KEYCHAIN_SERVICE" -w 2>/dev/null) || TOKEN=""
+  TOKEN=$("$SECURITY" find-generic-password -s "$KEYCHAIN_SERVICE" -w 2>/dev/null) || TOKEN=""
   if [[ -z "$TOKEN" ]]; then
     TOKEN_NOTE="missing: no Keychain entry ${KEYCHAIN_SERVICE} (run the Pulse wizard scripts/wizards/MCR-2123-factory-writer-token.sh)"
     return 3
   fi
+  # A JWT is three base64url parts; anything else could smuggle quotes or escapes into
+  # curl's config line.
+  if [[ ! "$TOKEN" =~ ^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$ ]]; then
+    TOKEN=""
+    TOKEN_NOTE="unreadable: the ${KEYCHAIN_SERVICE} entry is not a JWT (re-run the wizard)"
+    return 3
+  fi
   # base64url payload -> exp, decoded from stdin so the token stays off argv
-  exp=$(printf '%s' "$TOKEN" | jq -Rr 'split(".")[1] // ""
+  exp=$(printf '%s' "$TOKEN" | "$JQ" -Rr 'split(".")[1] // ""
       | gsub("-"; "+") | gsub("_"; "/")
       | . + ("=" * ((4 - length % 4) % 4) // "")
       | @base64d | fromjson | .exp // empty' 2>/dev/null) || exp=""
@@ -224,8 +254,10 @@ load_token() {
 rpc() {
   local name="$1" body="$2" out
   out=$(mktemp "${TMPDIR:-/tmp}/factory-asks.XXXXXX") || die 2 "cannot create a temp file"
+  RESP_TMP="$out"
   HTTP_CODE=$(printf 'header = "Authorization: Bearer %s"\n' "$TOKEN" \
-    | curl -sS --max-time 20 -o "$out" -w '%{http_code}' -K - \
+    | /usr/bin/env -i PATH=/usr/bin:/bin "$CURL" -q -sS --proto =https --noproxy '*' \
+        --cacert "$CA_BUNDLE" --max-time 20 -o "$out" -w '%{http_code}' -K - \
         -X POST -H "apikey: ${SUPABASE_PUBLISHABLE_KEY}" \
         -H "Content-Type: application/json" -H "Accept: application/json" \
         --data-raw "$body" "${SUPABASE_URL}/rest/v1/rpc/${name}" 2>/dev/null) || HTTP_CODE="000"
@@ -234,19 +266,42 @@ rpc() {
   rm -f "$out"
 }
 
-# Prints the result line; exits 2 on anything but 2xx. PostgREST errors carry the RPC's
-# named exception in .message, which never echoes a secret.
+# report CMD JQ_FIELDS: prints the result line and exits per the codes above. PostgREST
+# errors carry the RPC's named exception in .message, which never echoes a secret.
 report() {
-  local fields="$1" msg
+  local cmd="$1" fields="$2" line msg
   if [[ "$HTTP_CODE" =~ ^2 ]]; then
-    printf 'HTTP %s %s\n' "$HTTP_CODE" "$(printf '%s' "$RESP" | jq -r "$fields" 2>/dev/null)"
+    line=$(printf '%s' "$RESP" | "$JQ" -r "$fields" 2>/dev/null) || {
+      printf 'HTTP %s error: the reply was not the JSON expected\n' "$HTTP_CODE"
+      exit 2
+    }
+    printf 'HTTP %s %s\n' "$HTTP_CODE" "$line"
     return 0
   fi
   if [[ "$HTTP_CODE" == "000" ]]; then
-    msg="could not reach ${SUPABASE_URL}"
-  else
-    msg=$(printf '%s' "$RESP" | jq -r '.message // .error // "no message"' 2>/dev/null | head -c 300)
+    printf 'HTTP 000 error: could not reach %s\n' "$SUPABASE_URL"
+    exit 2
   fi
+  msg=$(printf '%s' "$RESP" | "$JQ" -r '.message // .error // "no message"' 2>/dev/null | head -c 300)
+  case "$HTTP_CODE" in
+    401|403)
+      printf 'HTTP %s error: the writer token was refused (%s)\n' "$HTTP_CODE" "$msg"
+      exit 3
+      ;;
+    408|429)
+      printf 'HTTP %s error: %s\n' "$HTTP_CODE" "$msg"
+      exit 2
+      ;;
+    4??)
+      # a resolve racing Zack's own Done: the ask is closed, which is what was wanted
+      if [[ "$cmd" == "resolve" && "$msg" == already_closed* ]]; then
+        printf 'HTTP %s status=already_closed (nothing to do)\n' "$HTTP_CODE"
+        return 0
+      fi
+      printf 'HTTP %s refused: %s (do not retry this call)\n' "$HTTP_CODE" "$msg"
+      exit 4
+      ;;
+  esac
   printf 'HTTP %s error: %s\n' "$HTTP_CODE" "$msg"
   exit 2
 }
@@ -256,8 +311,9 @@ report() {
 REQ_NAME=""
 REQ_BODY=""
 ASK_TMP=""
+RESP_TMP=""
 
-cleanup() { [[ -n "$ASK_TMP" ]] && rm -f "$ASK_TMP"; return 0; }
+cleanup() { rm -f ${ASK_TMP:+"$ASK_TMP"} ${RESP_TMP:+"$RESP_TMP"}; return 0; }
 trap cleanup EXIT
 
 build_request() {
@@ -268,7 +324,7 @@ build_request() {
       [[ $# -eq 1 ]] || die 1 "usage: factory-asks open <project_id>"
       is_uuid "$1" || die 1 "refused: project_id must be the Linear project UUID"
       REQ_NAME="factory_asks_open"
-      REQ_BODY=$(jq -cn --arg p "$1" '{p_project_id: $p}')
+      REQ_BODY=$("$JQ" -cn --arg p "$1" '{p_project_id: $p}')
       ;;
     upsert)
       [[ $# -eq 1 ]] || die 1 "usage: factory-asks upsert <ask.json | ->"
@@ -281,19 +337,22 @@ build_request() {
       [[ -r "$src" ]] || die 1 "refused: cannot read $src"
       validate_ask "$src" || { printf 'nothing sent.\n'; exit 1; }
       REQ_NAME="factory_ask_upsert"
-      REQ_BODY=$(jq -c 'with_entries(.key |= "p_" + .)' "$src")
+      REQ_BODY=$("$JQ" -c 'if .trigger_pr == null then . else .trigger_pr |= floor end
+        | with_entries(.key |= "p_" + .)' "$src")
       ;;
     resolve)
       [[ $# -eq 4 ]] || die 1 "usage: factory-asks resolve <ask_id> <project_id> <run_id> <note>"
       is_uuid "$1" || die 1 "refused: ask_id must be the ask's UUID (from factory-asks open)"
       is_uuid "$2" || die 1 "refused: project_id must be the Linear project UUID"
       is_run_id "$3" || die 1 "refused: run_id must be <YYYY-MM-DD>-<lane>-<HHMM>"
-      if [[ ${#4} -lt 1 || ${#4} -gt 300 ]] || has_ctl "$4"; then die 1 "refused: note is one line of 1 to 300 characters"; fi
-      if ! jq -en --arg n "$4" "${JQ_DEFS}"' $n | secret | not' >/dev/null; then
+      if ! "$JQ" -en --arg n "$4" "${JQ_DEFS}"' $n | oneline and filled and length <= 300' >/dev/null; then
+        die 1 "refused: note is one line of 1 to 300 characters"
+      fi
+      if ! "$JQ" -en --arg n "$4" "${JQ_DEFS}"' $n | secret | not' >/dev/null; then
         die 1 "refused: secret_detected in note"
       fi
       REQ_NAME="factory_ask_resolve"
-      REQ_BODY=$(jq -cn --arg i "$1" --arg p "$2" --arg r "$3" --arg n "$4" \
+      REQ_BODY=$("$JQ" -cn --arg i "$1" --arg p "$2" --arg r "$3" --arg n "$4" \
         '{p_id: $i, p_project_id: $p, p_run_id: $r, p_note: $n}')
       ;;
     record-sync)
@@ -304,7 +363,7 @@ build_request() {
         die 1 "refused: asks_written must be 0 to 10000"
       fi
       REQ_NAME="factory_ask_sync_record"
-      REQ_BODY=$(jq -cn --arg p "$1" --arg r "$2" --argjson n "$((10#$3))" \
+      REQ_BODY=$("$JQ" -cn --arg p "$1" --arg r "$2" --argjson n "$((10#$3))" \
         '{p_project_id: $p, p_run_id: $r, p_asks_written: $n}')
       ;;
     *)
@@ -316,7 +375,7 @@ build_request() {
 
 # ── main ──
 
-need_tools jq curl security
+need_tools "$JQ" "$CURL" "$SECURITY" /usr/bin/env
 
 cmd="${1:-}"
 [[ $# -gt 0 ]] && shift
@@ -334,7 +393,7 @@ case "$cmd" in
     printf 'apikey: %s\n' "$SUPABASE_PUBLISHABLE_KEY"
     printf 'Authorization: Bearer <Keychain %s, never printed>\n' "$KEYCHAIN_SERVICE"
     printf 'Content-Type: application/json\n\n'
-    printf '%s' "$REQ_BODY" | jq .
+    printf '%s' "$REQ_BODY" | "$JQ" .
     if load_token; then
       TOKEN=""
       printf '\ntoken: %s\n' "$TOKEN_NOTE"
@@ -354,11 +413,14 @@ case "$cmd" in
     rpc "$REQ_NAME" "$REQ_BODY"
     case "$cmd" in
       open)
-        report '"open=\(length)"'
-        printf '%s' "$RESP" | jq -c '.[]'
+        report open '"open=\(length)"'
+        printf '%s' "$RESP" | "$JQ" -c '.[]' || exit 2
         ;;
-      upsert|resolve) report '"status=\(.status) id=\(.id) generation=\(.generation)"' ;;
-      record-sync) report '"synced run_id=\(.run_id) asks_written=\(.asks_written)"' ;;
+      # action: inserted | refreshed (both count as written) | unchanged (closed, left alone)
+      # | stale (this check's PR is older than the stored one's; nothing written)
+      upsert) report upsert '"status=\(.status) action=\(.action) id=\(.id) generation=\(.generation)"' ;;
+      resolve) report resolve '"status=\(.status) id=\(.id) generation=\(.generation)"' ;;
+      record-sync) report record-sync '"synced run_id=\(.run_id) asks_written=\(.asks_written)"' ;;
     esac
     ;;
   ""|-h|--help|help)
