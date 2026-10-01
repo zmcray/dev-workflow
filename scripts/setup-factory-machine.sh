@@ -5,15 +5,16 @@
 #
 #   1. Checks the CLIs and gh auth.
 #   2. Clones or fast-forwards ~/Developer/dev-workflow and ~/Developer/software-factory.
-#   3. Runs deploy-skills.sh (factory, packets, caspian -> all three harnesses).
+#   3. Runs deploy-skills.sh (every skill in both repos -> all three harnesses).
 #   4. Claude Code: Compound Engineering + Linear plugins.
 #   5. Codex: Compound Engineering plugin and Linear MCP.
 #   6. Cursor: checks the CE + Linear plugins (installed from the Cursor app, not here).
-#   7. Installs the daily skill-sync launch agent (install-skill-sync.sh), so this Mac pulls
-#      and reinstalls changed skills on its own from then on.
+#   7. Installs the daily skill-sync launch agent (install-skill-sync.sh), so this Mac installs
+#      approved skill changes and proposes its own edits as a pull request from then on.
 #   Ends with a checklist of what still needs a person (sign-ins, unattended-mode settings).
 #
-# Non-destructive: installs and copies only. Never deletes, never overwrites a dirty repo.
+# Non-destructive: installs and copies only. Never deletes. A repo with local edits is pulled
+# around them (--autostash); the skill sync proposes those edits for review.
 #
 # Usage:
 #   bash setup-factory-machine.sh --dry-run   # report only, change nothing
@@ -38,7 +39,7 @@ run()  { [[ $DRY_RUN -eq 1 ]] || "$@"; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
 echo "== Tools"
-for bin in git gh claude codex; do
+for bin in git gh gitleaks claude codex; do
   if have "$bin"; then ok "$bin"; else fix "Install $bin"; fi
 done
 [[ -d /Applications/Cursor.app ]] && ok "Cursor.app" || fix "Install Cursor (cursor.com)"
@@ -51,15 +52,15 @@ for r in "${REPOS[@]}"; do
   if [[ ! -d "$p/.git" ]]; then
     act "clone $GH_OWNER/$r"
     run gh repo clone "$GH_OWNER/$r" "$p" -- -q || fix "Clone $GH_OWNER/$r failed"
-  elif [[ -n "$(git -C "$p" status --porcelain)" ]]; then
-    fix "$r has local changes; commit or stash, then re-run (not pulled)"
+  elif [[ "$(git -C "$p" symbolic-ref --short -q HEAD)" != "main" ]]; then
+    fix "$r is not on main; switch back to main, then re-run (not pulled)"
   else
-    act "pull $r"
-    run git -C "$p" pull -q --ff-only || fix "$r pull failed (diverged?)"
+    act "pull $r (local edits kept)"
+    run git -C "$p" pull -q --rebase --autostash || fix "$r pull failed (diverged or conflicting edits)"
   fi
 done
 
-echo "== Skills (factory, packets, caspian)"
+echo "== Skills (every skill in dev-workflow and software-factory)"
 if [[ -f "$DEV/dev-workflow/deploy-skills.sh" ]]; then
   mkdir -p "$HOME/.claude/commands"
   if [[ $DRY_RUN -eq 1 ]]; then bash "$DEV/dev-workflow/deploy-skills.sh" --dry-run
@@ -110,7 +111,7 @@ done
 
 echo "== Daily skill sync"
 if [[ -f "$DEV/dev-workflow/scripts/install-skill-sync.sh" ]]; then
-  act "install daily skill-sync (17:00)"
+  act "install skill-sync (daily 17:00 and at login)"
   run bash "$DEV/dev-workflow/scripts/install-skill-sync.sh" || fix "Daily skill sync did not install"
 else
   fix "install-skill-sync.sh missing; daily sync not installed"
