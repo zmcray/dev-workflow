@@ -15,14 +15,23 @@
 #
 # The SKILL.md render drops Claude-only frontmatter (argument-hint). A stale Codex fork in
 # ~/.codex/skills/<name> of a skill with no native Codex version is moved to
-# ~/.codex/skills-archive/ so Codex does not load two copies. Non-destructive: copies and
-# moves only, never deletes. scripts/sync-skills.sh runs this after every install.
+# ~/.codex/skills-archive/ so Codex does not load two copies.
+#
+# Manifest. Every file written under ~/.claude is recorded with its hash in
+# ~/.claude/.skill-sync-manifest. That is how this script and scripts/sync-skills.sh tell a
+# copy edited in place (hash changed since deploy) from one that is merely out of date:
+#   - an installed Claude file about to be overwritten that was edited in place, or was never
+#     deployed by this script, is first kept under ~/.claude/.skill-sync-archive/<stamp>/;
+#   - a file deployed last time whose source is gone (a skill or command deleted or renamed
+#     upstream) is retired: moved to the same archive, so a deletion actually takes effect.
+# Copies and moves only, never deletes.
 #
 # Usage:
 #   bash deploy-skills.sh --dry-run   # show what would happen, touch nothing
 #   bash deploy-skills.sh             # apply
 #
 # DEV_ROOT (default ~/Developer) and HOME are honoured, so it can be pointed at a sandbox.
+# Normally run by scripts/sync-skills.sh, which first captures in-place edits into the repos.
 
 set -euo pipefail
 
@@ -36,6 +45,9 @@ CURSOR_DIR="$HOME/.cursor/skills"
 CODEX_DIR="$HOME/.codex/skills"
 CODEX_ARCHIVE="$HOME/.codex/skills-archive"
 BIN_DIR="$HOME/.local/bin"
+MANIFEST="$HOME/.claude/.skill-sync-manifest"
+STAMP="$(date +%Y%m%d-%H%M%S)"
+KEEP_DIR="$HOME/.claude/.skill-sync-archive/$STAMP"
 
 DRY_RUN=0
 [[ "${1:-}" == "--dry-run" ]] && DRY_RUN=1
@@ -45,10 +57,45 @@ say() { if [[ $DRY_RUN -eq 1 ]]; then echo "  [dry-run] $*"; else echo "  $*"; f
 # Portable SKILL.md = the command file minus Claude-only frontmatter keys.
 render_skill() { grep -v '^argument-hint:' "$1" || true; }
 
+hash_of() { shasum -a 1 "$1" | cut -d' ' -f1; }
+# Hash recorded for an installed path at the last deploy (empty if none). Lines: "<sha>  <path>".
+manifest_hash() {
+  [[ -f "$MANIFEST" ]] || return 0
+  awk -v p="$1" '{ h = $1; sub(/^[^ ]+  /, ""); if ($0 == p) { print h; exit } }' "$MANIFEST"
+}
+
+NEW_MANIFEST="$(mktemp)"
+trap 'rm -f "$NEW_MANIFEST"' EXIT
+
+# Keep an installed Claude file before it is overwritten, unless it is exactly what the last
+# deploy wrote (then it is only out of date and safe to replace).
+keep_if_edited() {
+  local dest="$1" new="$2" m rel
+  [[ -f "$dest" ]] || return 0
+  cmp -s "$dest" "$new" && return 0
+  m="$(manifest_hash "$dest")"
+  [[ -n "$m" && "$(hash_of "$dest")" == "$m" ]] && return 0
+  rel="${dest#"$HOME"/}"
+  say "keep edited copy ~/$rel -> ${KEEP_DIR#"$HOME"/}/$rel"
+  [[ $DRY_RUN -eq 1 ]] || { mkdir -p "$(dirname "$KEEP_DIR/$rel")"; cp -p "$dest" "$KEEP_DIR/$rel"; }
+}
+
+# Write one file into ~/.claude and record it in the manifest.
+install_claude_file() {
+  local src="$1" dest="$2"
+  keep_if_edited "$dest" "$src"
+  if [[ $DRY_RUN -eq 0 ]]; then
+    mkdir -p "$(dirname "$dest")"; cp "$src" "$dest"
+    printf '%s  %s\n' "$(hash_of "$dest")" "$dest" >> "$NEW_MANIFEST"
+  else
+    printf '%s  %s\n' "dry" "$dest" >> "$NEW_MANIFEST"
+  fi
+}
+
 archive_codex_fork() {
   local name="$1" dest
   [[ -d "$CODEX_DIR/$name" ]] || return 0
-  dest="$CODEX_ARCHIVE/$name-$(date +%Y%m%d-%H%M%S)"
+  dest="$CODEX_ARCHIVE/$name-$STAMP"
   say "archive stale Codex fork $CODEX_DIR/$name -> $dest"
   if [[ $DRY_RUN -eq 0 ]]; then mkdir -p "$CODEX_ARCHIVE"; mv "$CODEX_DIR/$name" "$dest"; fi
 }
@@ -59,7 +106,7 @@ for src in "$SCRIPT_DIR"/commands/*.md "$SF"/commands/*.md; do
   name="$(basename "$src" .md)"
   echo "SKILL $name"
   say "copy -> $CLAUDE_CMDS/$name.md"
-  [[ $DRY_RUN -eq 1 ]] || { mkdir -p "$CLAUDE_CMDS"; cp "$src" "$CLAUDE_CMDS/$name.md"; }
+  install_claude_file "$src" "$CLAUDE_CMDS/$name.md"
 
   targets=( "$CURSOR_DIR" )
   # A native Codex version owns the Codex side; do not ship a second copy to ~/.agents.
@@ -84,14 +131,35 @@ done
 # Folder skills owned by software-factory.
 for src in "$SF"/skills/*/; do
   [[ -d "$src" ]] || continue
-  name="$(basename "$src")"
+  src="${src%/}"; name="$(basename "$src")"
   echo "SKILL $name (folder)"
-  for dir in "$CLAUDE_SKILLS" "$AGENTS_DIR" "$CURSOR_DIR"; do
+  say "copy -> $CLAUDE_SKILLS/$name/"
+  while IFS= read -r f; do
+    install_claude_file "$f" "$CLAUDE_SKILLS/$name/${f#"$src"/}"
+  done < <(find "$src" -type f ! -name .DS_Store)
+  for dir in "$AGENTS_DIR" "$CURSOR_DIR"; do
     say "copy -> $dir/$name/"
-    [[ $DRY_RUN -eq 1 ]] || { mkdir -p "$dir/$name"; cp -R "$src." "$dir/$name/"; }
+    [[ $DRY_RUN -eq 1 ]] || { mkdir -p "$dir/$name"; cp -R "$src/." "$dir/$name/"; }
   done
   archive_codex_fork "$name"
 done
+
+# Retire what the last deploy wrote under ~/.claude but the repos no longer have.
+if [[ -f "$MANIFEST" ]]; then
+  while IFS= read -r line; do
+    p="${line#*  }"
+    [[ -n "$p" && -f "$p" ]] || continue
+    awk -v p="$p" '{ sub(/^[^ ]+  /, ""); if ($0 == p) { found = 1; exit } } END { exit !found }' "$NEW_MANIFEST" && continue
+    rel="${p#"$HOME"/}"
+    say "retire ~/$rel (removed upstream) -> ${KEEP_DIR#"$HOME"/}/retired/$rel"
+    if [[ $DRY_RUN -eq 0 ]]; then
+      mkdir -p "$(dirname "$KEEP_DIR/retired/$rel")"; mv "$p" "$KEEP_DIR/retired/$rel"
+      # Remove the skill's folder only if moving its files left it empty.
+      [[ "$(dirname "$p")" == "$CLAUDE_CMDS" ]] || rmdir "$(dirname "$p")" 2>/dev/null || true
+    fi
+  done < "$MANIFEST"
+fi
+[[ $DRY_RUN -eq 1 ]] || { mkdir -p "$(dirname "$MANIFEST")"; mv "$NEW_MANIFEST" "$MANIFEST"; }
 
 # Helper scripts. Copied over the installed file, executable, so every harness finds the same one.
 HELPERS=( "factory-asks.sh:factory-asks" )
