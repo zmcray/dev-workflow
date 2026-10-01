@@ -68,7 +68,7 @@ Order matters: labels first, card last, so the card's `updatedAt` is the newest 
    - Set exactly one `design:*`. On a re-sort that changes the rung, remove the old one.
    - Add `sort:needs-answers` when it cannot place the issue; remove it when a re-sort places it.
    - Add one `flow:*` only if the issue has none (`flow:design` new surface, architecture, auth/data/payments or hard to reverse; `flow:standard` a meaty feature in known territory; `flow:ship` small and reversible). Never change an existing `flow:*`.
-2. **Sort card.** Post it as a top-level comment, or **edit the existing card in place**. Never post a second card, never reply in the card's thread.
+2. **Sort card.** Post it as a top-level comment, or **edit the existing card in place**. Never post a second card, and never reply in the card's thread except to record Zack's chat answers (Step 5).
 
 ```
 Sort card (YYYY-MM-DD, confidence: high | medium | low, weak spot: none | problem | acceptance | context | risk)
@@ -97,7 +97,11 @@ Append one line per project to `~/Library/Logs/software-factory/sort.log` (creat
 2026-09-24T23:31 Pulse: eligible 14, sorted 12 (none 6, tweak 3, screens 2, journey 1, product 0), needs answers 2, re-sorted 3, left for tomorrow 0, errors 0
 ```
 
-End the run with a brief for Zack in the same shape, plus the IDs that went to `sort:needs-answers` and any error in one line each. Nothing else.
+End the run with a brief for Zack in the same shape, plus the IDs that went to `sort:needs-answers` and any error in one line each.
+
+**Ask the questions in the brief, never point at the cards.** Zack answers in the session, not in Linear. After the counts, list every open question from tonight's cards (needs-answers issues and placed issues that carry questions), numbered straight through the whole list so he can reply "1: a, 2: b". Group the questions under a heading per Linear project (e.g. **Pulse**), and name the project again on every issue line (`Pulse · MCR-123: title`) so no ID has to be decoded. Per question: the project, issue ID and title, the question in plain words with enough context to answer without opening Linear, the options, and a recommended answer first. Never write "see the card" or "answer on the card".
+
+**When Zack replies in the session,** post each answer as a reply in that issue's sort card thread (`Answers (YYYY-MM-DD, Zack, via chat): ...`), then re-sort those issues right away through Steps 2 to 4 (the Answered path), and report what changed in a few lines. This is the one time the job writes a reply in a card's thread.
 
 ## Identity
 
