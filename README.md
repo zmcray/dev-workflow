@@ -61,7 +61,7 @@ Each harness still needs its own Linear connection and an unattended permission 
 
 ## Keeping both Macs the same (review-gated sync)
 
-`scripts/sync-skills.sh` runs daily at 17:00 and at login (launch agent `com.mcray.skill-sync`, installed by `scripts/install-skill-sync.sh`), and `/factory` runs it before every shift. For both repos' main checkouts:
+`scripts/sync-skills.sh` runs daily at 17:00 and at login (launch agent `com.mcray.skill-sync`, installed by `scripts/install-skill-sync.sh`), and on demand. `/factory` does not run it: before each shift it only fast-forwards both repos to `origin/main` and re-deploys, so a night run never pushes or opens a pull request. For both repos' main checkouts:
 
 1. **Capture.** An edit made to an installed copy is copied back into its repo. A skill written straight into `~/.claude/skills/<name>/` is adopted into `software-factory/skills/` (gstack skills and `scripts/skill-sync.ignore` excepted).
 2. **Install approved.** Fast-forward to `origin/main`: merged changes only. Another Mac's unmerged edits never arrive.
