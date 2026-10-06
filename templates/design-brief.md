@@ -8,7 +8,8 @@ Rules for the writer:
 
 - **Name the group by what it is**, never "Canvas A". "Circuit workout screens", not a letter.
 - **Every screen gets its own block** with what it must show, the primary action, the secondary actions, what happens next, the states to draw, and what is deliberately not there. Pull these from the issues' acceptance checks and the plan's requirements; write them as things a person can see on a screen.
-- **Inline the design rules** the canvas needs (colors, type, spacing, component rules) from the repo's DESIGN.md, so the prompt stands alone. Name the files to attach too.
+- **Inline the design rules** the canvas needs (colors, type, spacing, component rules) from the repo's DESIGN.md, so the prompt stands alone.
+- **Never ask Zack to attach files.** Every file the canvas needs (DESIGN.md, reference screenshots, existing canvases) lives in the repo: copy anything from outside into `docs/design/briefs/assets/<group-slug>/` and commit it with the brief. Merge to the default branch before handing off, then list each file in the prompt's "Reference files" block by its full GitHub URL on the default branch (`https://github.com/<owner>/<repo>/blob/main/<path>`), so Claude Design opens them itself. The table's "Reference files" row lists the same paths for humans.
 - **Give example content** (exercise names, numbers, copy) so the mockups look real. Say it is illustrative.
 - **Match the rung recipe** (MANUAL §2): directions only on `journey` (key screen) and `product` (magic screen); walk-through only on `journey` and `product`; `screens` gets the core screen's empty, loading and error states instead.
 - **"Done when"** is a checklist Zack can tick by looking at the canvas. Each line traces to an issue's acceptance check.
@@ -27,24 +28,27 @@ Rules for the writer:
 | Rung | design:<rung> · about <time from the rung table> |
 | Needed before | <the first issue or milestone that cannot build without this canvas> |
 | Repo | <repo path> |
-| Attach to Claude Design | <DESIGN.md path> · <reference image paths> |
+| Reference files | <DESIGN.md path> · <reference image paths> (all committed on main; the prompt links them) |
 
 ## Your steps
 
 1. Open Claude Design and start a new project called "<Project> · <group name>".
-2. Attach the files in the table above.
-3. Copy the whole "Prompt to paste" block below into Claude Design.
-4. <journey/product only> Pick one of the directions for <key screen>. Tell Claude Design which one and why, in one line. It then draws the rest in that direction.
-5. Go down "Done when" and tick each line by looking at the canvas. Ask Claude Design to fix anything missing.
-6. <journey/product only> Walk through it once as the user: <one concrete scenario, start to finish>. Write down anything that confused you and fix it.
-7. Copy the canvas share link. In the planning session, type `canvas <link>`.
+2. Copy the whole "Prompt to paste" block below into Claude Design. It links every reference file; nothing to attach.
+3. <journey/product only> Pick one of the directions for <key screen>. Tell Claude Design which one and why, in one line. It then draws the rest in that direction.
+4. Go down "Done when" and tick each line by looking at the canvas. Ask Claude Design to fix anything missing.
+5. <journey/product only> Walk through it once as the user: <one concrete scenario, start to finish>. Write down anything that confused you and fix it.
+6. Copy the canvas share link. In the planning session, type `canvas <link>`.
 
 ## Prompt to paste
 
 ~~~
-<App> is <one-line description>. Device: <device>. Fidelity: <wireframe | mid-fi using the attached design system>.
+<App> is <one-line description>. Device: <device>. Fidelity: <wireframe | mid-fi using the design system in DESIGN.md below>.
 
-Design rules (from the attached DESIGN.md):
+Reference files (open each one before drawing):
+- DESIGN.md, the design system: https://github.com/<owner>/<repo>/blob/main/DESIGN.md
+- <what it shows>: https://github.com/<owner>/<repo>/blob/main/<path>
+
+Design rules (from DESIGN.md):
 - <5 to 10 rules that shape these screens: palette roles, type roles and sizes, spacing, radius, component rules, what is banned>
 
 What we're drawing: <one paragraph on the feature in user terms>.
