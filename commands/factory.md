@@ -66,7 +66,7 @@ Order: <IDs in order>.
 
 ## Step 3: Open the ledger
 
-Write `docs/factory/runs/YYYY-MM-DD.json` in the repo (create the directory; it is committed with the morning docs PR, never with a chunk PR). If that file already exists (another lane or a rerun the same day), write `docs/factory/runs/<run_id>.json` instead: never overwrite an earlier run's ledger.
+Write `docs/factory/runs/YYYY-MM-DD.json` in the repo (create the directory; it is committed with the morning docs PR, never with a chunk PR). If that file already exists (another lane or a rerun the same day), write `docs/factory/runs/<lane>-<HHMM>-YYYY-MM-DD.json` instead (file names keep the date at the end; the `run_id` value itself is unchanged): never overwrite an earlier run's ledger.
 
 ```json
 {

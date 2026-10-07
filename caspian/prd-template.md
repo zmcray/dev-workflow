@@ -1,6 +1,6 @@
 # PRD template (Caspian v3 output contract)
 
-Write to `docs/strategy/YYYY-MM-DD-<topic>-prd.md` in the repo, before any remote write. Firm-level (no repo): `~/Documents/Work/01-mcray-group/10-strategy/<theme>/`. Every section marked REQUIRED must be present or the run is not done. Use `CONCEPTS.md` vocabulary. No file paths, line numbers, or model names anywhere in the body.
+Write to `docs/strategy/<topic>-prd-YYYY-MM-DD.md` in the repo, before any remote write. Firm-level (no repo): `~/Documents/Work/01-mcray-group/10-strategy/<theme>/`. Every section marked REQUIRED must be present or the run is not done. Use `CONCEPTS.md` vocabulary. No file paths, line numbers, or model names anywhere in the body.
 
 ```markdown
 ---
