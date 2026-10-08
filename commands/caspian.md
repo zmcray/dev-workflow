@@ -102,7 +102,7 @@ PACKET mode: Red Team only, three findings max.
 
 **Verify the write.** Re-read the PRD from disk: frontmatter is `---` delimited, `linear_initiative` and `linear_issues` are non-empty and match what Linear returned. Fail loudly with the step number if not. Never report success on a write you did not verify.
 
-**Compound.** While context is fresh, capture at most two learnings to the store (a preference the founder stated, a pattern that changed the outcome). Skip if nothing new. Move the session file to `completed/`.
+**Compound.** While context is fresh, capture at most two learnings to the store (a preference the founder stated, a pattern that changed the outcome). Skip if nothing new. New learning files are `<slug>-YYYY-MM-DD.md` in `caspian-sessions/learnings/` (kebab-case slug, date at the end, never the beginning); new session files are `<slug>-YYYY-MM-DD.md` in `caspian-sessions/active/`. Existing files keep their names. Move the session file to `completed/`.
 
 **Close** in four lines: PRD path · initiative and issue IDs · M1 chunk count and appetite · next command (`/ce-plan <top issue>` for the first chunk, or `/goal <milestone>` when the queue is enough for a night).
 
