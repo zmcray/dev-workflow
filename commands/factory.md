@@ -91,7 +91,7 @@ Every item row is written **when the chunk starts** and updated when it ends, so
 
 ```json
 { "issue": "MCR-1710", "tier": "moderate", "model": "opus", "started_at": "...", "ended_at": "...",
-  "status": "done | interrupted | parked | skipped-budget | skipped-conflict | failed",
+  "status": "done | interrupted | parked | awaiting-apply | skipped-budget | skipped-conflict | failed",
   "pr": "https://github.com/...", "turns": 0, "retries": 0, "note": "one line" }
 ```
 
@@ -112,6 +112,11 @@ The budget check happens **between chunks, never inside one**. A chunk that is r
 Per-chunk delegation follows DISPATCH.md: the builder gets the model (or reasoning setting) in the running harness's column for the chunk's `tier:*`, and `max_turns_per_chunk` as its turn cap. Two failed attempts on one chunk (one tier up on the retry) mark it `failed`, post the comment, and move on... a failed chunk is not a hard stop unless its branch broke `main`.
 
 `concurrency` above 1 is reserved for the wave dispatcher (one worktree subagent per chunk in a wave, merges still one at a time). Until that lands, set it to 1 and the run is sequential.
+
+**Migrations go last.** A prod migration apply can make the harness refuse every action after it (on Claude Code the auto-mode classifier did exactly this on 2026-10-07 and 2026-10-08, ending both nights after one chunk). So an apply never happens mid-shift:
+- A chunk whose migration is covered by a standing approval builds to a green, non-draft PR and stops there: no apply, no merge. Its ledger row ends `awaiting-apply`. Its dependents stay blocked (their blocker is not Done), and the shift moves on to the next eligible chunk.
+- A migration with no standing approval still parks as `gate:human`, as before.
+- The applies run in Step 6, after the shift is closed.
 
 ## Step 5: Close the shift
 
@@ -142,6 +147,18 @@ Where to look: <tab / screen / URL>
    **Times are ET (America/New_York), always.** Every time a human reads (status update, checklist, merge comments) is written in ET, e.g. `6:00 AM ET`, never UTC. Convert cron and workflow schedules (`10:00 UTC` → `6:00 AM ET` in EDT, `5:00 AM ET` in EST) using the date the reader will act on.
 5. Open a `docs:` PR with the ledger file (and any earlier ledger whose `asks_pending` changed) and any archived plans, merge on green. It is the last PR of the night.
 6. Close with one line: **"Factory done: <k>/<E> merged, stopped on <reason>. Morning batch: <p> issues, <w> with a wizard. Asks: <o> open (<synced | not synced: reason>)."**
+
+When any row is `awaiting-apply`, Step 5 also adds an `Apply batch: MCR-… (PR …), …` line to the status update, files one `apply-migration` follow-up per chunk (runbook: confirm the migration name with `list_migrations`, then merge the PR), and then runs Step 6.
+
+## Step 6: The apply batch
+
+The night's last act, after the docs PR has merged. Oldest `awaiting-apply` chunk first. For each one:
+1. Run the migration's pre-apply check.
+2. Apply the file byte-identical.
+3. Run its post-apply checks and post them as a PR comment.
+4. Merge on green, then resolve its `apply-migration` follow-up.
+
+A refusal at any point ends the batch. That is a normal ending, not a hard stop, and needs no clean-up: the status update and the follow-ups already say what is still pending. Never retry or route around a refusal.
 
 ## Asks
 
