@@ -260,7 +260,7 @@ A fourth axis: does the run pause for the human? Default is interactive (confirm
 
 ### Plan file convention (design + standard)
 
-Plans live in `docs/plans/plan-[YYYY-MM-DD]-[short-slug].md` (archive completed plans to `docs/plans/archive/`) with this header so the execute phase and any wrap step can find them:
+Plans live in `docs/plans/[short-description]-YYYY-MM-DD.md` (date at the end, never the beginning; if that name is taken, add a counter before the date, `[short-description]-2-YYYY-MM-DD.md`; archive completed plans to `docs/plans/archive/`) with this header so the execute phase and any wrap step can find them:
 
 ```
 ---
