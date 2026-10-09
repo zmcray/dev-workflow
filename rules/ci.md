@@ -15,6 +15,6 @@ Read before creating or changing `.github/workflows/**`, or when a repo's CI bre
 - **CI tiers (every repo):** fidelity lives on the default branch; speed lives on the PR.
   - **PR gate** runs only what the change can break. Map changed paths to suites through the change-classification gate: a docs-only PR runs no build or tests; a change confined to one area runs that area's tests plus a small always-on smoke. Target under ~10 minutes.
   - **Build once, test many.** One compile per run, reused by every test step: iOS `build-for-testing` then `test-without-building` on a shared DerivedData; web, one build artifact shared by unit and e2e jobs.
-  - **Full suite on the default branch.** Release archives, deploy-shaped jobs and full suites run after merge (coalesced by concurrency) and nightly, never on PRs. They are the backstop for what PR selection skips. A red default branch is fixed before the next merge.
+  - **Full suite on the default branch.** Release archives, deploy-shaped jobs and full suites run after merge (coalesced by concurrency) and nightly, never on PRs. They are the backstop for what PR selection skips. A red default branch is fixed, or its breaking merge reverted (`goal-runs.md`), before the next merge.
   - **Quarantine flaky tests.** They stay running but non-blocking, with a Linear issue in `Platform: hardening`; never delete or weaken them.
   - **Capacity before coverage.** When one self-hosted runner serializes the queue, add a runner instead of cutting required coverage.

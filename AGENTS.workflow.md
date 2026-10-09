@@ -25,7 +25,7 @@ Hard rules for every session in every harness. Procedures live in `~/Developer/d
 ### Merge and commit
 
 - **Merge on green.** CI green → merge (squash one chunk, `gh pr merge --rebase --delete-branch` for a group), pull the default branch, comment "PR merged" on each chunk's issue.
-- Runs are strictly sequential: merge group N before branching N+1. If a PR cannot merge, stop the run there. Opt out per repo with `"automerge": false` in `.linear-project.json`.
+- Runs are strictly sequential: merge group N before branching N+1. If a PR cannot merge, stop the run there; a PR still red after its retry is a `failed` chunk instead (`goal-runs.md`). Opt out per repo with `"automerge": false` in `.linear-project.json`.
 - PR review is not a gate. CI plus checking the live app after merge are.
 - Commits are conventional with the issue ID: `feat: implement upload flow [MCR-123]`. One commit per chunk; leave the tree clean before the next chunk.
 - Test-first on `flow:design` and `flow:standard`: the failing test comes before the code.
