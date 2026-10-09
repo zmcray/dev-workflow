@@ -1,0 +1,217 @@
+<title>{{TITLE}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column, summary first, outlines and hairlines only (no filled cards).
+   Palette: swap these values for the repo's DESIGN.md tokens when it has them
+   (background, emphasis fill, text primary/secondary, border, control border, action, warning, error). */
+:root {
+  --bg: #E9EBE4; --emph: #DFE2DA; --fg: #30372F; --muted: #656B63;
+  --line: #CDD1C7; --ctl: #7C8378; --accent: #326A91;
+  --done: #326A91; --doing: #7B5A18; --stuck: #A2354A;
+  --sans: "Instrument Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #252624; --emph: #3B3D38; --fg: #F3F1EB; --muted: #B7B7B0;
+  --line: #50524B; --ctl: #959B90; --accent: #B9D6E5;
+  --done: #A9CFE5; --doing: #E4C58C; --stuck: #FFB4BD; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #252624; --emph: #3B3D38; --fg: #F3F1EB; --muted: #B7B7B0;
+  --line: #50524B; --ctl: #959B90; --accent: #B9D6E5;
+  --done: #A9CFE5; --doing: #E4C58C; --stuck: #FFB4BD; color-scheme: dark }
+
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 920px; margin: 0 auto; padding-inline: 20px; padding-block: 32px 56px; display: grid; gap: 36px; }
+h1, h2 { text-wrap: balance; margin: 0; }
+h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+p { margin: 0; }
+.mono { font-family: var(--mono); font-size: 12.5px; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+section { display: grid; gap: 14px; }
+
+header { display: grid; gap: 10px; }
+.asof { font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: 0.02em; }
+.verdict { font-size: 18px; max-width: 62ch; }
+.verdict b { font-weight: 600; }
+
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.stat { padding: 16px 14px; display: grid; gap: 2px; min-width: 0; }
+.stat + .stat { border-left: 1px solid var(--line); }
+.stat .n { font-size: 30px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.stat .n small { font-size: 16px; color: var(--muted); font-weight: 500; }
+.stat .l { font-size: 13px; color: var(--muted); }
+@media (max-width: 640px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .stat:nth-child(3) { border-left: 0; } .stat:nth-child(n+3) { border-top: 1px solid var(--line); } }
+
+.phases { display: grid; }
+.phase { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr) 92px; gap: 16px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.phase:first-child { border-top: 1px solid var(--line); }
+.phase .name { font-weight: 600; }
+.phase .out { font-size: 13px; color: var(--muted); }
+.bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: var(--emph); outline: 1px solid var(--line); }
+.bar i { display: block; height: 100%; }
+.bar .d { background: var(--done); } .bar .p { background: var(--doing); } .bar .s { background: var(--stuck); }
+.count { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.count span { display: block; font-size: 12px; font-weight: 400; color: var(--muted); }
+.note { font-size: 13px; color: var(--muted); grid-column: 1 / -1; margin-top: -4px; }
+@media (max-width: 640px) { .phase { grid-template-columns: minmax(0, 1fr) 80px; } .phase .bar { grid-column: 1 / -1; grid-row: 2; } }
+
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12.5px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none; }
+.dot.d { background: var(--done); } .dot.p { background: var(--doing); } .dot.s { background: var(--stuck); }
+.dot.i { background: transparent; border: 1.5px solid var(--ctl); } .dot.h { background: transparent; border: 1.5px dashed var(--stuck); }
+
+/* Step track: set --steps on .track to the node count (max 12). */
+.track-scroll { overflow-x: auto; padding-bottom: 4px; }
+.track-wrap { padding-top: 24px; }
+.track { --steps: 12; display: grid; grid-template-columns: repeat(var(--steps), minmax(62px, 1fr)); min-width: calc(var(--steps) * 64px); position: relative; }
+.track::before { content: ""; position: absolute; left: 31px; right: 31px; top: 15px; height: 2px; background: var(--line); }
+.step { display: grid; justify-items: center; gap: 6px; text-align: center; position: relative; padding-inline: 2px; }
+.node { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-family: var(--mono); font-size: 11px; font-weight: 500; background: var(--bg); border: 1.5px solid var(--ctl); color: var(--muted); position: relative; z-index: 1; }
+.step.d .node { background: var(--done); border-color: var(--done); color: var(--bg); }
+.step.p .node { border: 2px solid var(--doing); color: var(--doing); }
+.step.s .node { border: 2px solid var(--stuck); color: var(--stuck); }
+.step.h .node { border: 1.5px dashed var(--stuck); color: var(--stuck); }
+.step .t { font-size: 12px; line-height: 1.3; }
+.step .id { font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+.step.p .t, .step.s .t { font-weight: 600; }
+.here { position: absolute; top: -22px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--doing); text-transform: uppercase; white-space: nowrap; }
+.step.s .here { color: var(--stuck); }
+
+.alerts { display: grid; }
+.alert { display: grid; grid-template-columns: 4px minmax(0, 1fr); gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.alert:first-child { border-top: 1px solid var(--line); }
+.alert .stripe { border-radius: 2px; }
+.alert.s .stripe { background: var(--stuck); } .alert.p .stripe { background: var(--doing); }
+.alert.h .stripe { background: repeating-linear-gradient(180deg, var(--stuck) 0 6px, transparent 6px 10px); }
+.alert h3 { margin: 0 0 3px; font-size: 15px; font-weight: 600; display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+.pill { font-family: var(--mono); font-size: 10.5px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; border: 1px solid currentColor; border-radius: 999px; padding: 1px 8px; }
+.alert.s .pill, .alert.h .pill { color: var(--stuck); } .alert.p .pill { color: var(--doing); }
+.alert p { font-size: 14px; color: var(--muted); max-width: 70ch; }
+.alert p b { color: var(--fg); font-weight: 600; }
+.clear { font-size: 14px; color: var(--muted); padding: 14px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+
+/* Closed by day: set --days on .days to the column count (4 to 7). */
+.days { --days: 4; display: grid; grid-template-columns: repeat(var(--days), minmax(0, 1fr)); border-top: 1px solid var(--line); }
+.day { padding: 14px 14px 14px 0; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.day + .day { padding-left: 14px; border-left: 1px solid var(--line); }
+.day .dn { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.day .dc { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.day.zero .dc { color: var(--muted); }
+.day ul { margin: 0; padding: 0; list-style: none; font-size: 13px; color: var(--muted); display: grid; gap: 3px; }
+@media (max-width: 640px) { .days { grid-template-columns: repeat(2, minmax(0, 1fr)); } .day:nth-child(odd) { border-left: 0; padding-left: 0; } .day:nth-child(n+3) { border-top: 1px solid var(--line); } }
+
+footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
+a { color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<div class="wrap">
+
+<!-- HEADER (all modes). Eyebrow: PROJECT · SCOPE · AS OF <DAY DD MON YYYY>. Verdict: one sentence, bad news first, plain words. -->
+<header>
+  <div class="asof">{{PROJECT}} · {{SCOPE_LABEL}} · AS OF {{DATE}}</div>
+  <h1>{{TITLE}}</h1>
+  <p class="verdict"><b>{{VERDICT_BOLD}}</b> {{VERDICT_REST}}</p>
+</header>
+
+<!-- STATS (all modes). Exactly 4 tiles. Each is a number the reader acts on, with its denominator when one exists. -->
+<section aria-label="Headline numbers">
+  <div class="stats">
+    <div class="stat"><div class="n">18<small> / 27</small></div><div class="l">Core issues done</div></div>
+    <div class="stat"><div class="n">4<small> / 12</small></div><div class="l">Steps on the critical chain shipped</div></div>
+    <div class="stat"><div class="n">27</div><div class="l">Issues closed in 4 days</div></div>
+    <div class="stat"><div class="n">29</div><div class="l">Hardening items open</div></div>
+  </div>
+</section>
+
+<!-- EPICS (project mode only). One .phase row per epic with a live milestone, most recent activity first.
+     name = epic, out = its current live milestone's Outcome line, bar = live milestones, count = done / total.
+     Collapse epics with no open live issues into the single "Shipped earlier" note row at the end. -->
+<section aria-label="Epics">
+  <h2>Epics</h2>
+  <div class="legend">
+    <span><i class="dot d"></i>Done</span><span><i class="dot p"></i>In progress</span><span><i class="dot i"></i>Not started</span><span><i class="dot h"></i>Needs you</span>
+  </div>
+  <div class="phases">
+    <div class="phase">
+      <div><div class="name">Circuits</div><div class="out">Now: 2 · Complete every round</div></div>
+      <div class="bar" role="img" aria-label="18 done, 2 in progress of 27"><i class="d" style="width:66.7%"></i><i class="p" style="width:7.4%"></i></div>
+      <div class="count">18 / 27<span>2 in progress</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- PHASES (epic and milestone modes). One .phase row per milestone of the epic, in phase order, then hardening, then later.
+     Milestone mode: rows are the milestone's issues grouped by status instead (Done / In progress / Not started / Needs you).
+     A .note row explains a rescope, a cross-milestone link or a stuck item in one sentence. Parked shelves get an empty bar and "Parked". -->
+<section aria-label="Phases">
+  <h2>Phases</h2>
+  <div class="legend">
+    <span><i class="dot d"></i>Done</span><span><i class="dot p"></i>In progress</span><span><i class="dot s"></i>Stuck</span><span><i class="dot i"></i>Not started</span>
+  </div>
+  <div class="phases">
+    <div class="phase">
+      <div><div class="name">1 · Keep the workout intact</div><div class="out">Saved circuits keep order, rounds, sides and rest through every start.</div></div>
+      <div class="bar" role="img" aria-label="9 of 9 done"><i class="d" style="width:100%"></i></div>
+      <div class="count">9 / 9<span>complete</span></div>
+    </div>
+    <div class="phase">
+      <div><div class="name">Later</div><div class="out">Builder, capture and Coach proposals.</div></div>
+      <div class="bar" role="img" aria-label="Parked"></div>
+      <div class="count">Parked<span>6 on the shelf</span></div>
+      <div class="note">One sentence on why it is parked or what moved.</div>
+    </div>
+  </div>
+</section>
+
+<!-- STEP TRACK (epic and milestone modes; project mode only if one chain dominates). The critical chain in blocked-by order.
+     States: d done, p in progress, s stuck, (none) not started, h needs a human. Put <span class="here">…</span> on the first
+     non-done node, labelled with its real state ("In progress", "Local only", "Red CI", "Stuck"). Max 12 nodes: when longer,
+     show the last 2 done, then the next open ones, and say how many were cut in the caption. -->
+<section aria-label="Critical chain">
+  <h2>{{CHAIN_HEADING}}</h2>
+  <div class="track-scroll"><div class="track-wrap"><div class="track" style="--steps:3">
+    <div class="step d"><div class="node">U5</div><div class="t">Rest and pause views</div><div class="id">MCR-1777</div></div>
+    <div class="step p"><span class="here">Local only</span><div class="node">U6</div><div class="t">Player model</div><div class="id">MCR-1900</div></div>
+    <div class="step h"><div class="node">U13</div><div class="t">Your sign-off</div><div class="id">MCR-1905</div></div>
+  </div></div></div>
+  <p class="muted small">{{CHAIN_CAPTION}}</p>
+</section>
+
+<!-- NEEDS ATTENTION (all modes). Max 5, ordered Blocking (s), Stuck (p), Needs you (h).
+     h3 = what is wrong in plain words + pill. p = the evidence (issue ID, counts, dates) and what it holds up.
+     With nothing to report, replace the list with <p class="clear">Nothing is blocked. Next up: …</p>. -->
+<section aria-label="Needs attention">
+  <h2>Needs attention</h2>
+  <div class="alerts">
+    <div class="alert s"><div class="stripe"></div><div>
+      <h3>Built but never pushed <span class="pill">Blocking</span></h3>
+      <p>Branch <span class="mono">zack/mcr-1900-…</span> holds <b>2 commits, about 2,200 lines</b>, last touched <b>27 Sep</b>. No PR. <b>7 later steps wait on it.</b></p>
+    </div></div>
+    <div class="alert p"><div class="stripe"></div><div>
+      <h3>Review findings unfixed <span class="pill">Stuck</span></h3>
+      <p><b>MCR-1784</b> has <b>3 P1 findings</b> open. Blocks MCR-1785 and MCR-2021.</p>
+    </div></div>
+    <div class="alert h"><div class="stripe"></div><div>
+      <h3>Checks only you can do <span class="pill">Later</span></h3>
+      <p><b>MCR-1905</b>: sign off the screens against the canvas. Not due until the chain reaches it.</p>
+    </div></div>
+  </div>
+</section>
+
+<!-- CLOSED BY DAY (all modes). One column per day with closures in the window (4 to 7 columns; set --days).
+     Up to 4 plain-words bullets per day, grouped by theme, not issue titles. A day with zero closures gets class "zero" and no list. -->
+<section aria-label="Closed by day">
+  <h2>Closed by day</h2>
+  <div class="days" style="--days:4">
+    <div class="day"><div class="dn">FRI 25 SEP</div><div class="dc">1</div><ul><li>Circuit contract written</li></ul></div>
+  </div>
+</section>
+
+<footer>Source: {{SOURCES}}. Snapshot, not live.</footer>
+
+</div>

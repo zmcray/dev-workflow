@@ -4,6 +4,8 @@ Canonical home for the cross-tool product build workflow. Keeps how-an-issue-get
 
 Lives at `~/Developer/dev-workflow` (private GitHub repo). Dev infrastructure sits with the code, version-controlled, edited in CC.
 
+**This is the one source of truth for the factory.** The `software-factory` repo was merged in on 2026-10-09: its manual, dispatch map, sort rules, decisions, templates and skills now live under `factory/`, and that repo is archived. Start at `factory/README.md` for the factory itself.
+
 ## Layout
 
 ```
@@ -20,6 +22,11 @@ commands/                   Claude Code command sources. factory, packets, and c
 codex/skills/               Codex-only skill sources (zmcray-kickoff), each a <name>/SKILL.md +
                             agents/openai.yaml, deployed to ~/.codex/skills/
 deploy-skills.sh            ships the portable skills to all three harnesses
+factory/                    the two-shift factory: README, MANUAL (how to run it), DISPATCH (tier
+                            to model map, night budget), SORT (nightly sort rules), ARCHITECTURE,
+                            DECISIONS, templates/ (build packet, design brief), skills/
+scripts/                    skill sync, disk upkeep, worktree sweep, factory machine setup
+docs/plans/, docs/research/ plans and research for this repo and the factory
 ```
 
 ## How it works
@@ -49,25 +56,25 @@ The script also runs a **skill drift check** first: it compares every `commands/
 
 ## Deploy the skills
 
-Every skill in this repo and in `software-factory` ships by discovery, no hand lists:
+Every skill in this repo ships by discovery, no hand lists:
 
 ```bash
 bash ~/Developer/dev-workflow/deploy-skills.sh --dry-run   # preview
 bash ~/Developer/dev-workflow/deploy-skills.sh             # apply
 ```
 
-- `commands/<name>.md` (here or in `software-factory/commands/`) → `~/.claude/commands/` (Claude Code), rendered without Claude-only frontmatter to `~/.cursor/skills/<name>/SKILL.md` (Cursor) and `~/.agents/skills/<name>/SKILL.md` (Codex, unless a native Codex version exists).
+- `commands/<name>.md` → `~/.claude/commands/` (Claude Code), rendered without Claude-only frontmatter to `~/.cursor/skills/<name>/SKILL.md` (Cursor) and `~/.agents/skills/<name>/SKILL.md` (Codex, unless a native Codex version exists).
 - `codex/skills/<name>/` → `~/.codex/skills/<name>/` (Codex-native skills, a different format).
-- `software-factory/skills/<name>/` → `~/.claude/skills/`, `~/.agents/skills/`, `~/.cursor/skills/`.
+- `factory/skills/<name>/` → `~/.claude/skills/`, `~/.agents/skills/`, `~/.cursor/skills/`.
 - A stale fork in `~/.codex/skills/<name>` of a skill with no native Codex version is moved to `~/.codex/skills-archive/` so Codex never loads two. Copies and moves only, never deletes.
 
 Each harness still needs its own Linear connection and an unattended permission setup before it can run `/factory`; the skill's preflight step hard-stops without them. See "Running on each harness" in `commands/factory.md`.
 
 ## Keeping both Macs the same (review-gated sync)
 
-`scripts/sync-skills.sh` runs daily at 17:00 and at login (launch agent `com.mcray.skill-sync`, installed by `scripts/install-skill-sync.sh`), and on demand. `/factory` does not run it: before each shift it only fast-forwards both repos to `origin/main` and re-deploys, so a night run never pushes or opens a pull request. For both repos' main checkouts:
+`scripts/sync-skills.sh` runs daily at 17:00 and at login (launch agent `com.mcray.skill-sync`, installed by `scripts/install-skill-sync.sh`), and on demand. `/factory` does not run it: before each shift it only fast-forwards the repo to `origin/main` and re-deploys, so a night run never pushes or opens a pull request. For the main checkout:
 
-1. **Capture.** An edit made to an installed copy is copied back into its repo. A skill written straight into `~/.claude/skills/<name>/` is adopted into `software-factory/skills/` (gstack skills and `scripts/skill-sync.ignore` excepted).
+1. **Capture.** An edit made to an installed copy is copied back into its repo. A skill written straight into `~/.claude/skills/<name>/` is adopted into `factory/skills/` (gstack skills and `scripts/skill-sync.ignore` excepted).
 2. **Install approved.** Fast-forward to `origin/main`: merged changes only. Another Mac's unmerged edits never arrive.
 3. **Propose local.** Any local change left becomes one commit on this Mac's `sync/<host>` branch, secret-scanned with `gitleaks` (fail closed; this repo is public), pushed, and opened as a pull request. **Merging it is the approval.** The job never merges and never pushes to `main`.
 4. **Deploy** everything above.

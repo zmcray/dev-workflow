@@ -8,7 +8,7 @@ Loaded only at Phase 5, after the PRD is on disk. Follow AGENTS.md > Linear stru
 4. **Milestones.** One per M1 outcome, named as a user outcome (`<Epic> 1: <Outcome>`), plus `<Epic>: later` for the shelf. Update description with `Outcome:` and `Order:` lines so the order reads without opening an issue.
 5. **Issues, one per M1 feature, in dependency order** so edges reference real IDs:
    - Title: imperative, one line. Priority from the sequence; never None.
-   - Labels: exactly one `flow:*` (by blast radius), exactly one `tier:*` (from the PRD), `prd-source`, `spec-ready`. Never `night-eligible` (human-applied).
+   - Labels: exactly one `flow:*` (by blast radius), exactly one `tier:*` (from the PRD), `prd-source`, `spec-ready`.
    - Milestone: the M1 milestone. Relations: native `blocked by` from the sequence line.
    - Body: a build-packet stub:
      ```

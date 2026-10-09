@@ -4,7 +4,7 @@
 # Wires a Mac so /factory runs on Claude Code, Codex, and Cursor. Safe to re-run.
 #
 #   1. Checks the CLIs and gh auth.
-#   2. Clones ~/Developer/dev-workflow and ~/Developer/software-factory if missing.
+#   2. Clones ~/Developer/dev-workflow if missing (the factory docs live in its factory/ folder).
 #   3. Runs the skill sync (scripts/sync-skills.sh): installs approved changes, proposes this
 #      Mac's own edits as a pull request, deploys every skill to all three harnesses.
 #   4. Claude Code: Compound Engineering + Linear plugins.
@@ -27,7 +27,7 @@
 set -uo pipefail
 
 DEV="$HOME/Developer"
-REPOS=( dev-workflow software-factory )
+REPOS=( dev-workflow )
 GH_OWNER="zmcray"
 CE_REPO="EveryInc/compound-engineering-plugin"
 CURSOR_PLUGINS="$HOME/.cursor/plugins/cache/cursor-public"
@@ -63,7 +63,7 @@ for r in "${REPOS[@]}"; do
   fi
 done
 
-echo "== Skills (every skill in dev-workflow and software-factory)"
+echo "== Skills (every skill in dev-workflow)"
 # The skill sync installs approved changes, proposes this Mac's own edits, captures edited
 # installed copies first, then deploys. Never deploy without it: that could overwrite an edit.
 if [[ -f "$DEV/dev-workflow/scripts/sync-skills.sh" ]]; then
