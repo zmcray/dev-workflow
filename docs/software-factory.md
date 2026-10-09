@@ -14,7 +14,7 @@
 |---|---|---|---|---|---|---|
 | 0 | **Capture** | You | anytime · 30 s | `/buildnote` | `Stage: Idea` issue | none — it's a shelf |
 | 1 | **Bet** | You | Thu · 15 min / project | `/zmcray-plan` Step 0 | bets + this week's appetite | bets ≤ appetite |
-| 2 | **Shape** | You + Claude | Thu · 30–60 min / bet | conversation, `/office-hours`, `/diagram`, `/hagen` | shape doc | loop sentence in one line; dominant risk named; design session yes/no decided |
+| 2 | **Shape** | You + Claude | Thu · 30–60 min / bet | conversation, `/ce-brainstorm`, `/diagram`, `/hagen` | shape doc | loop sentence in one line; dominant risk named; design session yes/no decided |
 | 3 | **Design session** | You drive, Claude Design draws | an evening · when triggered | `/design` canvas (or Figma/Excalidraw) | screens + flow + actions canvas; sketch summary | walk-through passed; verdict = keep |
 | 4 | **Commit** | You + the council | Thu · ~2 h | `/caspian` | PRD with Later Shelf; labeled issues | Red Team adjudicated; M1 = skeleton only |
 | 5 | **Spec** | Agent; you for taste calls | Thu evening · 1–2 h | `/zmcray-plan` | `spec-ready` queue | queue ≥ appetite; every issue ≥ 7; plans landed |
@@ -62,7 +62,7 @@
    - usability or value → **design session** (Stage 3)
    - feasibility → a **spike**: throwaway branch, timeboxed, never merges, produces a one-paragraph finding
    - viability → `/hagen` (go/no-go) or the Caspian council (Stage 4)
-4. Fill the **shape doc** (template in §7): problem, loop, spine, appetite, dominant risk + retirement plan, rabbit holes, no-gos (seeds for the Later Shelf). `/office-hours` when the question is product, not engineering.
+4. Fill the **shape doc** (template in §7): problem, loop, spine, appetite, dominant risk + retirement plan, rabbit holes, no-gos (seeds for the Later Shelf). `/ce-brainstorm` when the question is product, not engineering.
 5. **Decide the design session** with the rubric below.
 
 **When to run a design session — run one if ANY of these is true:**
