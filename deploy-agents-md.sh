@@ -205,7 +205,27 @@ for dir in "$DEV_DIR"/*/; do
   log ""
 done
 
+# --- Identical-block check: every deployed block must match the source byte for byte ---
+# Extracts the marked block from each repo's AGENTS.md and compares md5 against
+# AGENTS.workflow.md. Runs on dry runs too, so it doubles as a drift report.
+block_md5() { awk -v b="$BEGIN_MARK" -v e="$END_MARK" 'index($0,b){p=1} p{print} index($0,e){p=0}' "$1" | md5 -q; }
+SRC_MD5="$(md5 -q "$WORKFLOW_FILE")"
+mismatch=0
+log "--- identical-block check (source md5 $SRC_MD5) ---"
+for dir in "$DEV_DIR"/*/; do
+  dir="${dir%/}"; repo="$(basename "$dir")"; agents="$dir/AGENTS.md"
+  [[ -d "$dir/.git" && -f "$agents" ]] || continue
+  is_excluded "$repo" && continue
+  [[ -f "$dir/.agents-skip" ]] && continue
+  if [[ "$(block_md5 "$agents")" != "$SRC_MD5" ]]; then
+    mismatch=1; log "MISMATCH: $repo/AGENTS.md block differs from source"
+  fi
+done
+[[ $mismatch -eq 0 ]] && log "Every deployed block matches the source."
+log ""
+
 log "=== done. Log: $LOG ==="
 if [[ $DRY_RUN -eq 1 ]]; then
   log "Dry run only. Re-run without --dry-run to apply."
 fi
+[[ $DRY_RUN -eq 1 || $mismatch -eq 0 ]] || exit 1

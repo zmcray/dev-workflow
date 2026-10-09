@@ -111,7 +111,7 @@ PACKET mode: Red Team only, three findings max.
 ## Governance (holds on every mode)
 
 - **No-delete.** Features leave M1 by moving to the Later Shelf or Cancelled with a reason; never by silent removal. The PRD's Change Log and Decision Log are the audit trail.
-- **One initiative per product, ever** (AGENTS.md > Linear structure). EXPAND adds milestones, never an initiative.
+- **One initiative per product, ever** (`~/Developer/dev-workflow/rules/linear.md` > Linear structure). EXPAND adds milestones, never an initiative.
 - **Kick-back rule downstream:** a build that wants scope beyond this PRD comes back as a PACKET or REFRESH, not a side door.
 - **Later Shelf exit:** items whose kill condition or re-price date has passed surface at the next Bet stage (`MANUAL.md` Stage 1) and at every REFRESH kickoff.
 - **Never write a model name** into the PRD or an issue. `tier:*` is the signal; `software-factory/DISPATCH.md` maps it.

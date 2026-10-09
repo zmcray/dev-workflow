@@ -64,7 +64,7 @@ No Linear project is linked to this repo. What should I do?
 
 ### 3D: Shelf milestones (any linked project)
 
-Once a project is linked (3A, 3B, or 3C options 1-2), make sure the two cross-cutting shelves from AGENTS.md > Linear structure exist on it: **`Platform: hardening`** (residuals, tech debt, CI, ops) and **`Later: deferred`** (parked ideas). Create whichever is missing via `save_milestone`; never rename or touch existing milestones. Kickoff still creates no issues and no epic milestones... Caspian creates the `<Epic> N: <Outcome>` milestones and each epic's own shelves. This step only guarantees that a residual or a buildnote filed before any PRD exists has a home.
+Once a project is linked (3A, 3B, or 3C options 1-2), make sure the two cross-cutting shelves from `~/Developer/dev-workflow/rules/linear.md` exist on it: **`Platform: hardening`** (residuals, tech debt, CI, ops) and **`Later: deferred`** (parked ideas). Create whichever is missing via `save_milestone`; never rename or touch existing milestones. Kickoff still creates no issues and no epic milestones... Caspian creates the `<Epic> N: <Outcome>` milestones and each epic's own shelves. This step only guarantees that a residual or a buildnote filed before any PRD exists has a home.
 
 ## Step 4: Wire the AGENTS.md Layer
 
@@ -92,14 +92,14 @@ Don't consider a Supabase repo fully wired until this exists.
 
 ## Step 6: Audit GitHub Actions cost and safety
 
-If `.github/workflows/` is absent or empty, record "no workflows" and continue; kickoff does not create general-purpose CI by default. Otherwise inspect every workflow against the canonical **CI cost discipline** in `AGENTS.md`:
+If `.github/workflows/` is absent or empty, record "no workflows" and continue; kickoff does not create general-purpose CI by default. Otherwise inspect every workflow against the canonical **CI cost discipline** in `~/Developer/dev-workflow/rules/ci.md`:
 
 1. Record repository visibility and each job's runner class.
 2. Add safe mechanical defaults where missing: workflow/ref concurrency with cancellation, short artifact retention, failure-only diagnostic uploads, and secret/config preflights for scheduled or external-service jobs.
-3. Check that docs-only or monorepo path skipping goes through the **change-classification gate** in `AGENTS.md`: one always-running required gate, no workflow-level `paths:` filters on required checks, unknown paths run full CI. Verify the branch-protection required checks before changing triggers or check names.
+3. Check that docs-only or monorepo path skipping goes through the **change-classification gate** in `~/Developer/dev-workflow/rules/ci.md`: one always-running required gate, no workflow-level `paths:` filters on required checks, unknown paths run full CI. Verify the branch-protection required checks before changing triggers or check names.
 4. Flag expensive runner tiers, duplicated matrices, sub-minute job fragmentation, large artifacts, and full suites that run on every push. Recommend a fast required PR gate plus full merge/manual coverage where appropriate; never weaken required coverage just to save minutes.
 5. Keep scheduled workflows disabled until their required secrets and configuration are confirmed.
-6. Check the **CI tiers** rule in `AGENTS.md`: a path-mapped PR gate under ~10 minutes, one build reused by every test step, full suites and release/archive/deploy jobs on the default branch only, and flaky tests quarantined. If the repo breaks any of these and the fix is not a safe mechanical edit, file one `Platform: hardening` issue to bring CI in line (priority Medium, `flow:standard`, `ops`) and say so in the handoff.
+6. Check the **CI tiers** rule in `~/Developer/dev-workflow/rules/ci.md`: a path-mapped PR gate under ~10 minutes, one build reused by every test step, full suites and release/archive/deploy jobs on the default branch only, and flaky tests quarantined. If the repo breaks any of these and the fix is not a safe mechanical edit, file one `Platform: hardening` issue to bring CI in line (priority Medium, `flow:standard`, `ops`) and say so in the handoff.
 
 Apply unambiguous repository-local fixes. Surface topology or branch-protection choices that need product/release judgment in the handoff.
 
