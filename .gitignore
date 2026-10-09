@@ -2,3 +2,4 @@ deploy-*.log
 .DS_Store
 backups/
 .env*
+node_modules/

@@ -5,22 +5,23 @@
 # review. Run by the com.mcray.skill-sync launch agent (see install-skill-sync.sh), by
 # setup-factory-machine.sh, by /factory before a night shift, and by hand. Safe to re-run.
 #
-# For ~/Developer/dev-workflow and ~/Developer/software-factory (main checkouts on main only):
+# For ~/Developer/dev-workflow (the main checkout, on main only; the factory docs and folder
+# skills live in its factory/ folder):
 #
 #   1. Capture. An installed Claude copy edited in place since the last deploy (its hash no
 #      longer matches ~/.claude/.skill-sync-manifest) is copied back into its repo. A skill
 #      written straight into ~/.claude/skills/<name>/ (not gstack's, not in skill-sync.ignore,
-#      never deployed by us) is adopted into software-factory/skills/<name>/; a loose
-#      ~/.claude/commands/<name>.md into software-factory/commands/.
+#      never deployed by us) is adopted into factory/skills/<name>/; a loose
+#      ~/.claude/commands/<name>.md into commands/.
 #   2. Install what is approved. Fast-forward to origin/main (merged changes only), keeping
 #      local edits (--autostash). If a local edit collides with an approved change, the
 #      approved version wins for that file only and the edit is kept in a named stash.
 #   3. Propose what is not. Any local change left (edits, new files, local commits) becomes one
 #      commit on this Mac's branch sync/<host>, built in a temporary index so the working tree
-#      and main are untouched, secret-scanned with gitleaks (fail closed: dev-workflow is
-#      public), pushed, and opened as a pull request. Merging it is the approval. This job
+#      and main are untouched, secret-scanned with gitleaks (fail closed: a proposal is
+#      pushed to GitHub), pushed, and opened as a pull request. Merging it is the approval. This job
 #      never merges and never pushes to main.
-#   4. Deploy. deploy-skills.sh re-installs every skill from the repos, keeping any edited copy
+#   4. Deploy. deploy-skills.sh re-installs every skill from the repo, keeping any edited copy
 #      it would overwrite and retiring skills removed upstream.
 #
 # One macOS notification per run, only when something needs Zack (a new proposal, a rule-file
@@ -36,7 +37,7 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
 DEV_ROOT="${DEV_ROOT:-$HOME/Developer}"
 WF="$DEV_ROOT/dev-workflow"
-SF="$DEV_ROOT/software-factory"
+SF="$WF/factory"
 GH="${GH:-gh}"
 GITLEAKS="${GITLEAKS:-gitleaks}"
 DRY="${SKILL_SYNC_DRY:-0}"
@@ -88,7 +89,7 @@ eligible() {
 
 OK_WF=0; OK_SF=0
 eligible "$WF" && OK_WF=1
-eligible "$SF" && OK_SF=1
+OK_SF=$OK_WF   # factory/ is a folder in the same checkout
 
 # ── 1. capture ────────────────────────────────────────────────────────────
 is_ignored() { [[ -f "$IGNORE_FILE" ]] && grep -v '^[[:space:]]*#' "$IGNORE_FILE" | grep -qxF "$1"; }
@@ -102,7 +103,7 @@ manifest_owns() {
   [[ -f "$MANIFEST" ]] || return 1
   awk -v p="$1" '{ sub(/^[^ ]+  /, ""); if ($0 == p || index($0, p "/") == 1) { found = 1; exit } } END { exit !found }' "$MANIFEST"
 }
-repo_of() { case "$1" in "$WF"/*) echo "$WF" ;; *) echo "$SF" ;; esac; }
+repo_of() { echo "$WF"; }
 
 # Copy an installed file back to its repo source if it was edited since the last deploy.
 capture_file() {
@@ -131,7 +132,6 @@ else
     for src in "$WF"/commands/*.md; do [[ -f "$src" ]] && capture_file "$HOME/.claude/commands/$(basename "$src")" "$src"; done
   fi
   if [[ $OK_SF -eq 1 ]]; then
-    for src in "$SF"/commands/*.md; do [[ -f "$src" ]] && capture_file "$HOME/.claude/commands/$(basename "$src")" "$src"; done
     for src in "$SF"/skills/*/; do
       [[ -d "$src" ]] || continue
       src="${src%/}"; inst="$HOME/.claude/skills/$(basename "$src")"
@@ -159,16 +159,16 @@ if [[ $OK_SF -eq 1 ]]; then
       mkdir -p "$SF/skills/$name"; cp -R "$d/." "$SF/skills/$name/"
       find "$SF/skills/$name" -name .DS_Store -delete
     fi
-    log "${DRY_TAG}adopted skill $name into software-factory/skills"
+    log "${DRY_TAG}adopted skill $name into factory/skills"
   done
   for f in "$HOME"/.claude/commands/*.md; do
     [[ -f "$f" && ! -L "$f" ]] || continue
     name="$(basename "$f" .md)"
-    [[ -f "$WF/commands/$name.md" || -f "$SF/commands/$name.md" ]] && continue
+    [[ -f "$WF/commands/$name.md" ]] && continue
     manifest_owns "$f" && continue
     is_ignored "$name" && continue
-    [[ "$DRY" == "1" ]] || { mkdir -p "$SF/commands"; cp "$f" "$SF/commands/$name.md"; }
-    log "${DRY_TAG}adopted command $name into software-factory/commands"
+    [[ "$DRY" == "1" ]] || cp "$f" "$WF/commands/$name.md"
+    log "${DRY_TAG}adopted command $name into commands"
   done
 fi
 
@@ -313,9 +313,9 @@ ${rules:+
   alert "$r: $n file(s) from $HOST up for review${rules:+ (rule files: $rules)} $pr"
 }
 
-for p in "$WF" "$SF"; do
+for p in "$WF"; do
   r="$(basename "$p")"
-  if [[ "$p" == "$WF" && $OK_WF -eq 0 ]] || [[ "$p" == "$SF" && $OK_SF -eq 0 ]]; then continue; fi
+  [[ $OK_WF -eq 0 ]] && continue
   if ! git -C "$p" fetch -q --prune origin 2>/dev/null; then
     alert "$r: fetch failed (offline?), not synced"; continue
   fi
@@ -325,8 +325,8 @@ done
 
 # ── 4. deploy ─────────────────────────────────────────────────────────────
 # Only from repos that are on main: never install a feature branch's skills.
-if [[ $OK_WF -eq 0 || $OK_SF -eq 0 ]]; then
-  alert "skills not redeployed until both repos are back on main"
+if [[ $OK_WF -eq 0 ]]; then
+  alert "skills not redeployed until dev-workflow is back on main"
 elif [[ "$DRY" == "1" ]]; then
   log "skills: ${DRY_TAG}would deploy"
 elif out="$(DEV_ROOT="$DEV_ROOT" bash "$WF/deploy-skills.sh" 2>&1)"; then

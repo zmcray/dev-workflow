@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 #
 # deploy-skills.sh
-# Installs every skill from the two workflow repos into every harness. Nothing is listed by
-# hand: whatever is in the repos is what ships.
+# Installs every skill in this repo into every harness. Nothing is listed by
+# hand: whatever is in the repo is what ships.
 #
 #   dev-workflow/commands/<name>.md       ->  ~/.claude/commands/<name>.md            (Claude Code)
-#   software-factory/commands/<name>.md   ->  ~/.cursor/skills/<name>/SKILL.md        (Cursor)
+#                                         ->  ~/.cursor/skills/<name>/SKILL.md        (Cursor)
 #                                         ->  ~/.agents/skills/<name>/SKILL.md        (Codex, unless a
 #                                                                                      native version exists)
 #   dev-workflow/codex/skills/<name>/     ->  ~/.codex/skills/<name>/                 (Codex-native skill)
-#   software-factory/skills/<name>/       ->  ~/.claude/skills/<name>/, ~/.agents/skills/<name>/,
+#   dev-workflow/factory/skills/<name>/   ->  ~/.claude/skills/<name>/, ~/.agents/skills/<name>/,
 #                                             ~/.cursor/skills/<name>/
 #   dev-workflow/scripts/factory-asks.sh  ->  ~/.local/bin/factory-asks              (helper on PATH)
 #
@@ -37,7 +37,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEV_ROOT="${DEV_ROOT:-$HOME/Developer}"
-SF="$DEV_ROOT/software-factory"
+SF="$SCRIPT_DIR/factory"
 CLAUDE_CMDS="$HOME/.claude/commands"
 CLAUDE_SKILLS="$HOME/.claude/skills"
 AGENTS_DIR="$HOME/.agents/skills"
@@ -100,8 +100,8 @@ archive_codex_fork() {
   if [[ $DRY_RUN -eq 0 ]]; then mkdir -p "$CODEX_ARCHIVE"; mv "$CODEX_DIR/$name" "$dest"; fi
 }
 
-# Commands: one markdown file each, from either repo.
-for src in "$SCRIPT_DIR"/commands/*.md "$SF"/commands/*.md; do
+# Commands: one markdown file each.
+for src in "$SCRIPT_DIR"/commands/*.md; do
   [[ -f "$src" ]] || continue
   name="$(basename "$src" .md)"
   echo "SKILL $name"
@@ -128,7 +128,7 @@ for src in "$SCRIPT_DIR"/codex/skills/*/; do
   [[ $DRY_RUN -eq 1 ]] || { mkdir -p "$CODEX_DIR/$name"; cp -R "$src." "$CODEX_DIR/$name/"; }
 done
 
-# Folder skills owned by software-factory.
+# Folder skills, kept under factory/skills/.
 for src in "$SF"/skills/*/; do
   [[ -d "$src" ]] || continue
   src="${src%/}"; name="$(basename "$src")"
