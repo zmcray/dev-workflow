@@ -19,7 +19,7 @@
 | 0 | **Capture** | You | anytime · 30 s | `/buildnote` | `Stage: Idea` issue | none — it's a shelf |
 | 0s | **Sort** | Agent | the first time planning touches an issue; nightly sweep before `/factory` as backup | the planning step itself, or the scheduled sort job (`SORT.md`) | one `design:*` rung + one sort card per open issue | every open issue sorted, or `sort:needs-answers` with questions |
 | 1 | **Bet** | You | mapping day · 15 min / project | the Linear idea shelf, read against the product's `STRATEGY.md` | bets + this week's appetite | bets ≤ appetite |
-| 2 | **Shape** | You + Claude | mapping day · 30–60 min / bet | conversation, `/office-hours`, `/diagram`, `/hagen` | shape doc | loop sentence in one line; dominant risk named; design rung set |
+| 2 | **Shape** | You + Claude | mapping day · 30–60 min / bet | conversation, `/ce-brainstorm`, `/diagram`, `/hagen` | shape doc | loop sentence in one line; dominant risk named; design rung set |
 | 3 | **Design session** | You drive, Claude Design draws | one design block in the daily hour · on `design:screens` and up | `/design` canvas (or Figma/Excalidraw) | screens + flow + actions canvas; sketch summary | walk-through passed; verdict = keep |
 | 4 | **Commit** | You + the council | mapping day · ~1 h (PACKET: 30 min) | `/caspian` v3 | PRD with Later Shelf; labeled issues | Red Team adjudicated; M1 = skeleton only |
 | 5 | **Spec** | Agent; you for taste calls | spec days · the daily hour | `/ce-plan` → `/packets` | `spec-ready` chunks | queue ≥ appetite; every issue ≥ 7; plans landed |
@@ -67,7 +67,7 @@
    - usability or value → **design session** (Stage 3)
    - feasibility → a **spike**: throwaway branch, timeboxed, never merges, produces a one-paragraph finding
    - viability → `/hagen` (go/no-go) or the Caspian council (Stage 4)
-4. Fill the **shape doc** (template in §7): problem, loop, spine, appetite, dominant risk + retirement plan, rabbit holes, no-gos (seeds for the Later Shelf). `/office-hours` when the question is product, not engineering.
+4. Fill the **shape doc** (template in §7): problem, loop, spine, appetite, dominant risk + retirement plan, rabbit holes, no-gos (seeds for the Later Shelf). `/ce-brainstorm` when the question is product, not engineering.
 5. **Confirm the design rung.** Planning sorts an unsorted issue the moment it touches it, and the nightly sweep catches the rest (Stage 0s); overrule it here if it is wrong, and say why in the sort card thread.
 
 **The five design rungs.** One rule for how much drawing an issue needs. The sort picks the first rung that fits, from the top.
@@ -84,7 +84,7 @@
 - **One canvas per group**, opened inside the repo so it uses real components. Link it on every issue in the group with a `Canvas: <url>` line. Chat mockups are not the contract.
 - **Design brief.** When planning stops at "design first", it writes a brief for the group (`templates/design-brief.md` → `docs/design/briefs/` in the project repo): your steps, a paste-ready Claude Design prompt with the screens and design rules inlined, and a "Done when" checklist. It prints the steps and waits. You open Claude Design, paste, draw, and reply `canvas <url>`; planning links it on every issue and carries on. You never have to go find what to draw.
 - **Spec gate.** An issue on `screens`, `journey` or `product` cannot be `spec-ready` without its canvas link. `/packets` withholds `spec-ready`, and `/factory` skips it as `no-canvas` even if someone labels it by hand.
-- **Helpers:** Mobbin for how other apps solve a screen; `/plan-design-review` on the plan to catch missing states.
+- **Helpers:** Mobbin for how other apps solve a screen; `/ce-doc-review` on the plan (its design lens) to catch missing states.
 
 **Gate.** Loop sentence in one line, dominant risk named with a retirement plan, design session decided. A bet that can't pass this gate in an hour goes back to the shelf with a note — that's a win, not a failure.
 
