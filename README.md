@@ -7,7 +7,9 @@ Lives at `~/Developer/dev-workflow` (private GitHub repo). Dev infrastructure si
 ## Layout
 
 ```
-AGENTS.workflow.md          canonical, tool-agnostic workflow block (single source of truth)
+AGENTS.workflow.md          canonical, tool-agnostic workflow core: hard rules only, kept to 60 lines
+rules/                      the procedures, one file per topic, read on demand from this path
+                            (build, linear, chunks, design, goal-runs, delegation, ci, setup, research)
 deploy-agents-md.sh         pushes the block into each repo + repoints CLAUDE.md
 templates/
   AGENTS.md.template        AGENTS.md scaffold: {{REPO}} header + {{CANONICAL_WORKFLOW}} marker
@@ -26,7 +28,9 @@ Each repo gets an `AGENTS.md` = repo-specific context header + the canonical wor
 
 The deploy script builds these from `templates/`. A fresh repo's `AGENTS.md` is rendered from `templates/AGENTS.md.template` (the `{{REPO}}` header placeholder is filled in and the `{{CANONICAL_WORKFLOW}}` marker is replaced with the contents of `AGENTS.workflow.md`, so the block stays single-sourced). `CLAUDE.md` is copied from `templates/CLAUDE.md.template`. A repo that already has context in its `CLAUDE.md` keeps that as the header instead of the scaffold. Re-runs only re-sync the marked block.
 
-The block defines the two routing signals (`flow:*` rigor + `prd-source` strategy-done), the flow table, the four phases (Think / Plan / Execute / Learn) as roles with command implementations (gstack, Compound Engineering) and native fallbacks, the four orthogonal axes (flow / effort / delegation / autonomy), plus commit / test-first / residual / kick-back / escalation discipline, and the one-time Project setup convention.
+The block is a **60-line core**: the never-do list, the merge and commit rules, the Linear basics, where things live, and one "read before" pointer per procedure. It loads in every session, so it holds only what must always be true. The procedures sit in `rules/` and are read from `~/Developer/dev-workflow/rules/` when a task needs them; they are not copied into repos, so editing one takes effect on the next read (the other Mac gets it when its checkout fast-forwards). Skills such as `/factory` and `/packets` point at the same files. Keep the core at 60 lines or fewer and no line over 300 characters; anything longer belongs in a rules file.
+
+Together, core and rules define the two routing signals (`flow:*` rigor + `prd-source` strategy-done), the flow table, the four phases (Think / Plan / Execute / Learn) as roles with command implementations (gstack, Compound Engineering) and native fallbacks, the four orthogonal axes (flow / effort / delegation / autonomy), plus commit / test-first / residual / kick-back / escalation discipline, and the one-time Project setup convention.
 
 The **Delegation** axis is a hard rule, not a hint: every step with more than a couple of tool calls must have a stated tier call, the default is delegate-and-downshift, and all GitHub/CI work that loops or returns bulk output (CI watch, Actions log reduction, PR body assembly, workflow YAML) runs on the cheapest tier that can do it. Judgment — flow triage, plan approval, architecture, failure diagnosis, the merge call — stays in the main thread. The `zmcray-*` command files name Claude Code's models directly (`haiku` / `sonnet` / `opus`); plans and Linear issues never do, since other harnesses read those.
 
@@ -39,7 +43,7 @@ bash ~/Developer/dev-workflow/deploy-agents-md.sh --dry-run   # preview
 bash ~/Developer/dev-workflow/deploy-agents-md.sh             # apply
 ```
 
-Idempotent and non-destructive: re-running re-syncs the block, backs up any replaced `CLAUDE.md` to `CLAUDE.md.pre-agents.bak`, never deletes, and skips repos not yet in `~/Developer`. A timestamped log is written next to the script.
+Idempotent and non-destructive: re-running re-syncs the block, backs up any replaced `CLAUDE.md` to `CLAUDE.md.pre-agents.bak`, never deletes, and skips repos not yet in `~/Developer`. A timestamped log is written next to the script. It ends with an **identical-block check**: the md5 of every repo's marked block must match `AGENTS.workflow.md`, and a live run exits non-zero on any mismatch.
 
 The script also runs a **skill drift check** first: it compares every `commands/*.md` and `codex/skills/*/SKILL.md` source against its deployed copy (`~/.claude/commands/`, `~/.codex/skills/`) and warns with the direction — a deployed copy newer than source means someone edited the live file and it must be synced back before touching source; a newer source means the deploy cp below hasn't run. Warn-only; it never copies skills itself.
 

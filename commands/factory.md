@@ -1,12 +1,12 @@
 ---
 name: factory
-description: The night shift. With no arguments, drains everything spec-ready in this repo's Linear project overnight under a budget (stop time, 12-hour run limit), skips anything that needs a human, and leaves a run ledger plus a morning report. Wraps the harness's goal mode (Claude Code, Codex, or Cursor); the build rules stay in AGENTS.md. Use for "/factory", "run the factory", "start the night shift", "drain the queue". NOT for a single issue (/lfg) or a named objective (/goal <objective>).
+description: The night shift. With no arguments, drains everything spec-ready in this repo's Linear project overnight under a budget (stop time, 12-hour run limit), skips anything that needs a human, and leaves a run ledger plus a morning report. Wraps the harness's goal mode (Claude Code, Codex, or Cursor); the build rules stay in AGENTS.md and ~/Developer/dev-workflow/rules/. Use for "/factory", "run the factory", "start the night shift", "drain the queue". NOT for a single issue (/lfg) or a named objective (/goal <objective>).
 argument-hint: "(none) | --dry-run | --stop-at HH:MM | --max-hours N"
 ---
 
 # Factory
 
-`/packets` fills the queue during the day. `/factory` drains it at night and stops before you wake up. It adds exactly four things on top of AGENTS.md > Autonomous runs: a queue read with no argument, a budget checked before every chunk, a ledger the morning can read, and a stored list of what the run needs from Zack (asks) that Pulse shows until he closes each one. Everything about how a chunk is built (chunk sweep, pull order, human parks, merge on green, session close, delegation by tier) is the existing goal-mode contract and is not restated here. If a build rule needs to change, change AGENTS.md, not this file.
+`/packets` fills the queue during the day. `/factory` drains it at night and stops before you wake up. It adds exactly four things on top of `~/Developer/dev-workflow/rules/goal-runs.md`: a queue read with no argument, a budget checked before every chunk, a ledger the morning can read, and a stored list of what the run needs from Zack (asks) that Pulse shows until he closes each one. Everything about how a chunk is built (chunk sweep, pull order, human parks, merge on green, session close, delegation by tier) is the existing goal-mode contract and is not restated here. If a build rule needs to change, change AGENTS.workflow.md or the rules/ file in dev-workflow, not this file.
 
 Standing contract: **never ask the user anything.** Every would-be question is a one-line judgment call logged to the relevant Linear issue. The only exits are the four endings in `~/Developer/software-factory/DISPATCH.md`: queue empty, budget stop, human park (per chunk, run continues), hard stop.
 
@@ -55,9 +55,9 @@ With an asks warning from Step 1.4, send nothing: move every earlier `asks_pendi
 
 ## Step 2: Read the queue
 
-Query the project's issues: `spec-ready`, state type not started/completed/canceled, not `gate:human`, not `ops`, no open `blocked by`. Then drop any issue labeled `design:screens`, `design:journey`, or `design:product` that has no canvas link (a Linear attachment, or a `Canvas: <url>` or `Artboard: <url>` line in the description). That is the AGENTS.md Spec gate: `spec-ready` without a canvas means someone skipped the design block, and the night never builds screens nobody drew. Order: priority (Urgent > High > Medium > Low), then wave from the parent plan's `## Chunks` table when the issue is a chunk, then oldest first.
+Query the project's issues: `spec-ready`, state type not started/completed/canceled, not `gate:human`, not `ops`, no open `blocked by`. Then drop any issue labeled `design:screens`, `design:journey`, or `design:product` that has no canvas link (a Linear attachment, or a `Canvas: <url>` or `Artboard: <url>` line in the description). That is the Spec gate (`~/Developer/dev-workflow/rules/design.md`): `spec-ready` without a canvas means someone skipped the design block, and the night never builds screens nobody drew. Order: priority (Urgent > High > Medium > Low), then wave from the parent plan's `## Chunks` table when the issue is a chunk, then oldest first.
 
-Run the **chunk sweep** first, exactly as AGENTS.md describes it, so plans written today are cut before the queue is read.
+Run the **chunk sweep** first, exactly as `~/Developer/dev-workflow/rules/goal-runs.md` describes it, so plans written today are cut before the queue is read.
 
 Print the shift plan once and start. No confirmation.
 
@@ -103,15 +103,15 @@ Every item row is written **when the chunk starts** and updated when it ends, so
 
 ## Step 3b: Write the morning wizards
 
-Before the first chunk, so the human batch is ready even on a short night. Find the project's open `gate:human` issues whose human step is a **procedure** (AGENTS.md > Wizards for human procedures) and that have no `Wizard:` line in the description or comments. A `Human gate:` line without a `procedure:` or `judgment:` prefix is classified from its wording; unsure means judgment, no wizard. Highest priority first, at most 5 a night; the rest wait for tomorrow.
+Before the first chunk, so the human batch is ready even on a short night. Find the project's open `gate:human` issues whose human step is a **procedure** (`~/Developer/dev-workflow/rules/chunks.md` > Wizards for human procedures) and that have no `Wizard:` line in the description or comments. A `Human gate:` line without a `procedure:` or `judgment:` prefix is classified from its wording; unsure means judgment, no wizard. Highest priority first, at most 5 a night; the rest wait for tomorrow.
 
-For each, write the wizard with the `wizard` skill (unattended rules in AGENTS.md), all of them in one `chore:` PR that names no issue ID anywhere (branch, title, commit subjects or body: AGENTS.md > Commits), so no issue is started by it. Merge on green, then comment the PR URL and `Wizard: bash scripts/wizards/<file>.sh` on each issue with the stage list. Record `"wizards": [{ "issue", "file" }]` in the ledger. A red wizard PR is not a hard stop: close it, note it in the ledger, and start the shift.
+For each, write the wizard with the `wizard` skill (unattended rules in `~/Developer/dev-workflow/rules/chunks.md`), all of them in one `chore:` PR that names no issue ID anywhere (branch, title, commit subjects or body: the AGENTS.md core, Never list), so no issue is started by it. Merge on green, then comment the PR URL and `Wizard: bash scripts/wizards/<file>.sh` on each issue with the stage list. Record `"wizards": [{ "issue", "file" }]` in the ledger. A red wizard PR is not a hard stop: close it, note it in the ledger, and start the shift.
 
 ## Step 4: The shift
 
 Arm the harness's goal mode (see **Running on each harness**) with this condition and let it drive:
 
-> Goal: drain the factory queue for <project> under the budget in `docs/factory/runs/<date>.json`. Before starting any chunk: re-read the ledger, stop if the clock is past `last_dispatch` or past `hour_limit`, re-query Linear for the next eligible issue (the board may have changed). Build each chunk per AGENTS.md > Autonomous runs. Update the ledger row at start and end of every chunk. Ending conditions are queue empty, deadline, run limit, or hard stop; write `stop_reason` and finish with Step 5.
+> Goal: drain the factory queue for <project> under the budget in `docs/factory/runs/<date>.json`. Before starting any chunk: re-read the ledger, stop if the clock is past `last_dispatch` or past `hour_limit`, re-query Linear for the next eligible issue (the board may have changed). Build each chunk per `~/Developer/dev-workflow/rules/goal-runs.md`. Update the ledger row at start and end of every chunk. Ending conditions are queue empty, deadline, run limit, or hard stop; write `stop_reason` and finish with Step 5.
 
 The budget check happens **between chunks, never inside one**. A chunk that is running at `stop_at` or `hour_limit` finishes; it is the 45-minute margin's job to make the `stop_at` case rare. The run limit has no margin: at `hour_limit` the in-flight chunk completes and nothing new starts.
 
@@ -140,7 +140,7 @@ Factory <date> (<lane>, run:<run_id>): <k> merged, <p> parked for a human, <f> f
 Asks: <w> filed, <r> resolved, <o> open. (or) Asks not synced: <asks.warning>. The Morning review below is the record for this run.
 Merged: MCR-… (PR), MCR-… (PR)
 Human batch: MCR-… — <one-line ask> (procedure: `Run: bash scripts/wizards/<file>.sh`)
-Needs design first: MCR-… → brief docs/design/briefs/<file> (spec-ready but no canvas; write the brief per AGENTS.md > Design brief if none exists; omit the line at zero)
+Needs design first: MCR-… → brief docs/design/briefs/<file> (spec-ready but no canvas; write the brief per `~/Developer/dev-workflow/rules/design.md` > Design brief if none exists; omit the line at zero)
 Failed: MCR-… — <one line>
 Sweep: <r> reset to Todo (MCR-…), <s> stale started (MCR-…), <m> merged but open (MCR-…) (omit the line when all three are zero)
 Next: <first eligible issue left in the queue, or "queue empty: plan first">
@@ -152,7 +152,7 @@ Where to look: <tab / screen / URL>
 
    **The first line starts `Factory <date> (<lane>, run:<run_id>)`**, exactly. Pulse keeps only updates that start with `Factory `, reads the date from that line, and matches `run:<run_id>` against the sync markers; a run id anywhere else counts as unsynced. Keep the `## Morning review` section even when the asks synced: it is the human-readable record.
    **Times are ET (America/New_York), always.** Every time a human reads (status update, checklist, merge comments) is written in ET, e.g. `6:00 AM ET`, never UTC. Convert cron and workflow schedules (`10:00 UTC` → `6:00 AM ET` in EDT, `5:00 AM ET` in EST) using the date the reader will act on.
-5. Open a `docs:` PR with the ledger file (and any earlier ledger whose `asks_pending` changed) and any archived plans, naming no issue ID anywhere (AGENTS.md > Commits), merge on green. It is the last PR of the night.
+5. Open a `docs:` PR with the ledger file (and any earlier ledger whose `asks_pending` changed) and any archived plans, naming no issue ID anywhere (the AGENTS.md core, Never list), merge on green. It is the last PR of the night.
 6. Close with one line: **"Factory done: <k>/<E> merged, stopped on <reason>. Morning batch: <p> issues, <w> with a wizard. Asks: <o> open (<synced | not synced: reason>)."**
 
 When any row is `awaiting-apply`, Step 5 also adds an `Apply batch: MCR-… (PR …), …` line to the status update, files one `apply-migration` follow-up per chunk (runbook: confirm the migration name with `list_migrations`, then merge the PR), and then runs Step 6.
@@ -265,7 +265,7 @@ A resolve that finds the ask already closed (Zack pressed Done first) exits 0. P
 
 - **Do not shadow built-ins.** This command wraps goal mode; it must never be renamed to `goal`, `loop`, or `schedule` (D-022). Claude Code, Codex, and Cursor all ship a built-in with at least one of those names.
 - **Anything the harness refuses to run unattended is a human gate.** A prod migration apply, a dashboard toggle, a command that returns pending approval (Claude's auto-mode classifier, a Codex sandbox escalation, a Cursor run prompt). Park it, do not wait on it. If `/packets` missed the gate, say so in the morning report so the packet rule improves.
-- **iOS repos.** One Mac runner builds one PR at a time, so land chunks in groups (AGENTS.md > Landing: group PRs): CI runs once per group, not per chunk. The clocks stop the run, same as web.
+- **iOS repos.** One Mac runner builds one PR at a time, so land chunks in groups (`~/Developer/dev-workflow/rules/chunks.md` > Landing: group PRs): CI runs once per group, not per chunk. The clocks stop the run, same as web.
 - **Spend cap.** Not enforced interactively. When the factory moves to a headless Routine launch, pass `--max-budget-usd` and add `budget` as a stop reason.
 
 ## Running on each harness
