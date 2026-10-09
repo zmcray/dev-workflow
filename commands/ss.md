@@ -60,7 +60,7 @@ Don't ask "which file?" — search the codebase first. Only ask if truly ambiguo
 ### `do this` / `copy this` / `remix` / `steal this`
 Zack saw someone do something smart online and wants to apply it to his work. Steps:
 1. Extract the *mechanism* — what exactly is clever here? (format, hook, structure, tactic, visual, copy pattern)
-2. Pull in Zack's context: read `/Users/zacharymcray/Documents/Work/00_Context/about-me.md`, `voice-and-style.md`, `McRayGroup.md`, and the thesis section of `CLAUDE.md`.
+2. Pull in Zack's context: read `/Users/zacharymcray/Documents/Work/00_Context/about-me.md`, `voice-and-style.md`, `McRayGroup.md`, and the Thesis Summary section of `/Users/zacharymcray/Documents/Work/AGENTS.md`.
 3. Remix it for Zack's goals — LMM PE, AI-native consulting, wealth management vertical, the Operator's Moment thesis. Match his voice (no em dashes, direct, no fluff).
 4. Produce the actual artifact (post, outline, script, page, diagram), not a plan to produce it.
 
@@ -86,4 +86,4 @@ Output the result of the action. No preamble, no "I'll now…". Ship the finishe
 - **Never ask "which screenshot did you mean?"** — you grabbed them by recency, trust the order.
 - **Timezone is ET.** Dates in ET.
 - **No em dashes.** Use commas, periods, semicolons, or "..." per `voice-and-style.md`.
-- **Boil the ocean.** Per `CLAUDE.md` Standard of Work: ship the complete thing, not a plan to build it.
+- **Boil the ocean.** Per the Work folder `AGENTS.md` Standard of Work: ship the complete thing, not a plan to build it.
