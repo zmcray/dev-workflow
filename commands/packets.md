@@ -16,7 +16,7 @@ It does not plan, re-plan, or second-guess the plan's decisions. If the plan is 
 2. **Linear project.** Read `.linear-project.json` at the repo root (monorepo: the app's own link file). No link file → stop and say to run `/zmcray-kickoff`.
 3. **Parent.** If the plan header carries a `Linear Issue`, that issue is the parent: chunks are created as its sub-issues and inherit its milestone, `flow:*`, and `prd-source`. Otherwise create one umbrella issue named after the plan, per `~/Developer/dev-workflow/rules/linear.md`, and hang the chunks under it.
 4. **Vocabulary.** Read `CONCEPTS.md` if present. Chunk titles and descriptions use its terms.
-5. **Rung (sort on touch).** The parent (or the umbrella you are about to create) has no `design:*` label → sort it now, before cutting: `~/Developer/software-factory/SORT.md` Steps 2 to 4 for that one issue, which writes the label and the sort card. State the rung in one line. Cannot place it and no best guess → print the questions and stop. Otherwise continue; the Design gate in Step 5 does the rest. `/ce-plan` usually sorted it already; this is the backstop, so planning never waits on the nightly job.
+5. **Rung (sort on touch).** The parent (or the umbrella you are about to create) has no `design:*` label → sort it now, before cutting: `~/Developer/dev-workflow/factory/SORT.md` Steps 2 to 4 for that one issue, which writes the label and the sort card. State the rung in one line. Cannot place it and no best guess → print the questions and stop. Otherwise continue; the Design gate in Step 5 does the rest. `/ce-plan` usually sorted it already; this is the backstop, so planning never waits on the nightly job.
 
 **This command is normally invoked for you.** The AGENTS.md core rule has any session cut a 3+ unit plan into chunks before building or ending, and every `/goal` run opens with a chunk sweep. Running it by hand is only for spec time when you want to see the waves before bedtime.
 
@@ -47,7 +47,7 @@ Exactly one per chunk. Judge how hard it is to get **right** (novelty, ambiguity
 - `tier:moderate` ... familiar reasoning against a settled spec. Most chunks.
 - `tier:judgment` ... novel, several plausible approaches, or concurrency / security / data-correctness traps.
 
-**Never write a model name in an issue.** The tier-to-model map lives in `software-factory/DISPATCH.md` and is applied at dispatch. Note the floor: even `tier:mechanical` is built by a model that writes code well (sonnet today); the cheapest model only reads. If more than about a third of the chunks are `tier:judgment`, the cut is too coarse: split until the hard part sits in one or two chunks. State each call in one line.
+**Never write a model name in an issue.** The tier-to-model map lives in `~/Developer/dev-workflow/factory/DISPATCH.md` and is applied at dispatch. Note the floor: even `tier:mechanical` is built by a model that writes code well (sonnet today); the cheapest model only reads. If more than about a third of the chunks are `tier:judgment`, the cut is too coarse: split until the hard part sits in one or two chunks. State each call in one line.
 
 ## Step 4b: Human-gate triage
 
@@ -58,9 +58,9 @@ For every chunk ask: **can this finish overnight with nobody present?** Apply `g
 One issue per chunk, created in dependency order so edges can reference real IDs. Follow `~/Developer/dev-workflow/rules/linear.md` (milestone required, priority never None, sub-issues inherit the parent's milestone).
 
 - **Title:** `U3: <imperative, one line>`
-- **Labels:** the parent's `flow:*`, the parent's `design:*`, exactly one `tier:*`, `spec-ready`, `prd-source` if the parent has it, and `gate:human` from Step 4b where it applies. Never apply `night-eligible`... that label is human-applied.
+- **Labels:** the parent's `flow:*`, the parent's `design:*`, exactly one `tier:*`, `spec-ready`, `prd-source` if the parent has it, and `gate:human` from Step 4b where it applies.
 - **Relations:** native `blocked by` links from Step 3.
-- **Body** (the build packet, `software-factory/templates/build-packet.md`):
+- **Body** (the build packet, `~/Developer/dev-workflow/factory/templates/build-packet.md`):
 
 ```
 ## Build packet
@@ -73,7 +73,7 @@ Out of scope: <what this chunk deliberately does not do; name the sibling chunks
 Lands in: <landing group name> (commit <k> of <n>; one commit per chunk; the PR opens after the last chunk)
 ```
 
-**Design gate.** If the parent is `design:screens`, `design:journey`, or `design:product`, every chunk that touches UI needs a real canvas URL on its `Artboard:` line (`~/Developer/dev-workflow/rules/design.md` > Spec gate). No canvas on the parent or the plan → create the chunks without `spec-ready`, write the **design brief** for the group (`~/Developer/dev-workflow/rules/design.md` > Design brief; template `~/Developer/software-factory/templates/design-brief.md`) to `docs/design/briefs/`, comment "design first: brief at <path>" on the parent and each UI chunk, and end the handoff (Step 6) with the brief's table and "Your steps". Never write `n/a (no UI)` to get past it, and never hand off a bare "draw the canvas".
+**Design gate.** If the parent is `design:screens`, `design:journey`, or `design:product`, every chunk that touches UI needs a real canvas URL on its `Artboard:` line (`~/Developer/dev-workflow/rules/design.md` > Spec gate). No canvas on the parent or the plan → create the chunks without `spec-ready`, write the **design brief** for the group (`~/Developer/dev-workflow/rules/design.md` > Design brief; template `~/Developer/dev-workflow/factory/templates/design-brief.md`) to `docs/design/briefs/`, comment "design first: brief at <path>" on the parent and each UI chunk, and end the handoff (Step 6) with the brief's table and "Your steps". Never write `n/a (no UI)` to get past it, and never hand off a bare "draw the canvas".
 
 Acceptance criteria come from the unit's Test scenarios and Verification, rewritten so each names the check that proves it. A criterion a machine cannot check is rewritten or the chunk loses `spec-ready` with a comment saying why. Describe behaviour and interfaces, not line numbers.
 
@@ -88,5 +88,5 @@ Close with: **"[N] chunks spec-ready on [project], [W] waves, widest wave [K]. T
 ## Notes
 
 - Re-running on the same plan is safe: match existing chunks by U-ID in the title and update them rather than duplicating.
-- Today a `/goal` run builds one chunk at a time with `/lfg`, in edge order, and treats `tier:*` as advice for its subagent model choice. Parallel waves and per-chunk model dispatch arrive with the Cursor cloud lane (software-factory Phase 2). Cutting the work this way now is what makes that switch free later.
+- Today a `/goal` run builds one chunk at a time with `/lfg`, in edge order, and treats `tier:*` as advice for its subagent model choice. Parallel waves and per-chunk model dispatch arrive with the Cursor cloud lane (factory Phase 2, `~/Developer/dev-workflow/factory/ARCHITECTURE.md`). Cutting the work this way now is what makes that switch free later.
 - `flow:ship` one-liners do not need this command... they go straight to `/lfg`.

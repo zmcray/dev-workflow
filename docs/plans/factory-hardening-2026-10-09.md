@@ -76,6 +76,14 @@ Conflicts to settle, one written answer each:
    - Proposal: add an override note to the block, or rename on write in /packets.
 5. **Stale copy.** Close or finish software-factory PR #18 as part of the move.
 
+**Unit 3 outcome (2026-10-09):** dev-workflow is the home. software-factory moved in under `factory/` with its history; research and plans joined `docs/`. Answers, recorded in `factory/DECISIONS.md`:
+
+1. Auto-merge: every class merges on green (D-027). Drafting `flow:design` was rejected because it stalls every chunk chained behind it.
+2. Stuck chunk: fails and the run moves on (D-028), already in the rules text.
+3. `night-eligible`: retired (D-029).
+4. Plan filenames: the house ce-plan fork writes date-last names (D-030).
+5. Stale copy: software-factory PR #18 closed, repo archived with a pointer README (D-026).
+
 ## Unit 4: Worktree and branch hygiene (MCR-2722)
 
 - **Today:** 71 extra worktrees (telos 30, motus 18, pulse 16, sonar 4), about 25 with unmerged work. telos has 328 local branches, 105 with a deleted upstream.

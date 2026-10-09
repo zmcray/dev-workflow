@@ -10,7 +10,7 @@ DAY SHIFT (human in the loop)                    NIGHT SHIFT (unattended)
 01 Think    product council → PRD                04 Execute  event-driven dispatch,
 02 Design   mockup flows on agent-legible                    one agent / issue / VM,
             canvas; approve every state                      verification ladder,
-03 Decompose atomic issues w/ build packets,                 draft PR or auto-merge
+03 Decompose atomic issues w/ build packets,                 merge on green
             file-scope partitioned              05 Review   morning triage brief
                                                 06 Learn    failures fix the template
 ```
@@ -36,17 +36,17 @@ PRD + approved canvas → atomic, dependency-linked Linear issues, each carrying
 - Atomic and independently shippable; diffs reviewable in minutes.
 - **File scope declared and partitioned**: two issues touching the same files get a dependency edge and run sequentially. Scope overlap is the #1 cause of overnight merge pileups.
 - **Acceptance criteria are executable**: each maps to a test or screenshot check the agent runs itself and CI re-runs.
-- `night-eligible` label applied by a human once the packet is complete. Never by the building agent.
+- `spec-ready` is set at decomposition once the packet is complete. A chunk that needs a person carries `gate:human` (or `ops` when the whole issue is human work) and never enters the night queue (D-029).
 
 ### 04 Execute — the night shift
 
-**Dispatch (event-driven, cloud-default):** an issue reaching `night-eligible` is the dispatch event. Web: one cloud session per issue (Claude Routines / webhook / GH Actions cron → headless session; or a Cursor cloud agent subscribed to the label). iOS: headless Claude Code in local git worktrees on a Mac (sandbox wave is Linux-first; simulators want real macOS). Practical local ceiling: ~6–10 concurrent worktrees — hitting it means PRs aren't merging fast enough, which is the real problem.
+**Dispatch (event-driven, cloud-default):** an issue reaching `spec-ready` with no `gate:human` or `ops` is the dispatch event. Web: one cloud session per issue (Claude Routines / webhook / GH Actions cron → headless session; or a Cursor cloud agent subscribed to the label). iOS: headless Claude Code in local git worktrees on a Mac (sandbox wave is Linux-first; simulators want real macOS). Practical local ceiling: ~6–10 concurrent worktrees — hitting it means PRs aren't merging fast enough, which is the real problem.
 
 **Verification ladder (every PR, before any human sees it):**
 1. Build + unit/integration tests green.
 2. Agent self-checks the diff against acceptance criteria and the approved artboard (Playwright screenshot loop on web; simulator screenshots + accessibility tree on iOS), then runs `skills/code-review`: Standards and Spec axes as parallel subagents, the Spec axis reading the packet and flagging any file-scope fence violation as a hard finding.
 3. **Independent cross-model review** (Codex reviews Claude/Cursor output and vice versa), prompted adversarially. Findings fixed or filed as residual Linear issues.
-4. CI re-runs the full gate independently. Green + clean review → auto-merge for graduated classes; everything else waits as a draft PR.
+4. CI re-runs the full gate independently. Green → merge, for every class (D-027). Only three things wait for the morning: a parked chunk (draft PR + `gate:human`), a migration chunk awaiting apply (green PR, not merged), and a failed chunk (still red after its retry).
 
 **Guardrails:** pre-flight mergeability check + rebase before opening a PR; strictly sequential merges per repo; flake quarantine list; hard cap of 3 CI-fix attempts, then leave the draft + a Linear comment; never touch files outside declared scope (the kick-back rule's overnight form).
 
@@ -64,14 +64,11 @@ Every failure fixes the **template**, not just the code: packet-template and AGE
 
 | Label | Meaning |
 |---|---|
-| `night-eligible` | Packet complete; may be dispatched unattended. Human-applied only. |
 | `lane:claude` / `lane:cursor` / `lane:codex` | Dispatch-time harness routing. Never in the packet. |
 | `tier:mechanical` / `tier:moderate` / `tier:judgment` | How hard the chunk is to get right. Set at planning; the dispatcher maps it to a model via `DISPATCH.md`. Never a model name. |
-| `class:safe` | Copy/config/contained fix. Auto-merges on green + clean review once graduated (Phase 3). |
-| `class:feature` | Draft PR for morning review. Never auto-merges. |
 | `class:hard` | Best-of-3 cross-harness tournament with verifier. |
 
-These compose with the existing `flow:*` (rigor) and `prd-source` (strategy provenance) labels — flow governs day-shift phases; class governs night-shift merge trust.
+These compose with the existing `flow:*` (rigor), `prd-source` (strategy provenance), `spec-ready` (buildable) and `gate:human` / `ops` (needs a person) labels. Flow governs day-shift phases. Merge trust is not a label: every class merges on green (D-027). `class:safe` and `class:feature` are retired.
 
 ## The iOS line (special tooling)
 
@@ -92,7 +89,7 @@ These compose with the existing `flow:*` (rigor) and `prd-source` (strategy prov
 | Event-driven dispatcher | Not built (Phase 2, MCR-1412) |
 | Verification ladder + cross-model review | Not built (Phase 2) |
 | Morning brief routine | Not built (Phase 2) |
-| Auto-merge graduation | Not started (Phase 3, MCR-1413) |
+| Auto-merge graduation | Dropped: every class merges on green (D-027, 2026-10-09) |
 | iOS conversion (Tuist/hook/MCP/snapshots) | Not started (Phase 4, MCR-1414) |
 | Best-of-N lane | Not started (Phase 5, MCR-1415) |
 

@@ -1,6 +1,6 @@
 # Build Packet (canonical template)
 
-Lives in the Linear issue body. An issue without a complete packet never gets `night-eligible` and never enters the night queue. Copy this block:
+Lives in the Linear issue body. An issue without a complete packet never gets `spec-ready` and never enters the night queue. Copy this block:
 
 ```
 ## Build packet

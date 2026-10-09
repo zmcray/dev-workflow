@@ -38,7 +38,8 @@ DRY_RUN=0
 # so new repos are covered automatically. A repo is skipped if it is in EXCLUDE, is not a
 # git repo, or contains a .agents-skip file (drop an empty .agents-skip in any repo you do
 # not want the build workflow injected into... e.g. third-party clones).
-EXCLUDE=( dev-workflow )
+# software-factory: archived 2026-10-09, merged into dev-workflow/factory/.
+EXCLUDE=( dev-workflow software-factory )
 is_excluded() { local n="$1"; for e in "${EXCLUDE[@]}"; do [[ "$n" == "$e" ]] && return 0; done; return 1; }
 
 BEGIN_MARK="<!-- BEGIN CANONICAL WORKFLOW"

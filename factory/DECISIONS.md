@@ -38,7 +38,7 @@ All "Based on" citations trace to `docs/research/2026-08-state-of-practice.md` u
 
 ## D-007: Event-driven dispatch, not hand-launched batches
 
-**Why:** The mid-2026 vendor convergence: agents subscribe to the queue (issue reaches night-eligible = dispatch event) via Routines, webhooks, or a GitHub Actions cron. Removes the human as nightly launch operator.
+**Why:** The mid-2026 vendor convergence: agents subscribe to the queue (issue reaches night-eligible = dispatch event; that label is retired by D-029, and `spec-ready` with no `gate:human` or `ops` is the event now) via Routines, webhooks, or a GitHub Actions cron. Removes the human as nightly launch operator.
 **Based on:** Cursor event-driven cloud agents (Aug 19, 2026); Codex event integrations; Claude Code Routines/Dispatch.
 
 ## D-008: Verification ladder with an independent, cross-model reviewer
@@ -47,6 +47,8 @@ All "Based on" citations trace to `docs/research/2026-08-state-of-practice.md` u
 **Based on:** Augment dual-verifier CI pattern; Tenki review-gate; the three-harness setup (D-014).
 
 ## D-009: Auto-merge is earned per task class, starting with class:safe
+
+**Superseded by D-027 (2026-10-09).**
 
 **Why:** Trust is graduated, not granted. Draft-PR + morning review first; copy/config/contained fixes graduate to merge-on-green after a clean supervised week; features stay morning-reviewed until random spot-checks stop finding anything. A calibration miss demotes the class.
 **Based on:** Auto-merge-as-earned-privilege consensus; Autonoma quality-gate writing; AI-co-authored PRs carry ~1.7x latent issues (merge-queue research).
@@ -87,6 +89,8 @@ All "Based on" citations trace to `docs/research/2026-08-state-of-practice.md` u
 **Based on:** iOS practitioner's guide (8 production apps); the Learn-phase convention already in McRay Group AGENTS.md.
 
 ## D-017: This repo replaces dev-workflow
+
+**Superseded by D-026 (2026-10-09):** it went the other way.
 
 **Why:** The factory needs a versioned, harness-readable home for strategy, decisions, and templates ("specs live in the repo" applies to the factory itself). `software-factory` is that home; `dev-workflow` will be deprecated once templates and docs migrate and every wired repo points here.
 **Based on:** User decision (2026-09-02).
@@ -141,3 +145,28 @@ All "Based on" citations trace to `docs/research/2026-08-state-of-practice.md` u
 
 This extends D-010: merges stay strictly sequential, now per group.
 **Based on:** `docs/research/2026-09-26-ci-speed-vs-fidelity.md`; user decision (2026-09-26, "do the reco… all repos, now and in the future"). Canonical text: zmcray/dev-workflow#9.
+
+## D-026: dev-workflow is the one source; software-factory is archived
+
+**Why:** Two repos held the factory's rules and they disagreed on five points (the 2026-10-09 setup review). dev-workflow is what deploys: the core block, `rules/`, the commands, the skill sync and the launch agents all run from it, and every wired repo's AGENTS.md points at its paths. Moving the other way would have touched every app repo, both Macs and 26 Codex skill files, and would have put private rules in a public repo. software-factory's docs, templates and skills moved into `factory/` with their history (git subtree); its research and plans joined `docs/`. The repo is archived with a pointer README. Renaming dev-workflow to "factory", with a symlink at the old path, is a separate follow-up.
+**Based on:** User decision (2026-10-09, "recos"); `docs/plans/factory-hardening-2026-10-09.md` Unit 3.
+
+## D-027: Every class merges on green
+
+**Why:** The core block has merged every PR on green since September (229 factory chunks), while D-009 still said auto-merge was earned per class. Drafting `flow:design` chunks was weighed and rejected: a draft does not stop the run, but every chunk chained behind it waits for the morning, and design chunks usually sit at the head of chains of 6 to 11 issues. The safety comes from CI instead: PR CI runs the real suites, and a red main is reverted rather than built on. Three things still wait for a person: a parked chunk (draft PR + `gate:human`), a migration chunk awaiting apply (green PR, not merged), and a failed chunk. A repo can still opt out with `"automerge": false` in `.linear-project.json`.
+**Based on:** User decision (2026-10-09, "recos"); the 2026-10-09 pulse ledger (chains waiting behind one chunk).
+
+## D-028: A stuck chunk fails and the run moves on
+
+**Why:** The old block said stop the run; `/factory` said mark it failed. A chunk still red after its retry (one tier up) is marked `failed` with a Linear comment, its PR is closed or left as a draft, and the run skips chunks that depend on it or share its files. It never merged, so it cannot hurt anything else. Hard stops are kept for what can: an unmergeable PR, a red baseline at run start, and a red main that one revert does not fix (`rules/goal-runs.md`; `commands/factory.md` > Red main).
+**Based on:** Settled in the rules text by the proof-before-merge and slim-core work (2026-10-09); recorded here.
+
+## D-029: `night-eligible` is retired
+
+**Why:** /packets told a human to apply it, but the factory never checked it, so it gated nothing. The night queue is `spec-ready` with no `gate:human` and no `ops`. A person enters the loop through `gate:human`, which the factory does honour. The label is removed from the docs and from Linear.
+**Based on:** User decision (2026-10-09).
+
+## D-030: Plan filenames put the date last
+
+**Why:** The global rule is `docs/plans/<short-description>-YYYY-MM-DD.md`, but the Compound Engineering `ce-plan` skill wrote the date first. The fix is at the source: the house fork of `ce-plan` now writes date-last names, so the core block needs no override note. Plans already written with the date first keep their names.
+**Based on:** User decision (2026-10-09).

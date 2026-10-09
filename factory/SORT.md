@@ -7,7 +7,7 @@ The rulebook for Stage 0s (MANUAL §1). Two ways in:
 
 The rest of this page is written for the nightly job. One scheduled job, every night, across the projects on the allowlist below. It reads every open issue that has not been sorted, decides how much drawing it needs before it can be planned, and says so on the issue. It never plans, builds, or moves anything.
 
-The job is the Claude Code cloud routine "Nightly sort (cloud)" (trigger `trig_01HDGrQMDBtPNf6sKnMp8x27`). It runs daily at 11:30 PM ET (`CRON_TZ=America/New_York 30 23 * * *`) on `claude-opus-5-5`, with the Linear connector only and this repo checked out as its only source. It moved there from the Claude desktop scheduled task `nightly-sort` on 2026-10-02; that task is disabled, not deleted. The routine's prompt only says "follow SORT.md", so **change the rules here, never in the routine**. Plan and reasoning: `docs/plans/2026-09-24-001-feat-sort-stage-planning-board.md`. Issue: MCR-1797.
+The job is the Claude Code cloud routine "Nightly sort (cloud)" (trigger `trig_01HDGrQMDBtPNf6sKnMp8x27`). It runs daily at 11:30 PM ET (`CRON_TZ=America/New_York 30 23 * * *`) on `claude-opus-5-5`, with the Linear connector only and the `dev-workflow` repo checked out as its only source (these rules are `factory/SORT.md` in it). It moved there from the Claude desktop scheduled task `nightly-sort` on 2026-10-02; that task is disabled, not deleted. The routine's prompt only says "follow SORT.md", so **change the rules here, never in the routine**. Plan and reasoning: `docs/plans/2026-09-24-001-feat-sort-stage-planning-board.md`. Issue: MCR-1797.
 
 ## Allowlist
 
@@ -38,7 +38,7 @@ Work oldest first (`createdAt`) up to the cap.
 
 Per issue, read: title, description, labels, milestone, parent issue, blocking/related links, comments (including every reply in the sort card's thread... those are Zack's answers and they win over the description). If it has `prd-source`, read the PRD it links. If the project's repo is on this Mac (find the `.linear-project.json` under `~/Developer` whose `name` matches the project), look at the current screens the issue touches: route or view files, component names. **Read-only on code:** no branches, no edits, no builds.
 
-**In the cloud routine** only this repo is checked out, so it cannot read other project repos. Skip the screen check unless the issue's owning repo is software-factory. The Mac wording above is the fallback if the desktop task is ever re-enabled.
+**In the cloud routine** only this repo is checked out, so it cannot read other project repos. Skip the screen check unless the issue's owning repo is dev-workflow. The Mac wording above is the fallback if the desktop task is ever re-enabled.
 
 Delegate the reading to cheap read-only subagents where the harness allows (DISPATCH: haiku reads). The rung call itself is judgment and stays in the main thread on a mid or frontier model.
 
@@ -95,8 +95,8 @@ Plan, build, branch, or open a PR. Change an issue's status, priority, milestone
 
 Write one line per project:
 
-- **Cloud routine:** there is no `~/Library/Logs/software-factory/sort.log`. Put the lines at the top of the run's final brief.
-- **Desktop task (fallback, if ever re-enabled):** append them to `~/Library/Logs/software-factory/sort.log` (create it if missing).
+- **Cloud routine:** there is no `~/Library/Logs/factory/sort.log`. Put the lines at the top of the run's final brief.
+- **Desktop task (fallback, if ever re-enabled):** append them to `~/Library/Logs/factory/sort.log` (create it if missing).
 
 ```
 2026-09-24T23:31 Pulse: eligible 14, sorted 12 (none 6, tweak 3, screens 2, journey 1, product 0), needs answers 2, re-sorted 3, left for tomorrow 0, errors 0

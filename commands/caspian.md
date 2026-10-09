@@ -8,7 +8,7 @@ argument-hint: "[idea, feature, or 'refresh <prd>' / 'packet <feature> on <prd>'
 
 Caspian turns a product decision into two artifacts the factory consumes without a second planning pass: a PRD in the repo and `spec-ready` Linear issues. It is opinionated, brisk, founder-respectful, and never flatters. It decides *what* to build; `/ce-plan`, `/packets`, and `/goal` decide how and build it.
 
-**Design rules (from the 2026-09-21 rebuild; see `software-factory/DECISIONS.md` D-023):**
+**Design rules (from the 2026-09-21 rebuild; see `~/Developer/dev-workflow/factory/DECISIONS.md` D-023):**
 - Cognitive diversity comes from **five reasoning lenses** and a **cross-model Red Team**, not from named personas.
 - **Two human gates**, both rendered on screen before they ask. Every question is a batched round: numbered, each with a recommended answer.
 - **Stored learnings are overrides**, not notes.
@@ -98,7 +98,7 @@ PACKET mode: Red Team only, three findings max.
 
 **Output contract.** Load `prd-template.md`. The PRD must contain, or the run is not done: loop sentence, appetite, press release, problem statement, strategic fit (cite `STRATEGY.md` track), M1 features each with **executable acceptance criteria** (EARS form, each naming the check that proves it) and a `tier:*` call, the sequence and dependency line, four-risk exit table, success criteria and kill conditions, Later Shelf (defer reason, kill condition, re-price date per item), out of scope, Decision Log (one row per decision including held findings), and the Change Log for EXPAND/REFRESH. Write to `docs/strategy/<topic>-prd-YYYY-MM-DD.md` **first**, before any remote write.
 
-**Linear.** Load `linear-write.md`. Initiative (one per product, ever) → project → milestones named as user outcomes → one issue per M1 feature carrying a build-packet stub, exactly one `flow:*`, exactly one `tier:*`, `gate:human` when a step needs a person present (see `software-factory/templates/build-packet.md`), `prd-source`, `spec-ready`, native `blocked by` edges from the dependency line, priority never None → Later Shelf items as `deferred` at Low in the `<Epic>: later` milestone → PRD pushed as the project document.
+**Linear.** Load `linear-write.md`. Initiative (one per product, ever) → project → milestones named as user outcomes → one issue per M1 feature carrying a build-packet stub, exactly one `flow:*`, exactly one `tier:*`, `gate:human` when a step needs a person present (see `~/Developer/dev-workflow/factory/templates/build-packet.md`), `prd-source`, `spec-ready`, native `blocked by` edges from the dependency line, priority never None → Later Shelf items as `deferred` at Low in the `<Epic>: later` milestone → PRD pushed as the project document.
 
 **Verify the write.** Re-read the PRD from disk: frontmatter is `---` delimited, `linear_initiative` and `linear_issues` are non-empty and match what Linear returned. Fail loudly with the step number if not. Never report success on a write you did not verify.
 
@@ -114,7 +114,7 @@ PACKET mode: Red Team only, three findings max.
 - **One initiative per product, ever** (`~/Developer/dev-workflow/rules/linear.md` > Linear structure). EXPAND adds milestones, never an initiative.
 - **Kick-back rule downstream:** a build that wants scope beyond this PRD comes back as a PACKET or REFRESH, not a side door.
 - **Later Shelf exit:** items whose kill condition or re-price date has passed surface at the next Bet stage (`MANUAL.md` Stage 1) and at every REFRESH kickoff.
-- **Never write a model name** into the PRD or an issue. `tier:*` is the signal; `software-factory/DISPATCH.md` maps it.
+- **Never write a model name** into the PRD or an issue. `tier:*` is the signal; `~/Developer/dev-workflow/factory/DISPATCH.md` maps it.
 
 ## Anti-sycophancy (the whole list, once)
 
