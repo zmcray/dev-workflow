@@ -12,9 +12,12 @@
 #   6. Cursor: checks the CE + Linear plugins (installed from the Cursor app, not here).
 #   7. Installs the daily skill-sync launch agent (install-skill-sync.sh), so this Mac installs
 #      approved skill changes and proposes its own edits as a pull request from then on.
+#   8. Installs the disk upkeep launch agents: the simulator reaper four times a day
+#      (install-sim-reaper.sh) and the weekly cache sweep (install-disk-sweep.sh).
 #   Ends with a checklist of what still needs a person (sign-ins, unattended-mode settings).
 #
-# Non-destructive: installs and copies only. Never deletes. Local edits are kept and proposed
+# Non-destructive: installs and copies only. Never deletes (the launch agents from step 8 do,
+# later, on their own schedule: idle simulators and regenerable caches only). Local edits are kept and proposed
 # for review by the skill sync, never overwritten.
 #
 # Usage:
@@ -118,6 +121,17 @@ if [[ -f "$DEV/dev-workflow/scripts/install-skill-sync.sh" ]]; then
 else
   fix "install-skill-sync.sh missing; daily sync not installed"
 fi
+
+echo "== Disk upkeep"
+# Simulators left by factory nights and CI filled the iMac in three days (MCR-2346).
+for inst in install-sim-reaper.sh install-disk-sweep.sh; do
+  if [[ -f "$DEV/dev-workflow/scripts/$inst" ]]; then
+    act "run $inst"
+    run bash "$DEV/dev-workflow/scripts/$inst" || fix "$inst did not install"
+  else
+    fix "$inst missing; not installed"
+  fi
+done
 
 echo
 echo "== Always by hand (sign-ins and unattended settings are not scripted)"

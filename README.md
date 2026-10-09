@@ -70,6 +70,12 @@ Each harness still needs its own Linear connection and an unattended permission 
 
 You get one macOS notification when something needs you: a proposal to review (rule files such as `AGENTS.md`, `SORT.md` and `commands/factory.md` named), a secret hit, a collision (the approved version wins on disk; your edit stays in `git stash list`), or a failure. Preview without writing anything: `SKILL_SYNC_DRY=1 bash scripts/sync-skills.sh`. Log: `~/Library/Logs/skill-sync.log`. Stop it: `launchctl bootout gui/$(id -u)/com.mcray.skill-sync`.
 
+## Disk upkeep
+
+Factory nights and CI create iOS simulators faster than a weekly sweep clears them (MCR-2346: 146 GB in three days). `scripts/sim-reaper.sh` runs at 00:00, 06:00, 12:00 and 18:00 (launch agent `com.mcray.sim-reaper`, installed by `scripts/install-sim-reaper.sh`). It deletes any simulator that is shut down and has been idle for 6 hours, or 30 minutes when the data volume has under 40 GB free. It never touches a running simulator. Scripts that reuse a named simulator recreate it when it is gone. Preview: `bash scripts/sim-reaper.sh --dry-run`. Log: `~/Library/Logs/sim-reaper.log`.
+
+`scripts/disk-sweep.sh` clears regenerable caches (app caches, package managers, DerivedData, XcodeBuildMCP output) every Monday at 10:00 (`com.mcray.disk-sweep`, installed by `scripts/install-disk-sweep.sh`). Log: `~/Library/Logs/disk-sweep.log`. `setup-factory-machine.sh` installs both.
+
 ## Updating
 
 1. Edit `AGENTS.workflow.md` (the workflow block), a file in `templates/` (the AGENTS.md/CLAUDE.md scaffolds), a file in `commands/` (a Claude Code skill), or a file under `codex/skills/` (a Codex skill), on either Mac.
