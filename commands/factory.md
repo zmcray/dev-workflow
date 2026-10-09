@@ -35,7 +35,7 @@ Standing contract: **never ask the user anything.** Every would-be question is a
    - **Run limit.** `hour_limit = started_at + max_hours`. Once the run has been going `max_hours`, no new chunk starts; the chunk already in flight finishes and the shift closes.
    - Nothing is ever killed mid-PR. A leftover `max_chunks` key in a link file is retired and ignored.
 4. **Asks check.** Run `test -x ~/.local/bin/factory-asks && ~/.local/bin/factory-asks check`. It prints the writer token's expiry, never the token. A missing helper, or exit 3 (token missing, expired or unreadable), is **not** a stop: hold the reason as the asks warning (see **Asks** below), queue tonight's helper calls in `asks_pending` instead of sending them, and go on. A renewal notice in its output goes in the status update.
-5. **Baseline.** Fresh default branch, CI green on `main`, working tree clean. Red baseline is a hard stop before anything is pulled: run Step 1b, write the Step 3 ledger with nothing eligible, then go to Step 5, which files a `restore-baseline` follow-up. That night's docs PR cannot merge on a red `main`: leave it open and say so in the status update.
+5. **Baseline.** Fresh default branch, CI green on `main`, working tree clean. A red baseline at run start (nothing of this run's to revert) is a hard stop before anything is pulled, with `stop_detail: "red baseline"`: run Step 1b, write the Step 3 ledger with nothing eligible, then go to Step 5, which files a `restore-baseline` follow-up. That night's docs PR cannot merge on a red `main`: leave it open and say so in the status update.
 
 ## Step 1b: Asks at run start
 
@@ -86,20 +86,24 @@ Write `docs/factory/runs/YYYY-MM-DD.json` in the repo (create the directory; it 
   "asks": { "open_at_start": 0, "resolved": 0, "written": 0, "synced": false, "warning": null },
   "asks_pending": [],
   "sweep": { "reset": ["MCR-1720"], "stale_started": ["MCR-1702"], "merged_open": [{ "issue": "MCR-1699", "pr": "https://github.com/..." }] },
+  "reverts": 0,
   "stopped_at": null,
-  "stop_reason": null
+  "stop_reason": null,
+  "stop_detail": null
 }
 ```
 
-`asks.warning` is one line (`token expired on 2026-12-29`, `helper missing`, `server unreachable`) or null. Each `asks_pending` entry is a call that did not go through: `{ "op": "upsert", "ask": { ...the ask file... } }` or `{ "op": "resolve", "args": ["<ask_id>", "<project_id>", "<run_id>", "<note>"] }`.
+`stop_detail` is one line naming which hard stop fired (`red baseline`, `red main: infra`, `red main: no single suspect`, `red main: revert did not fix`, `red main: second revert`, `unmergeable PR #<n>`, ...), or null. `asks.warning` is one line (`token expired on 2026-12-29`, `helper missing`, `server unreachable`) or null. Each `asks_pending` entry is a call that did not go through: `{ "op": "upsert", "ask": { ...the ask file... } }` or `{ "op": "resolve", "args": ["<ask_id>", "<project_id>", "<run_id>", "<note>"] }`.
 
 Every item row is written **when the chunk starts** and updated when it ends, so a dead session still leaves a readable file:
 
 ```json
 { "issue": "MCR-1710", "tier": "moderate", "model": "opus", "started_at": "...", "ended_at": "...",
-  "status": "done | interrupted | parked | awaiting-apply | skipped-budget | skipped-conflict | failed",
+  "status": "done | interrupted | parked | awaiting-apply | skipped-budget | skipped-conflict | failed | reverted",
   "pr": "https://github.com/...", "turns": 0, "retries": 0, "note": "one line" }
 ```
+
+A chunk that ends any other way than `done` keeps a row: `failed` when its own gate is still red after the retry, `reverted` when it merged and then broke the default branch (the row adds `"revert_pr"` and `"bug"`; see **Red main**). Never drop a row or leave it `interrupted` when the cause is known.
 
 ## Step 3b: Write the morning wizards
 
@@ -111,11 +115,11 @@ For each, write the wizard with the `wizard` skill (unattended rules in AGENTS.m
 
 Arm the harness's goal mode (see **Running on each harness**) with this condition and let it drive:
 
-> Goal: drain the factory queue for <project> under the budget in `docs/factory/runs/<date>.json`. Before starting any chunk: re-read the ledger, stop if the clock is past `last_dispatch` or past `hour_limit`, re-query Linear for the next eligible issue (the board may have changed). Build each chunk per AGENTS.md > Autonomous runs. Update the ledger row at start and end of every chunk. Ending conditions are queue empty, deadline, run limit, or hard stop; write `stop_reason` and finish with Step 5.
+> Goal: drain the factory queue for <project> under the budget in `docs/factory/runs/<date>.json`. Before starting any chunk: re-read the ledger, stop if the clock is past `last_dispatch` or past `hour_limit`, run the Red main check, re-query Linear for the next eligible issue (the board may have changed). Build each chunk per AGENTS.md > Autonomous runs. Update the ledger row at start and end of every chunk. Ending conditions are queue empty, deadline, run limit, or hard stop; write `stop_reason` and finish with Step 5.
 
 The budget check happens **between chunks, never inside one**. A chunk that is running at `stop_at` or `hour_limit` finishes; it is the 45-minute margin's job to make the `stop_at` case rare. The run limit has no margin: at `hour_limit` the in-flight chunk completes and nothing new starts.
 
-Per-chunk delegation follows DISPATCH.md: the builder gets the model (or reasoning setting) in the running harness's column for the chunk's `tier:*`, and `max_turns_per_chunk` as its turn cap. Two failed attempts on one chunk (one tier up on the retry) mark it `failed`, post the comment, and move on... a failed chunk is not a hard stop unless its branch broke `main`.
+Per-chunk delegation follows DISPATCH.md: the builder gets the model (or reasoning setting) in the running harness's column for the chunk's `tier:*`, and `max_turns_per_chunk` as its turn cap. Two failed attempts on one chunk (one tier up on the retry) mark its row `failed`, post the comment, close or draft its PR, and move on, skipping chunks that depend on it or share its files. A failed chunk never merged, so it is never a hard stop; a merged chunk that breaks `main` is handled by **Red main**.
 
 `concurrency` above 1 is reserved for the wave dispatcher (one worktree subagent per chunk in a wave, merges still one at a time). Until that lands, set it to 1 and the run is sequential.
 
@@ -124,24 +128,38 @@ Per-chunk delegation follows DISPATCH.md: the builder gets the model (or reasoni
 - A migration with no standing approval still parks as `gate:human`, as before.
 - The applies run in Step 6, after the shift is closed.
 
+## Red main
+
+Run between chunks (the Step 4 pre-chunk check) and once more in Step 5 before the docs PR. Read the default branch's newest completed full-suite run (`gh run list --branch <default> --workflow <full suite> --limit 5`; a haiku subagent reduces it). Green, or this run has merged nothing yet: carry on. Red after this run merged something: do this, in order.
+
+1. **Infrastructure first.** Reduce the failing jobs' logs to their errors. Only runner, simulator or infrastructure errors (a launch failure, `Busy`, a timeout with no assertion failure): re-run the failed jobs once (`gh run rerun <id> --failed`). Still red with the same signature: hard stop (`red main: infra`), file a Bug in `Platform: hardening` with the signature and run links, no revert. Green on the re-run: carry on.
+2. **Find the breaking merge.** The window is every merge to the default branch since the last green full-suite run. Exactly one merge in it, and this run made it: that is the suspect. Several merges (runs coalesced by concurrency): run the full suite on the commit before the newest merge in the window (push a `bisect/<run_id>` branch at that commit, `gh workflow run <full suite> --ref bisect/<run_id>`, delete the branch after). Green there: the newest merge is the suspect. Red: step back once more. At most 2 steps. Still ambiguous, or the suspect is a merge this run did not make: hard stop (`red main: no single suspect`).
+3. **Revert through a PR.** Never push to the default branch. Branch `revert/<run_id>-<n>` from it, `git revert --no-commit` the suspect's commits (all of them for a group PR, newest first), and commit `revert: undo #<PR> after red <default branch>`. `gh pr revert <PR> --title ... --body ...` does the same. The branch, title, commit subject and body name **no issue ID** (AGENTS.md > Commits): a linked revert PR would close the issue it is about to reopen. Merge it on green like any other PR.
+4. **File and reopen.** File a Bug in the original issue's `<Epic>: hardening` milestone, not `spec-ready`: the failing tests (name and first error line each), the full-suite run link, the suspect PR and the revert PR. Reopen the original issue to Todo, keep `spec-ready`, and add `blocked by` the Bug, so no run rebuilds it until the break is understood. Comment there: `Factory: reverted in <revert PR> after <default branch> went red on <tests>. Blocked by <Bug>.` Set its ledger row to `reverted` with `revert_pr` and `bug`, and add 1 to `reverts`.
+5. **Continue.** Go on with the queue, but merge nothing else until the full-suite run on the revert commit is green. Red there: hard stop (`red main: revert did not fix`).
+6. **Cap.** When `reverts` reaches 2, merge that revert and then hard stop (`red main: second revert`): two breaks in one night means something systemic.
+
+Every red-main hard stop also files the `restore-baseline` follow-up in Step 5. In Step 5, a full-suite run still in progress for the night's last merge is not waited on: name it in the status update.
+
 ## Step 5: Close the shift
 
 1. Write `stopped_at` and `stop_reason` (`queue-empty | deadline | hour-limit | budget | hard-stop`) to the ledger.
 2. **One consolidated morning checklist, never one per issue, and only what needs a person.** Go through every merged issue's acceptance criteria (MANUAL §7). A criterion that a merged test asserts is **dropped**: CI already verified it and the human does not see it. Keep only what CI cannot prove: UI or layout, a live-schema or prod read the builder could not run, anything the builder noted as "not run" or "not screenshotted", a taste call. Group what is left by issue under `## Morning review` in the status update (item 4). Zero items left → write `Morning review: nothing needs your eyes.` Merged issues close to Done on merge (GitHub integration); the checklist is the review surface, and a kick back reopens the issue. Write the same list to the ledger as `"checklist": [{ "issue", "title", "criterion", "where" }]` so Pulse can render it. Per-issue merge comments keep the PR summary and judgment calls but **do not** carry a checklist block; they end with one line: `Morning review: see the Factory <date> status update.`
 3. **File the asks** (rules in **Asks** below), in this order:
    - **Checks.** Upsert one `check` per Morning review item from item 2: key `ac-<n>`, `trigger_pr` = the PR that merged the issue, `where_to_look` from its `Where to look:` line, a runbook, and the fix prompt.
-   - **Follow-ups.** Upsert one `follow_up` per thing the night needs Zack to decide or do that is not a gate: a scope kick-back (`decide-scope`), a migration to apply (`apply-migration`), a red baseline (`restore-baseline`), a blocked dependency (`unblock-dependency`), anything else as `other-<slug>`. Set `seen_again: true` when Step 1b found an earlier generation of the same key closed and the cause is back tonight.
+   - **Follow-ups.** Upsert one `follow_up` per thing the night needs Zack to decide or do that is not a gate: a scope kick-back (`decide-scope`), a migration to apply (`apply-migration`), a red baseline or red-main hard stop (`restore-baseline`), a blocked dependency (`unblock-dependency`), a reverted chunk (`other-reverted`, on its Bug), anything else as `other-<slug>`. Set `seen_again: true` when Step 1b found an earlier generation of the same key closed and the cause is back tonight.
    - **Human steps, second pass.** Run the Step 1b item 4 pass again, for issues parked tonight.
    - **Sync marker.** When no call tonight ended in exit 2 or 3, run `~/.local/bin/factory-asks record-sync <project_id> <run_id> <written>` and set `asks.synced: true`. `<written>` counts the upserts that came back `action=inserted` or `action=refreshed`; `unchanged` (an ask Zack already closed) and `stale` (an older PR's check) are not written. When any call ended in exit 2 or 3, skip the marker, queue those calls in the ledger's `asks_pending` (the next run replays them), and set `asks.warning`. A call dropped with exit 1 or 4 does not block the marker: its item stays in the Morning review and the ledger notes why. Never record a marker for a run whose asks did not all land: Pulse reads the marker as "this run's list is complete".
-4. Post **one project status update** in Linear (health per the run: on track for queue-empty or hour-limit, at risk for deadline with parks, off track for hard stop):
+4. Post **one project status update** in Linear (health per the run: on track for queue-empty or hour-limit, at risk for deadline with parks or for any revert, off track for hard stop):
 
 ```
-Factory <date> (<lane>, run:<run_id>): <k> merged, <p> parked for a human, <f> failed, stopped: <reason> at <time>.
+Factory <date> (<lane>, run:<run_id>): <d> done, <f> failed, <r> reverted, <p> parked, stopped: <reason> at <time>.
 Asks: <w> filed, <r> resolved, <o> open. (or) Asks not synced: <asks.warning>. The Morning review below is the record for this run.
 Merged: MCR-… (PR), MCR-… (PR)
 Human batch: MCR-… — <one-line ask> (procedure: `Run: bash scripts/wizards/<file>.sh`)
 Needs design first: MCR-… → brief docs/design/briefs/<file> (spec-ready but no canvas; write the brief per AGENTS.md > Design brief if none exists; omit the line at zero)
 Failed: MCR-… — <one line>
+Reverted: MCR-… (PR → revert PR, Bug MCR-…: <failing tests>) (omit the line at zero)
 Sweep: <r> reset to Todo (MCR-…), <s> stale started (MCR-…), <m> merged but open (MCR-…) (omit the line when all three are zero)
 Next: <first eligible issue left in the queue, or "queue empty: plan first">
 
@@ -150,10 +168,10 @@ Next: <first eligible issue left in the queue, or "queue empty: plan first">
 Where to look: <tab / screen / URL>
 ```
 
-   **The first line starts `Factory <date> (<lane>, run:<run_id>)`**, exactly. Pulse keeps only updates that start with `Factory `, reads the date from that line, and matches `run:<run_id>` against the sync markers; a run id anywhere else counts as unsynced. Keep the `## Morning review` section even when the asks synced: it is the human-readable record.
+   **The first line starts `Factory <date> (<lane>, run:<run_id>)`**, exactly, and always carries all four counts, zeros included; a hard stop adds its `stop_detail` after the reason. The counts are ledger rows: `done` (merged and still in), `failed`, `reverted`, `parked`. Pulse keeps only updates that start with `Factory `, reads the date from that line, and matches `run:<run_id>` against the sync markers; a run id anywhere else counts as unsynced. Keep the `## Morning review` section even when the asks synced: it is the human-readable record.
    **Times are ET (America/New_York), always.** Every time a human reads (status update, checklist, merge comments) is written in ET, e.g. `6:00 AM ET`, never UTC. Convert cron and workflow schedules (`10:00 UTC` → `6:00 AM ET` in EDT, `5:00 AM ET` in EST) using the date the reader will act on.
 5. Open a `docs:` PR with the ledger file (and any earlier ledger whose `asks_pending` changed) and any archived plans, naming no issue ID anywhere (AGENTS.md > Commits), merge on green. It is the last PR of the night.
-6. Close with one line: **"Factory done: <k>/<E> merged, stopped on <reason>. Morning batch: <p> issues, <w> with a wizard. Asks: <o> open (<synced | not synced: reason>)."**
+6. Close with one line: **"Factory done: <d> done, <f> failed, <r> reverted, <p> parked of <E>, stopped on <reason>. Morning batch: <p> issues, <w> with a wizard. Asks: <o> open (<synced | not synced: reason>)."**
 
 When any row is `awaiting-apply`, Step 5 also adds an `Apply batch: MCR-… (PR …), …` line to the status update, files one `apply-migration` follow-up per chunk (runbook: confirm the migration name with `list_migrations`, then merge the PR), and then runs Step 6.
 
