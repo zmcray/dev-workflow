@@ -45,8 +45,13 @@ Before the queue, so the night knows what is already waiting on Zack and never f
 2. **Read open asks.** `~/.local/bin/factory-asks open <project_id>` prints the project's open asks, one JSON row each (id, issue, kind, key, generation, trigger_pr, first seen). Keep them for the rest of the run.
 3. **Resolve per R5.** Read each open ask's issue in Linear (state, labels, merged PRs) and close what the rules close, with `~/.local/bin/factory-asks resolve <ask_id> <project_id> <run_id> "<why, one line>"`.
 4. **Upsert human steps, for actionable gates only.** For each open `gate:human` issue in the project whose person-only step can be done now (KTD4, below), `~/.local/bin/factory-asks upsert` a `human_step` ask with key `gate`. An open ask for the same gate is refreshed, not duplicated.
+5. **In-progress sweep.** The queue only pulls unstarted issues, so a started issue with no live work stalls with no red signal. Read-only on Linear except one fix. A read-tier subagent can gather the rows; the fix stays in the main thread. Get the remote branches once (`git ls-remote --heads origin`) and match issue IDs case-insensitively. For each issue's GitHub PR links (its attachments), read state, branch, title and commits with `gh pr view <url> --json state,headRefName,title,commits`. A PR whose branch, title and commit subjects all lack the issue's ID is a **docs PR** (it linked through its body; a later chunk in a group PR carries its ID in its commit, so it is not one).
+   - **Reset (the only auto-fix).** In Progress, every linked PR is a docs PR, and no remote branch carries the ID: move it to Todo and comment `Factory sweep: reset to Todo. Only docs PR <url> linked it, with no branch for this issue, so nothing was building it.`
+   - **Stale started** (report only). In Progress or In Review, no open PR, no remote branch with its ID, not updated in 24 hours.
+   - **Merged but open** (report only). Not Done or Canceled, with a merged PR whose branch, title or commit subjects carry its ID (a contributing word in that PR's body kept Linear from closing it).
+   - Never move anything else: it may be Zack's hand work. Any stale or merged-but-open row → upsert one `follow_up` with key `other-stale-started`, hung per the no-issue rule in **Asks** (the open `Platform: hardening` Bug "Started issues with no live work", filed once and reused), with one runbook step per issue (`MCR-… (<state> since <date>, <why>): resume, close or reset it`, an `open` action to the issue; past 7 issues, the 8th step points at the status update). Hold the result for the ledger's `sweep` and the status update's `Sweep:` line.
 
-With an asks warning from Step 1.4, send nothing: move every earlier `asks_pending` entry into this run's, and queue the resolves and human steps you would have sent there too, so a renewed token catches up next run. Hold the counts (open at start, resolved, written); Step 3 writes them into the ledger.
+With an asks warning from Step 1.4, send nothing: move every earlier `asks_pending` entry into this run's, and queue the resolves, human steps and sweep follow-up you would have sent there too, so a renewed token catches up next run. Hold the counts (open at start, resolved, written); Step 3 writes them into the ledger.
 
 ## Step 2: Read the queue
 
@@ -80,6 +85,7 @@ Write `docs/factory/runs/YYYY-MM-DD.json` in the repo (create the directory; it 
   "items": [],
   "asks": { "open_at_start": 0, "resolved": 0, "written": 0, "synced": false, "warning": null },
   "asks_pending": [],
+  "sweep": { "reset": ["MCR-1720"], "stale_started": ["MCR-1702"], "merged_open": [{ "issue": "MCR-1699", "pr": "https://github.com/..." }] },
   "stopped_at": null,
   "stop_reason": null
 }
@@ -99,7 +105,7 @@ Every item row is written **when the chunk starts** and updated when it ends, so
 
 Before the first chunk, so the human batch is ready even on a short night. Find the project's open `gate:human` issues whose human step is a **procedure** (AGENTS.md > Wizards for human procedures) and that have no `Wizard:` line in the description or comments. A `Human gate:` line without a `procedure:` or `judgment:` prefix is classified from its wording; unsure means judgment, no wizard. Highest priority first, at most 5 a night; the rest wait for tomorrow.
 
-For each, write the wizard with the `wizard` skill (unattended rules in AGENTS.md), all of them in one `chore:` PR with no issue IDs in the branch, title or commit subjects and `Part of MCR-…` lines in the body, so the issues stay open. Merge on green, then comment `Wizard: bash scripts/wizards/<file>.sh` on each issue with the stage list. Record `"wizards": [{ "issue", "file" }]` in the ledger. A red wizard PR is not a hard stop: close it, note it in the ledger, and start the shift.
+For each, write the wizard with the `wizard` skill (unattended rules in AGENTS.md), all of them in one `chore:` PR that names no issue ID anywhere (branch, title, commit subjects or body: AGENTS.md > Commits), so no issue is started by it. Merge on green, then comment the PR URL and `Wizard: bash scripts/wizards/<file>.sh` on each issue with the stage list. Record `"wizards": [{ "issue", "file" }]` in the ledger. A red wizard PR is not a hard stop: close it, note it in the ledger, and start the shift.
 
 ## Step 4: The shift
 
@@ -136,6 +142,7 @@ Merged: MCR-… (PR), MCR-… (PR)
 Human batch: MCR-… — <one-line ask> (procedure: `Run: bash scripts/wizards/<file>.sh`)
 Needs design first: MCR-… → brief docs/design/briefs/<file> (spec-ready but no canvas; write the brief per AGENTS.md > Design brief if none exists; omit the line at zero)
 Failed: MCR-… — <one line>
+Sweep: <r> reset to Todo (MCR-…), <s> stale started (MCR-…), <m> merged but open (MCR-…) (omit the line when all three are zero)
 Next: <first eligible issue left in the queue, or "queue empty: plan first">
 
 ## Morning review   build: <preview URL or main @ sha>
@@ -145,7 +152,7 @@ Where to look: <tab / screen / URL>
 
    **The first line starts `Factory <date> (<lane>, run:<run_id>)`**, exactly. Pulse keeps only updates that start with `Factory `, reads the date from that line, and matches `run:<run_id>` against the sync markers; a run id anywhere else counts as unsynced. Keep the `## Morning review` section even when the asks synced: it is the human-readable record.
    **Times are ET (America/New_York), always.** Every time a human reads (status update, checklist, merge comments) is written in ET, e.g. `6:00 AM ET`, never UTC. Convert cron and workflow schedules (`10:00 UTC` → `6:00 AM ET` in EDT, `5:00 AM ET` in EST) using the date the reader will act on.
-5. Open a `docs:` PR with the ledger file (and any earlier ledger whose `asks_pending` changed) and any archived plans, merge on green. It is the last PR of the night.
+5. Open a `docs:` PR with the ledger file (and any earlier ledger whose `asks_pending` changed) and any archived plans, naming no issue ID anywhere (AGENTS.md > Commits), merge on green. It is the last PR of the night.
 6. Close with one line: **"Factory done: <k>/<E> merged, stopped on <reason>. Morning batch: <p> issues, <w> with a wizard. Asks: <o> open (<synced | not synced: reason>)."**
 
 When any row is `awaiting-apply`, Step 5 also adds an `Apply batch: MCR-… (PR …), …` line to the status update, files one `apply-migration` follow-up per chunk (runbook: confirm the migration name with `list_migrations`, then merge the PR), and then runs Step 6.
