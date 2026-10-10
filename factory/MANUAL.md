@@ -23,8 +23,8 @@
 | 3 | **Design session** | You drive, Claude Design draws | one design block in the daily hour · on `design:screens` and up | `/design` canvas (or Figma/Excalidraw) | screens + flow + actions canvas; sketch summary | walk-through passed; verdict = keep |
 | 4 | **Commit** | You + the council | mapping day · ~1 h (PACKET: 30 min) | `/caspian` v3 | PRD with Later Shelf; labeled issues | Red Team adjudicated; M1 = skeleton only |
 | 5 | **Spec** | Agent; you for taste calls | spec days · the daily hour | `/ce-plan` → `/packets` | `spec-ready` chunks | queue ≥ appetite; every issue ≥ 7; plans landed |
-| 6 | **Build** | Agents | nights | built-in `/goal` → `/lfg` per chunk | merged PRs, residuals, nightly build, morning checklist | green train; hard stops surfaced, not guessed |
-| 7 | **Verify** | You | mornings · 20–30 min | checklist, `/ios-qa`, `/qa-only`, `/design-review` | issues closed or kicked back | In Review pile = 0 |
+| 6 | **Build** | Agents | nights | built-in `/goal` → `/lfg` per chunk | merged PRs, residuals, nightly build, asks in Pulse | green train; hard stops surfaced, not guessed |
+| 7 | **Verify** | You | mornings · 10–20 min | Pulse Build tab asks, the human batch | gates cleared, decisions made | no open asks |
 | 8 | **Learn** | Agent-led, you read | Sun · 20 min | `/ce-compound`, `/retro` | learnings promoted; board synced | AGENTS.md / templates updated |
 
 ---
@@ -156,7 +156,7 @@
 1a. **Parallel where the plan allows it.** Every chunk in the current wave (unblocked, disjoint file scope) may be built at the same time by different agents, each in its own environment. **Build in parallel, merge one at a time:** rebase on fresh `main`, re-run the smoke gate, then merge. Today a `/goal` run works one chunk at a time; parallel waves arrive with the Cursor cloud lane (see §6).
 2. **Per-issue gate = smoke** (build + unit + a 10–15-test smoke UI plan, ~5–8 min). Merge on green. Residuals filed. Next issue branches from fresh `main`.
 3. **Train end = full suite**, once, on final `main`. Red → Urgent residual, fix-forward in the morning.
-4. Cut the **nightly build** (TestFlight from `main`; Vercel preview for web), tag it, and emit the **morning verification checklist**: one block per merged issue, its acceptance criteria as checkboxes.
+4. Cut the **nightly build** (TestFlight from `main`; Vercel preview for web), tag it, and post the **morning status update**: what merged, the human batch, decision follow-ups, and a `Not eyeballed:` line for UI criteria no test asserts (a record, not a to-do). Acceptance criteria never become morning checks (MCR-2748).
 5. Checkpoint. Hard stops (red baseline, unmergeable PR, PRD kick-back, anything destructive) stop the run and surface to the morning — never guessed through.
 
 **Rules.** Pipeline projects are never hand-built at night — they're queued. Risky paths (migrations, auth, payments, workflows, entitlements) trip the risk gate: they require `flow:design` and the cross-model review, or the PR fails. Freehand projects (see §5) are exempt from all of this by declaration.
@@ -165,17 +165,16 @@
 
 ### Stage 7 — Verify (mornings, 20–30 minutes)
 
-**Purpose.** One batch pass closes the night's work. This is where grouping genuinely saves time — closure, not merging.
+**Purpose.** One batch pass clears what only you can do, so the next night can keep building. It is not a QA pass: merged work is trusted to CI, and you catch UI problems in daily use of the apps (MCR-2748).
 
 **You do.**
 1. Read the overnight digest (Argus): what merged, what stopped, what's red, and the **human batch** (every `gate:human` issue, parked or queued, with its one-line ask).
-2. Install the nightly build / open the preview.
-3. Walk the checklist, one block per issue: **pass** → Done · **fail** → residual (priority, label) · **scope surprise** → a Caspian EXPAND comment on the issue, not a fix.
-4. Ten minutes of `/design-review` (web) or `/ios-design-review` (iOS) on the new screens **against the canvas** — the canvas is the contract.
-5. Triage residuals; note anything that smells like a learning for Sunday.
-6. Work the human batch in one sitting: for a procedure, run its wizard (`bash scripts/wizards/<file>.sh`, written overnight by `/factory`); for a judgment, look and decide. Do each `gate:human` step, remove the label (or hand the chunk to `/lfg` if the rest is agent work), and note any packet that missed its gate... that is a `/packets` learning.
+2. Work the asks in Pulse's Build tab: secrets and vendor steps, decisions, blockers. Each one has a runbook.
+3. Triage residuals; note anything that smells like a learning for Sunday.
+4. Optional, never a gate: when a `Not eyeballed:` issue matters to you, open the preview and look. A problem you find is a Bug, filed like any other.
+5. Work the human batch in one sitting: for a procedure, run its wizard (`bash scripts/wizards/<file>.sh`, written overnight by `/factory`); for a judgment, look and decide. Do each `gate:human` step, remove the label (or hand the chunk to `/lfg` if the rest is agent work), and note any packet that missed its gate... that is a `/packets` learning.
 
-**Gate.** The In Review pile is zero at the end of the ritual, or each remaining item is explicitly parked with a reason.
+**Gate.** No open asks at the end of the ritual, or each remaining one is explicitly parked with a reason.
 
 ---
 
@@ -317,7 +316,7 @@ Per-*issue* rigor stays with the flow labels regardless of tier: a `flow:ship` o
 | — | `/packets` bridge: plan units → Linear chunks with packets, file scope, edges, `tier:*` | 5 | **done** (Sep 21), not yet run on a real plan |
 | — | `caspian` delta D8: design-session gate, appetite-before-scope, Later Shelf | 3, 4 | **done** (Aug 7) |
 | — | `/sketch` command | — | **removed** — the design session is a walk-through, not a skill |
-| 1 | **Morning checklist emitter** (a rule in AGENTS.md > Session close): acceptance criteria per merged issue → Linear comment + digest | 7 | to build (small) |
+| 1 | ~~Morning checklist emitter~~ | 7 | **superseded** (Oct 10, MCR-2748): acceptance criteria are no longer morning checks; the status update carries asks and a `Not eyeballed:` record |
 | 2 | **Smoke / full gate split**: `Smoke.xctestplan` in motus + saidso; AGENTS.md encodes per-issue = smoke, train end = full; nightly full-suite workflow | 6 | to build (biggest time win) |
 | 3 | **Runner sleep + health**: `caffeinate -s` in both runner launchd plists; a saved runner-health loop prompt / scheduled task | 6, loops | to build (30 min) |
 | 4 | Goal runs pull only `spec-ready`; empty queue = stop with "plan first" | 5, 6 | **done** (Sep 21, AGENTS.md > Autonomous runs) |
@@ -390,14 +389,15 @@ empty · loading · result · error · first-run
 - ...
 ```
 
-### Morning verification checklist (emitted by wrap; one block per merged issue)
+### Morning status update (posted by `/factory`; full template in `commands/factory.md` Step 5)
 
 ```markdown
-## MCR-### — <title>   build: <tag / preview URL>
-- [ ] <acceptance criterion 1>
-- [ ] <acceptance criterion 2>
-- [ ] matches canvas: <screen names>
-Result: done / residual: <MCR-###> / kick back: <reason>
+Factory <date> (<lane>, run:<run_id>): <d> done, <f> failed, <r> reverted, <p> parked, stopped: <reason> at <time>.
+Human batch: MCR-### — <one-line ask>
+Not eyeballed: MCR-###, MCR-###   (UI criteria no test asserts; a record, not a to-do)
+
+## Morning review   build: <tag / preview URL>
+- [ ] MCR-### <title>: <what you must decide or do>
 ```
 
 ### Overnight kickoff (the whole Stage 6 human contribution)
