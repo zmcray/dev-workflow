@@ -15,10 +15,11 @@
 #
 # An upsert file is one JSON object. Fields (the RPC's arguments without the p_ prefix):
 #   linear_issue_id (issue UUID), issue_identifier (MCR-123), project_id (Linear project UUID,
-#   from .linear-project.json), project_name, kind (check | human_step | follow_up), ask_key,
-#   ask, prompt_md, steps, done_when, run_id; optional trigger_pr, where_to_look, wizard,
-#   seen_again. The rules match factory_ask_upsert, and a broken ask is refused here, before
-#   the token is read or anything is sent.
+#   from .linear-project.json), project_name, kind (human_step | follow_up), ask_key,
+#   ask, prompt_md, steps, done_when, run_id; optional wizard, seen_again. The rules match
+#   factory_ask_upsert, and a broken ask is refused here, before the token is read or
+#   anything is sent. The `check` kind is retired (MCR-2748): the table still holds old check
+#   rows, which `open` lists and `resolve` closes, but an upsert of one is refused.
 #
 # The token lives only in the Keychain (service PULSE_FACTORY_WRITER_JWT, minted by the Pulse
 # wizard scripts/wizards/MCR-2123-factory-writer-token.sh). It reaches curl on stdin (-K -),
@@ -114,30 +115,25 @@ else
       (select($a.issue_identifier != null and (($a.issue_identifier | str and test("^[A-Z][A-Z0-9]*-[0-9]+$")) | not)) | "issue_identifier must look like MCR-123"),
       (select($a.project_name != null and (($a.project_name | str and (trimmed | length) >= 1 and (trimmed | length) <= 120) | not)) | "project_name must be 1 to 120 characters"),
       (select($a.run_id != null and (($a.run_id | str and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9]+(-[a-z0-9]+)*-[0-9]{4}$")) | not)) | "run_id must be <YYYY-MM-DD>-<lane>-<HHMM>"),
-      (select($a.kind != null and ([ "check", "human_step", "follow_up" ] | index($kind) | not)) | "kind must be check, human_step or follow_up"),
+      (select($kind == "check") | "checks are retired (MCR-2748): record it under Not eyeballed; never re-file it as another kind"),
+      (select($a.kind != null and ([ "check", "human_step", "follow_up" ] | index($kind) | not)) | "kind must be human_step or follow_up"),
 
       # KTD2: keys are rule-based per kind
       (select($a.ask_key != null) | $a.ask_key
         | select(
             (str | not)
             or ($kind == "human_step" and . != "gate")
-            or ($kind == "check" and (test("^ac-[1-9][0-9]{0,2}$") | not))
             or ($kind == "follow_up"
                 and ([ "decide-scope", "apply-migration", "restore-baseline", "unblock-dependency" ] | index($a.ask_key) | not)
                 and ((test("^other-[a-z0-9]+(-[a-z0-9]+)*$") and length <= 30) | not)))
-        | "ask_key breaks KTD2: human_step is gate, check is ac-<n>, follow_up is a listed slug or other-<slug> (at most 30 characters)"),
+        | "ask_key breaks KTD2: human_step is gate, follow_up is a listed slug or other-<slug> (at most 30 characters)"),
 
-      # a check is filed for one PR and says where to look; nothing else has a PR
-      (if $kind == "check" then
-         (select((($a.trigger_pr | type) == "number" and $a.trigger_pr >= 1 and ($a.trigger_pr | floor) == $a.trigger_pr) | not) | "a check needs trigger_pr, the PR it was filed for"),
-         (select(($a.where_to_look | filled) | not) | "a check needs where_to_look")
-       else
-         (select($a.trigger_pr != null) | "only a check carries trigger_pr")
-       end),
-      (select($a.where_to_look != null and (($a.where_to_look | str and length <= 500 and (test(hidden) | not)) | not)) | "where_to_look is text of at most 500 characters"),
+      # trigger_pr and where_to_look belonged to the retired check kind
+      (select($a.trigger_pr != null) | "trigger_pr belonged to checks, which are retired"),
+      (select($a.where_to_look != null) | "where_to_look belonged to checks, which are retired"),
 
       (select($a.wizard != null) | $a.wizard
-        | select($kind == "check" or (str | not) or (test("^bash scripts/wizards/[A-Za-z0-9_.-]+\\.sh$") | not) or test("\\.\\."))
+        | select((str | not) or (test("^bash scripts/wizards/[A-Za-z0-9_.-]+\\.sh$") | not) or test("\\.\\."))
         | "wizard must be bash scripts/wizards/<file>.sh, on a human step or follow-up"),
       (select($a.wizard != null and ([ $steps[] | select(type == "object") | .action | select(type == "object" and .type == "run" and .value == $a.wizard) ] | length) == 0)
         | "a wizard is also one of the run steps"),
