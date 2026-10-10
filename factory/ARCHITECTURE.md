@@ -35,7 +35,7 @@ PRD + approved canvas → atomic, dependency-linked Linear issues, each carrying
 - **Packets come out of a grilling session** (`skills/grilling` + `skills/domain-modeling`): the agent interviews the human a round at a time, recommended answer attached to each question, until no branch of the design is silently assumed. Terms crystallise into `CONCEPTS.md`; hard-to-reverse choices become ADRs.
 - Atomic and independently shippable; diffs reviewable in minutes.
 - **File scope declared and partitioned**: two issues touching the same files get a dependency edge and run sequentially. Scope overlap is the #1 cause of overnight merge pileups.
-- **Acceptance criteria are executable**: each maps to a test or screenshot check the agent runs itself and CI re-runs.
+- **Acceptance criteria are executable where they can be**: each maps to a test the agent runs itself and CI re-runs. One only an eye can judge is marked `not eyeballed` and ships without a gate (MCR-2748).
 - `spec-ready` is set at decomposition once the packet is complete. A chunk that needs a person carries `gate:human` (or `ops` when the whole issue is human work) and never enters the night queue (D-029).
 
 ### 04 Execute — the night shift
