@@ -51,7 +51,7 @@ Exactly one per chunk. Judge how hard it is to get **right** (novelty, ambiguity
 
 ## Step 4b: Human-gate triage
 
-For every chunk ask: **can this finish overnight with nobody present?** Apply `gate:human` when any step needs a person: a human judging images or screens (not a scripted screenshot diff), credentials / 2FA / App Store or a vendor console, a physical device, a taste or naming call, an outside party. Write the packet's `Human gate:` line as one sentence naming what the person does and when (`before build`, `mid-build`, `before merge`), starting with `procedure:` (clicking, copying, pasting only the person can do; `/factory` writes it a wizard) or `judgment:` (looking and deciding; stays a checklist ask). See `~/Developer/dev-workflow/rules/chunks.md` > Wizards for human procedures. Chunks with no such step get no label and `Human gate: none`. A `gate:human` chunk never enters the night queue; `/goal` skips it. Prefer splitting so the human step is its own small chunk and the rest stays hands-off. State each call in one line.
+For every chunk ask: **can this finish overnight with nobody present?** Apply `gate:human` when any step needs a person: a product-direction call only Zack can make (picking between designs, a taste or naming call, a scope decision), credentials / 2FA / App Store or a vendor console, a physical device the build cannot proceed without (provisioning, pairing), an outside party. Checking how a screen looks or behaves is not a gate: the canvas settles the design before build, and Zack catches the rest in daily use (MCR-2748). Write the packet's `Human gate:` line as one sentence naming what the person does and when (`before build`, `mid-build`, `before merge`), starting with `procedure:` (clicking, copying, pasting only the person can do; `/factory` writes it a wizard) or `judgment:` (a decision only Zack can make; it becomes a `human_step` ask). See `~/Developer/dev-workflow/rules/chunks.md` > Wizards for human procedures. Chunks with no such step get no label and `Human gate: none`. A `gate:human` chunk never enters the night queue; `/goal` skips it. Prefer splitting so the human step is its own small chunk and the rest stays hands-off. State each call in one line.
 
 ## Step 5: Write the chunks to Linear
 
@@ -66,7 +66,7 @@ One issue per chunk, created in dependency order so edges can reference real IDs
 ## Build packet
 Spec: <plan path> § U3  (planned and reviewed... execute this unit only, do not re-plan)
 Acceptance criteria:
-- WHEN <trigger>, the system SHALL <behavior>   (verified by: <test name or screenshot check>)
+- WHEN <trigger>, the system SHALL <behavior>   (verified by: <test name>, or `not eyeballed` when only an eye can judge it)
 Artboard: <approved canvas link from the plan, or "n/a (no UI)">
 File scope: <dirs / globs>
 Out of scope: <what this chunk deliberately does not do; name the sibling chunks that own it>
