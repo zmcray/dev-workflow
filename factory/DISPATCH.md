@@ -42,7 +42,7 @@ Ledger: `docs/factory/runs/YYYY-MM-DD.json` in the repo, one row per chunk, writ
 | Deadline / run limit | normal | `/factory` hit `stop_at` or `max_hours` between chunks; remaining chunks stay `spec-ready` |
 | Budget stop | normal | credits or plan headroom ran out; remaining chunks stay `spec-ready` |
 | Human park | needs a human, but only for that chunk | a step needs a person (visual judgment, credentials, device, outside party); branch pushed, draft PR, `gate:human` added, comment says what to do; run continues on the next unblocked chunk |
-| Hard stop | needs a human | red baseline, unmergeable PR, scope kick-back, anything destructive |
+| Hard stop | needs a human | red baseline the run could not fix (it tries a re-run and up to two fix PRs first), unmergeable PR, scope kick-back, anything destructive |
 
 Fallback when one harness runs dry: Claude Code → Cursor → Codex → pause. Record who took a chunk with `lane:*`. Under a tight budget, spend Fable runs on `tier:judgment` chunks only... a plan that is mostly mechanical (sonnet) and moderate (opus) is what makes limited credit go furthest.
 
