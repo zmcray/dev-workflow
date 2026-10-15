@@ -35,7 +35,7 @@ Standing contract: **never ask the user anything.** Every would-be question is a
    - **Run limit.** `hour_limit = started_at + max_hours`. Once the run has been going `max_hours`, no new chunk starts; the chunk already in flight finishes and the shift closes.
    - Nothing is ever killed mid-PR. A leftover `max_chunks` key in a link file is retired and ignored.
 4. **Asks check.** Run `test -x ~/.local/bin/factory-asks && ~/.local/bin/factory-asks check`. It prints the writer token's expiry, never the token. A missing helper, or exit 3 (token missing, expired or unreadable), is **not** a stop: hold the reason as the asks warning (see **Asks** below), queue tonight's helper calls in `asks_pending` instead of sending them, and go on. A renewal notice in its output goes in the status update.
-5. **Baseline.** Fresh default branch, CI green on `main`, working tree clean. A red baseline at run start (nothing of this run's to revert) is a hard stop before anything is pulled, with `stop_detail: "red baseline"`: run Step 1b, write the Step 3 ledger with nothing eligible, then go to Step 5, which files a `restore-baseline` follow-up. That night's docs PR cannot merge on a red `main`: leave it open and say so in the status update.
+5. **Baseline.** Fresh default branch, CI green on `main`, working tree clean. A red baseline at run start (nothing of this run's to revert) is **not** a stop: the night fixes it first. Note it, carry on through Step 3, and Step 3a repairs it before any queue chunk or wizard starts. Only a repair that fails is a hard stop (Step 3a item 5).
 
 ## Step 1b: Asks at run start
 
@@ -105,7 +105,17 @@ Every item row is written **when the chunk starts** and updated when it ends, so
   "pr": "https://github.com/...", "turns": 0, "retries": 0, "note": "one line" }
 ```
 
-A stacked chunk's row adds `"stacked_on": "<the issue its branch was cut from>"`. A chunk that ends any other way than `done` keeps a row: `failed` when its own gate is still red after the retry, `reverted` when it merged and then broke the default branch (the row adds `"revert_pr"` and `"bug"`; see **Red main**). Never drop a row or leave it `interrupted` when the cause is known.
+A stacked chunk's row adds `"stacked_on": "<the issue its branch was cut from>"`. A Step 3a repair row adds `"kind": "baseline-fix"`. A chunk that ends any other way than `done` keeps a row: `failed` when its own gate is still red after the retry, `reverted` when it merged and then broke the default branch (the row adds `"revert_pr"` and `"bug"`; see **Red main**). Never drop a row or leave it `interrupted` when the cause is known.
+
+## Step 3a: Repair a red baseline
+
+Only when Step 1 item 5 found the default branch red. Fixing it is the night's first job: nothing from the queue builds on a red baseline, and Step 3b waits too.
+
+1. **Infrastructure first.** As in **Red main** item 1: reduce the failing jobs' logs to their errors. Only runner, simulator or infrastructure errors: re-run the failed jobs once. Green: the baseline is fixed, note it and go on. Still red with the same signature: hard stop (`red baseline: infra`) and file an infra Bug in `Platform: hardening`, as Red main does.
+2. **File the break.** Reuse the open `Platform: hardening` Bug for this break (an open `restore-baseline` follow-up names it), or file one under the issue creation contract (`~/Developer/dev-workflow/rules/linear.md`): High priority, `flow:ship`, `tier:moderate`, `spec-ready`. It lists the failing tests (name and first error line each), the full-suite run link, and every merge since the last green full-suite run. Give it a ledger row, written at start like any chunk, with `"kind": "baseline-fix"`.
+3. **Fix it as a chunk.** Build the fix with the normal builder for its `tier:*` (one retry, one tier up), on the Bug's `gitBranchName`, in its own PR, merged on green. The builder gets the failing tests and the merge window. Fix the cause. The AGENTS.md core Never list holds: never weaken, skip or mock a failing assertion. A test that is truly flaky may be quarantined with its own Linear issue, which counts as a fix. When the first attempt fails and exactly one merge in the window is the clear cause, the retry may revert that merge instead, the way **Red main** items 3 and 4 do (revert PR naming no issue ID, Bug filed, original issue reopened and blocked by it).
+4. **Confirm.** Wait for the full-suite run on the fix's merge commit. Green: resolve the Bug's open `restore-baseline` follow-up (`~/.local/bin/factory-asks resolve`, reason `baseline fixed in <PR>`), mark the row `done`, and start Step 3b and the shift. Red on a new failure: one more pass of items 2 and 3, at most two fix PRs a night.
+5. **When the repair fails.** Hard stop with `stop_detail: "red baseline: repair failed"` when two fix PRs did not turn it green, or when the fix needs something the night cannot do: a person, a prod migration, or a product call (a test whose expectation changed on purpose is a `decide-scope`, never a test edit). Mark the row `failed`, write the ledger with nothing eligible, and go to Step 5, which files a `restore-baseline` follow-up on the Bug with what was tried. That night's docs PR cannot merge on a red `main`: leave it open and say so in the status update.
 
 ## Step 3b: Write the morning wizards
 
@@ -138,7 +148,7 @@ Per-chunk delegation follows DISPATCH.md: the builder gets the model (or reasoni
 Run between chunks (the Step 4 pre-chunk check) and once more in Step 5 before the docs PR. Read the default branch's newest completed full-suite run (`gh run list --branch <default> --workflow <full suite> --limit 5`; a haiku subagent reduces it). Green, or this run has merged nothing yet: carry on. Red after this run merged something: do this, in order.
 
 1. **Infrastructure first.** Reduce the failing jobs' logs to their errors. Only runner, simulator or infrastructure errors (a launch failure, `Busy`, a timeout with no assertion failure): re-run the failed jobs once (`gh run rerun <id> --failed`). Still red with the same signature: hard stop (`red main: infra`), file a Bug in `Platform: hardening` with the signature and run links, no revert. Green on the re-run: carry on.
-2. **Find the breaking merge.** The window is every merge to the default branch since the last green full-suite run. Exactly one merge in it, and this run made it: that is the suspect. Several merges (runs coalesced by concurrency): run the full suite on the commit before the newest merge in the window (push a `bisect/<run_id>` branch at that commit, `gh workflow run <full suite> --ref bisect/<run_id>`, delete the branch after). Green there: the newest merge is the suspect. Red: step back once more. At most 2 steps. Still ambiguous, or the suspect is a merge this run did not make: hard stop (`red main: no single suspect`).
+2. **Find the breaking merge.** The window is every merge to the default branch since the last green full-suite run. Exactly one merge in it, and this run made it: that is the suspect. Several merges (runs coalesced by concurrency): run the full suite on the commit before the newest merge in the window (push a `bisect/<run_id>` branch at that commit, `gh workflow run <full suite> --ref bisect/<run_id>`, delete the branch after). Green there: the newest merge is the suspect. Red: step back once more. At most 2 steps. Still ambiguous, or the suspect is a merge this run did not make: do not revert; repair it as Step 3a items 2 to 5 do (fix chunks, at most two a night across Step 3a and here), and hard stop (`red main: no single suspect`) only when that repair fails.
 3. **Revert through a PR.** Never push to the default branch. Branch `revert/<run_id>-<n>` from it, `git revert --no-commit` the suspect's commits (all of them for a group PR, newest first), and commit `revert: undo #<PR> after red <default branch>`. `gh pr revert <PR> --title ... --body ...` does the same. The branch, title, commit subject and body name **no issue ID** (the AGENTS.md core, Never list): a linked revert PR would close the issue it is about to reopen. Merge it on green like any other PR.
 4. **File and reopen.** File a Bug in the original issue's `<Epic>: hardening` milestone, not `spec-ready`: the failing tests (name and first error line each), the full-suite run link, the suspect PR and the revert PR. Reopen the original issue to Todo, keep `spec-ready`, and add `blocked by` the Bug, so no run rebuilds it until the break is understood. Comment there: `Factory: reverted in <revert PR> after <default branch> went red on <tests>. Blocked by <Bug>.` Set its ledger row to `reverted` with `revert_pr` and `bug`, and add 1 to `reverts`.
 5. **Continue.** Go on with the queue, but merge nothing else until the full-suite run on the revert commit is green. Red there: hard stop (`red main: revert did not fix`).
@@ -171,6 +181,7 @@ Needs design first: MCR-… → brief docs/design/briefs/<file> (spec-ready but 
 Failed: MCR-… — <one line>
 Reverted: MCR-… (PR → revert PR, Bug MCR-…: <failing tests>) (omit the line at zero)
 Sweep: <r> reset to Todo (MCR-…), <s> stale started (MCR-…), <m> merged but open (MCR-…) (omit the line when all three are zero)
+Baseline: red at start on <tests>, fixed in <PR> (Bug MCR-…) (or: infra re-run turned it green; or: repair failed, see Bug MCR-…; omit the line when it started green)
 Next: <first eligible issue left in the queue, or "queue empty: plan first">
 
 ## Morning review   build: <preview URL or main @ sha>
@@ -212,7 +223,7 @@ Everything a run needs from Zack is also stored as an **ask**: a row in `os.fact
 - `check`: **retired (MCR-2748).** The schema keeps it for old rows; the helper refuses to file one. Step 1b resolves any that are still open.
 
 **Is it an ask?** Only when work cannot keep moving without Zack.
-- **Yes:** a vendor key or secret, an App Store or dashboard step, a prod migration to apply, a scope or naming decision, a red baseline, a blocked dependency, a chunk parked on a gate.
+- **Yes:** a vendor key or secret, an App Store or dashboard step, a prod migration to apply, a scope or naming decision, a red baseline the night could not fix, a blocked dependency, a chunk parked on a gate.
 - **No:** "the card shows this week's minutes", "layout matches the canvas", "not screenshotted", "verify X works". Those go on the `Not eyeballed:` line (Step 5) or nowhere.
 
 **Every ask hangs on one Linear issue.** A human step hangs on its own issue; a follow-up on the issue it is about. A follow-up with no issue (a red baseline, a broken shared dependency) hangs on a Bug filed for the break in `Platform: hardening`, or on the open one already there for the same break.
