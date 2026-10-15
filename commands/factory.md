@@ -55,7 +55,7 @@ With an asks warning from Step 1.4, send nothing: move every earlier `asks_pendi
 
 ## Step 2: Read the queue
 
-Query the project's issues: `spec-ready`, state type not started/completed/canceled, not `gate:human`, not `ops`, no open `blocked by`. A `blocked by` that points at a plan umbrella (Step 1b item 5) is open only when the umbrella's state type is backlog or unstarted. An In Progress umbrella does not block its chunks: that is how Zack releases them. Then drop any issue labeled `design:screens`, `design:journey`, or `design:product` that has no canvas link (a Linear attachment, or a `Canvas: <url>` or `Artboard: <url>` line in the description). That is the Spec gate (`~/Developer/dev-workflow/rules/design.md`): `spec-ready` without a canvas means someone skipped the design block, and the night never builds screens nobody drew. Order: priority (Urgent > High > Medium > Low), then wave from the parent plan's `## Chunks` table when the issue is a chunk, then oldest first.
+Query the project's issues: `spec-ready`, state type not started/completed/canceled, not `gate:human`, not `ops`, no open `blocked by`. A `blocked by` that points at a plan umbrella (Step 1b item 5) is open only when the umbrella's state type is backlog or unstarted. An In Progress umbrella does not block its chunks: that is how Zack releases them. A `blocked by` that points at a chunk this run left `awaiting-apply` is not open either: the dependent builds stacked on it (Step 4 > **Migrations go last**). That holds only for tonight's own `awaiting-apply` rows; one left from an earlier night still blocks until its PR merges. Then drop any issue labeled `design:screens`, `design:journey`, or `design:product` that has no canvas link (a Linear attachment, or a `Canvas: <url>` or `Artboard: <url>` line in the description). That is the Spec gate (`~/Developer/dev-workflow/rules/design.md`): `spec-ready` without a canvas means someone skipped the design block, and the night never builds screens nobody drew. Order: priority (Urgent > High > Medium > Low), then wave from the parent plan's `## Chunks` table when the issue is a chunk, then oldest first.
 
 Run the **chunk sweep** first, exactly as `~/Developer/dev-workflow/rules/goal-runs.md` describes it, so plans written today are cut before the queue is read.
 
@@ -105,7 +105,7 @@ Every item row is written **when the chunk starts** and updated when it ends, so
   "pr": "https://github.com/...", "turns": 0, "retries": 0, "note": "one line" }
 ```
 
-A chunk that ends any other way than `done` keeps a row: `failed` when its own gate is still red after the retry, `reverted` when it merged and then broke the default branch (the row adds `"revert_pr"` and `"bug"`; see **Red main**). Never drop a row or leave it `interrupted` when the cause is known.
+A stacked chunk's row adds `"stacked_on": "<the issue its branch was cut from>"`. A chunk that ends any other way than `done` keeps a row: `failed` when its own gate is still red after the retry, `reverted` when it merged and then broke the default branch (the row adds `"revert_pr"` and `"bug"`; see **Red main**). Never drop a row or leave it `interrupted` when the cause is known.
 
 ## Step 3b: Write the morning wizards
 
@@ -125,10 +125,13 @@ Per-chunk delegation follows DISPATCH.md: the builder gets the model (or reasoni
 
 `concurrency` above 1 is reserved for the wave dispatcher (one worktree subagent per chunk in a wave, merges still one at a time). Until that lands, set it to 1 and the run is sequential.
 
-**Migrations go last.** A prod migration apply can make the harness refuse every action after it (on Claude Code the auto-mode classifier did exactly this on 2026-10-07 and 2026-10-08, ending both nights after one chunk). So an apply never happens mid-shift:
-- A chunk whose migration is covered by a standing approval builds to a green, non-draft PR and stops there: no apply, no merge. Its ledger row ends `awaiting-apply`. Its dependents stay blocked (their blocker is not Done), and the shift moves on to the next eligible chunk.
-- A migration with no standing approval still parks as `gate:human`, as before.
-- The applies run in Step 6, after the shift is closed.
+**Migrations go last.** A prod migration apply can make the harness refuse every action after it (on Claude Code the auto-mode classifier did exactly this on 2026-10-07 and 2026-10-08, ending both nights after one chunk). So an apply never happens mid-shift. Holding the apply must not hold the work behind it, so its dependents keep building, stacked on it:
+- **What counts.** Only a migration to a deployed database, as `~/Developer/dev-workflow/rules/build.md` > Discipline (Migrations reach prod separately from code) defines it. A local or disposable database (a SQLite cache rebuilt from committed files, an upgrade the app runs on itself at start) has no apply step: build it, merge on green and unblock its dependents like any other chunk. Never park it, never mark it `awaiting-apply`.
+- A chunk whose migration is covered by a standing approval builds to a green, non-draft PR and stops there: no apply, no merge. Its ledger row ends `awaiting-apply`, and the shift moves on to the next eligible chunk.
+- **Stack the dependents.** A dependent of an `awaiting-apply` chunk is eligible (Step 2). Cut its branch from the tip of its blocker's branch, not from the default branch, and open its PR against the default branch, so CI tests the blocker and the dependent together. The PR body starts `Stacked on #<blocker PR>: merge after it.` It builds to green and stops there like its blocker: no merge, row `awaiting-apply` with `stacked_on`. Its own dependents stack on it in turn, so a whole chain can build behind one migration in one night. A stacked chunk lands alone, never in a group PR, so it squash-merges cleanly once its parent is in. A stacked chunk with its own migration gets its own apply, in stack order, in Step 6.
+- **A stack breaks like any other chain.** A stacked chunk still red after its retry is `failed`, and the chunks stacked on it are skipped. Its parent is unaffected.
+- A migration with no standing approval still parks as `gate:human`, as before, and its dependents stay blocked.
+- The applies and the stack merges run in Step 6, after the shift is closed.
 
 ## Red main
 
@@ -181,19 +184,23 @@ Next: <first eligible issue left in the queue, or "queue empty: plan first">
 5. Open a `docs:` PR with the ledger file (and any earlier ledger whose `asks_pending` changed) and any archived plans, naming no issue ID anywhere (the AGENTS.md core, Never list), merge on green. It is the last PR of the night.
 6. Close with one line: **"Factory done: <d> done, <f> failed, <r> reverted, <p> parked of <E>, stopped on <reason>. Morning batch: <p> issues, <w> with a wizard. Asks: <o> open (<synced | not synced: reason>)."**
 
-When any row is `awaiting-apply`, Step 5 also adds an `Apply batch: MCR-… (PR …), …` line to the status update, files one `apply-migration` follow-up per chunk (runbook: confirm the migration name with `list_migrations`, then merge the PR), and then runs Step 6.
+When any row is `awaiting-apply`, Step 5 also adds an `Apply batch: MCR-… (PR …) → stacked MCR-… (PR …), …` line to the status update (one line per stack, in merge order), files one `apply-migration` follow-up per migration chunk (runbook: confirm the migration name with `list_migrations`, merge its PR, then merge the PRs stacked on it in order), and then runs Step 6.
 
 ## Step 6: The apply batch
 
-The night's last act, after the docs PR has merged. Oldest `awaiting-apply` chunk first. For each one:
-1. Run the migration's pre-apply check.
-2. Apply the file byte-identical.
-3. Run its post-apply checks, compare `md5(array_to_string(statements, ''))` in `supabase_migrations.schema_migrations` with the file's md5, and post both, with the applied version, as a PR comment.
-4. Merge on green, then resolve its `apply-migration` follow-up.
+The night's last act, after the docs PR has merged. A **stack** is one migration chunk plus every chunk stacked on it, in build order. With more than one stack, oldest first, and they are handled as one line: each later stack sits on top of the one before.
 
-Never push to the branch after an apply. The file keeps its build-time name: the PR comment's applied version and matching md5 tie it to the shared history, so there is no rename commit. On Claude Code, the auto-mode classifier reads any push after a prod apply as a production deploy and refuses it. The merge in item 4 needs the allow rule in **Running on each harness**.
+1. **Restack before any apply.** Pushes after an apply are refused (below), so every push happens now, for every stack. Rebase the first branch onto the fresh default branch, then each next branch onto the new tip of the one below it (`git rebase --onto <below new tip> <below old tip> <branch>`; a later stack's first branch goes onto the previous stack's top), and force-push each with `--force-with-lease`. Wait for every PR to go green. The first PR that is not green cuts the line there: it and everything above it stay open for the morning (the follow-ups say so), and the batch goes on with the part below the cut.
 
-A refusal at any point ends the batch. That is a normal ending, not a hard stop, and needs no clean-up: the status update and the follow-ups already say what is still pending. Never retry or route around a refusal.
+Then, for each chunk in the line, in order:
+
+2. **Migration chunk:** run the pre-apply check, apply the file byte-identical, run the post-apply checks, compare `md5(array_to_string(statements, ''))` in `supabase_migrations.schema_migrations` with the file's md5, and post both, with the applied version, as a PR comment. Then merge on green. A chunk with no migration skips straight to the merge.
+3. **Merge** (squash), then the next chunk. No rebase and no push between merges: after a restack every stacked PR already holds its parent's changes, so it squash-merges cleanly, and its green CI run tested exactly the tree that lands. Nothing else merges to the default branch during Step 6.
+4. When a stack's last merge lands, resolve its `apply-migration` follow-up.
+
+Never push to a branch after an apply. The file keeps its build-time name: the PR comment's applied version and matching md5 tie it to the shared history, so there is no rename commit. On Claude Code, the auto-mode classifier reads any push after a prod apply as a production deploy and refuses it. The merges need the allow rule in **Running on each harness**.
+
+A refusal or a failed check at any point ends the batch. That is a normal ending, not a hard stop, and needs no clean-up: the status update and the follow-ups already say what is still pending. A stacked PR left open after its parent merged is fine to merge by hand in order. Never retry or route around a refusal.
 
 ## Asks
 
