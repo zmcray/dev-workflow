@@ -75,8 +75,8 @@ try {
   assert.equal(result.status, 0, result.stderr)
   assert.deepEqual(calls()[0], ['typecheck'])
   const related = calls()[1]
-  assert.deepEqual(related.slice(0, 6), ['exec', 'vitest', 'related', '--run', '--passWithNoTests', '--'])
-  assert.deepEqual(related.slice(6).sort(), ['ordinary.ts', 'staged.ts', 'deleted.ts', 'renamed name.ts', 'new space.ts', '--option.ts', 'line\nbreak.ts'].sort())
+  assert.deepEqual(related.slice(0, 5), ['exec', 'vitest', 'related', '--run', '--passWithNoTests'])
+  assert.deepEqual(related.slice(5).sort(), ['ordinary.ts', 'staged.ts', 'deleted.ts', 'renamed name.ts', 'new space.ts', '--option.ts', 'line\nbreak.ts'].map(file => `./${file}`).sort())
   assert.equal(calls().length, 2)
   reset()
   fs.rmSync(cwdLog, { force: true })
@@ -84,7 +84,7 @@ try {
   fs.mkdirSync(nested, { recursive: true })
   result = run('pass', false, { cwd: nested })
   assert.equal(result.status, 0, result.stderr)
-  assert.deepEqual(calls()[1].slice(6).sort(), related.slice(6).sort(), 'nested sessions retain tracked and untracked root paths')
+  assert.deepEqual(calls()[1].slice(5).sort(), related.slice(5).sort(), 'nested sessions retain tracked and untracked root paths')
   assert.deepEqual(fs.readFileSync(cwdLog, 'utf8').trim().split('\n').map(JSON.parse), [fs.realpathSync(repo), fs.realpathSync(repo)], 'both checks execute at the repository root')
   for (const mode of ['type-fail', 'related-fail', 'crash']) {
     reset()
