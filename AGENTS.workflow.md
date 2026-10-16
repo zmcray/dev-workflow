@@ -40,6 +40,7 @@ Hard rules for every session in every harness. Procedures live in `~/Developer/d
 
 ### Where things live
 
+- Names: the date goes last on every file and folder, never first (`<short-description>-YYYY-MM-DD`). Rename a date-first file when you move or copy it.
 - Plans: `docs/plans/<short-description>-YYYY-MM-DD.md`, date last (taken name: counter before the date). Archive to `docs/plans/archive/` with an `## Outcome` note.
 - PRDs `docs/strategy/` · factory ledgers `docs/factory/runs/` · checkpoints `docs/checkpoints/` · design briefs `docs/design/briefs/` · wizards `scripts/wizards/`
 - Research `docs/research/` (start at `INDEX.md`) · one glossary, `CONCEPTS.md` · ADRs `docs/adr/` · Linear link `.linear-project.json`
