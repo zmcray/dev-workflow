@@ -54,7 +54,7 @@ async function main() {
   if (!files.length) return
   await run('pnpm', ['typecheck'], cwd)
   // Docs and other inputs without related tests are valid; actual test failures still fail.
-  await run('pnpm', ['exec', 'vitest', 'related', '--run', '--passWithNoTests', '--', ...files], cwd)
+  await run('pnpm', ['exec', 'vitest', 'related', '--run', '--passWithNoTests', ...files.map(file => `./${file}`)], cwd)
 }
 main().catch(error => {
   process.stderr.write(`Stop fast check: ${error.message}\n`)
