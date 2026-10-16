@@ -8,7 +8,7 @@ Spec: [link to plan/PRD section, or inline]
 Acceptance criteria:            # EARS-style; each maps to a test the agent can run, or says `not eyeballed`
 - WHEN [trigger], the system SHALL [behavior]   (verified by: [test name, or `not eyeballed`])
 Artboard: [link to approved design canvas, or "n/a (no UI)"]
-File scope: [paths this issue may touch]        # overlap with another queued issue = dependency edge, run sequentially
+File scope: [paths this issue may touch]        # migration in repo with production release manifest: include actual manifest + both schema-marker tests; existing LEARNINGS.md append-only; overlaps need an edge
 Out of scope: [what this issue deliberately does not do]
 Human gate: [none | procedure: … | judgment: … — what a person must do and when: before build / mid-build / before merge]
 ```
@@ -21,7 +21,7 @@ Rules:
 
 - **Every acceptance criterion is executable where it can be** — it names the test that proves it. A criterion only an eye can judge (how a screen looks) says `not eyeballed`: it ships, the run lists it on the status update's `Not eyeballed:` line, and it never gates the chunk or becomes a morning ask.
 - **Artboard is required for any UI work.** The approved canvas is implementation input; night agents diff their screenshots against it.
-- **File scope is a fence, not a hint.** The building agent may not touch paths outside it. Wanting to = kick back with a Linear comment, don't expand.
+- **File scope is a fence, not a hint.** For migrations in repos with a production release manifest, include the actual manifest and both schema-marker tests before overlap checks; count them toward the chunk bar and serialize any overlap. Outside the named paths, only append-only entries to the repo's existing `LEARNINGS.md` are allowed; no rewrites, deletions or new learnings file. Any other expansion = kick back with a Linear comment.
 - **Human gate is mandatory.** `none` means the chunk can finish overnight with nobody present. Anything else (a product-direction call only Zack can make: picking between designs, a taste or naming call, a scope decision; credentials / 2FA / App Store / vendor console; a physical device the build cannot proceed without; an outside party) gets named here and the issue carries `gate:human`; it never enters the night queue. Start the line with `procedure:` (clicking, copying, pasting only the person can do; it gets a wizard script) or `judgment:` (a decision only Zack can make; it becomes a `human_step` ask). Checking how a screen looks or behaves is not a gate: the canvas settles the design before build, and Zack catches the rest in daily use (MCR-2748). If the human step can be its own small chunk, split it so the rest stays hands-off.
 - **Out of scope is mandatory**, even when it feels obvious. It is what keeps an unattended agent from helpfully doing more.
 - **Keep it a chunk.** Well under an hour of agent time, about 5 files and 300 changed lines or fewer, 1-4 acceptance checks. Bigger than that, split it. File scope that overlaps another queued chunk needs a `blocked by` edge; disjoint scope with no edge means the two may be built at the same time.
