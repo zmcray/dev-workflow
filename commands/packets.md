@@ -20,7 +20,7 @@ It does not plan, re-plan, or second-guess the plan's decisions. If the plan is 
 
 **This command is normally invoked for you.** The AGENTS.md core rule has any session cut a 3+ unit plan into chunks before building or ending, and every `/goal` run opens with a chunk sweep. Running it by hand is only for spec time when you want to see the waves before bedtime.
 
-**Small-plan no-op.** A plan with 1-2 units that already fits the chunk bar is not split. Add the build packet, `File scope:` line, and `tier:*` label to the existing issue, write a one-row `## Chunks` section into the plan so the sweep does not revisit it, and stop.
+**Small-plan no-op.** Before judging whether a 1-2-unit plan fits the chunk bar or returning, apply Step 3's file-scope expansion: for each migration unit in a repo with a production release manifest, discover and count the actual manifest and both schema-marker tests. The existing `LEARNINGS.md` append-only exception also applies. If the expanded scope exceeds the bar, continue to Step 2 for the normal cut. Only when it fits, add the build packet, `File scope:` line, and `tier:*` label to the existing issue, write a one-row `## Chunks` section into the plan so the sweep does not revisit it, and stop.
 
 ## Step 2: Units → chunks
 
@@ -33,7 +33,8 @@ Start from the plan's `### U<N>.` units (Goal, Dependencies, Files, Approach, Te
 
 ## Step 3: File scope, edges, waves
 
-1. **File scope** per chunk = the unit's `Files`, generalized to directories or globs where that is honest. It is a fence: the building agent may not touch paths outside it.
+1. **File scope** per chunk = the unit's `Files`, generalized to directories or globs where that is honest. Before overlap checks, edges or waves, expand every migration chunk in a repo with a production release manifest to include that repo's actual manifest and both tests pinning its schema marker. Discover the paths in that repo; examples are `supabase/functions/production-manifest.json`, `scripts/production-function-manifest.test.ts`, and `tests/contracts/*-production-workflow.test.mjs`. Count those files toward the chunk bar and serialize overlaps normally.
+   The fence otherwise forbids paths outside it, with one universal exception: append-only entries to the repo's existing `LEARNINGS.md` are allowed even when omitted from File scope. This permits no rewrite, deletion, new learnings file or unrelated edit.
 2. **Edges.** Add `blocked by` for every plan `Dependencies` entry. Then run the **overlap check**: any two chunks whose file scopes intersect MUST have an edge (pick the order that lands the more foundational one first). Shared hot files count as overlap and are easy to miss... schema and migration dirs, route or navigation index, DI container, `Package.swift`, lockfiles, generated types, shared design tokens.
 3. **Widen the waves.** If one shared file forces a long serial chain, propose a small **prefactor chunk** that isolates the seam (extract the registry, split the index), then fan the rest out behind it. Propose it; do not silently add scope. Taste call → ask once, batched.
 4. **Waves.** Wave 1 = chunks with no blockers. Wave N+1 = chunks unblocked once wave N merges. Chunks inside a wave share no files and may be built simultaneously. Merges are always one at a time.
