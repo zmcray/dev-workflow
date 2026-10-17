@@ -1,0 +1,19 @@
+{
+  "defaults": {
+    "strict": true,
+    "enforce_admins": true,
+    "require_pull_request": true
+  },
+  "repos": {
+    "Pulse": { "required": ["ci"] },
+    "motus": { "required": ["MotusKit tests", "App tests", "Proxy checks and tests", "App build"] },
+    "saidso": { "required": ["build-and-test"] },
+    "telos": { "required": ["contracts-and-database"] },
+    "argus": { "required": ["node-tests"], "gap": "relay-ci only runs on some paths, so it can't be required directly. Add an always-run gate job that needs both suites (rules/ci.md), then require the gate." },
+    "sonar": { "required": ["ci"] },
+    "quoting": { "required": ["check"] },
+    "pulse-ios": { "required": ["CI gate"] },
+    "dev-workflow": { "required": ["tests"] },
+    "mcray-os-skills": { "required": [], "gap": "No CI yet, so nothing to require. Protection still blocks direct pushes to main." }
+  }
+}
