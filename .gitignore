@@ -3,3 +3,4 @@ deploy-*.log
 backups/
 .env*
 node_modules/
+.local/
