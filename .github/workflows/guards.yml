@@ -1,0 +1,46 @@
+name: guards
+
+# Shared ratchet guards for every repo. A guard fails only on what a pull request adds,
+# so existing code never blocks a change. Each error names the fix.
+on:
+  workflow_call:
+    inputs:
+      swift:
+        description: Run the Swift swallowed-error guard (iOS repos).
+        type: boolean
+        default: false
+      guards_ref:
+        description: dev-workflow ref that supplies the guard scripts.
+        type: string
+        default: main
+
+permissions:
+  contents: read
+
+jobs:
+  guards:
+    name: guards
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          repository: zmcray/dev-workflow
+          ref: ${{ inputs.guards_ref }}
+          path: .dev-workflow-guards
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Date-last file names
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: node .dev-workflow-guards/scripts/guards/date-last-names.mjs --base "$BASE"
+      - name: Swift swallowed errors
+        if: github.event_name == 'pull_request' && inputs.swift
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: node .dev-workflow-guards/scripts/guards/swift-swallowed-errors.mjs --base "$BASE"
