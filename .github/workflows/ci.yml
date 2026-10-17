@@ -25,6 +25,7 @@ jobs:
       - run: bash scripts/guards/date-last-names.test.sh
       - run: bash scripts/guards/swift-swallowed-errors.test.sh
       - run: bash hooks/stop-fast-check.test.sh
+      - run: bash scripts/branch-protection.test.sh
 
   guards:
     uses: ./.github/workflows/guards.yml
