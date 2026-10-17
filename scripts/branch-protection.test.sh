@@ -72,5 +72,9 @@ assert.equal(puts()[0].body.required_status_checks, null, 'a repo with no CI get
 
 r = run({ protection: { Pulse: good }, runs: { Pulse: ['ci'] } }, 'apply', 'Pulse')
 assert.equal(puts().length, 0, 'apply leaves a matching repo alone')
+
+const noChecks = { required_status_checks: null, enforce_admins: { enabled: true }, required_pull_request_reviews: { required_approving_review_count: 0 } }
+r = run({ protection: { 'mcray-os-skills': noChecks }, runs: {} }, 'audit', 'mcray-os-skills')
+assert.match(r.stdout, /mcray-os-skills: ok/, 'strict is not drift when a repo has no required checks')
 console.log('branch-protection: all checks passed')
 NODE

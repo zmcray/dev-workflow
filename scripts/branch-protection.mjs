@@ -40,6 +40,8 @@ export function drift(want, have) {
   if (!have) return ['branch is not protected']
   const out = []
   for (const key of ['strict', 'enforce_admins', 'require_pull_request']) {
+    // GitHub only stores strict alongside required checks, so it has no meaning without them.
+    if (key === 'strict' && !want.required.length) continue
     if (want[key] !== have[key]) out.push(`${key} is ${have[key]}, want ${want[key]}`)
   }
   const missing = want.required.filter(c => !have.required.includes(c))
