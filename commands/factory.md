@@ -71,7 +71,7 @@ Order: <IDs in order>.
 
 ## Step 3: Open the ledger
 
-Write `docs/factory/runs/YYYY-MM-DD.json` in the repo (create the directory; it is committed with the morning docs PR, never with a chunk PR). If that file already exists (another lane or a rerun the same day), write `docs/factory/runs/<lane>-<HHMM>-YYYY-MM-DD.json` instead (file names keep the date at the end; the `run_id` value itself is unchanged): never overwrite an earlier run's ledger.
+Write `docs/factory/runs/run-YYYY-MM-DD.json` in the repo (create the directory; it is committed with the morning docs PR, never with a chunk PR). If that file already exists (another lane or a rerun the same day), write `docs/factory/runs/<lane>-<HHMM>-YYYY-MM-DD.json` instead (file names keep the date at the end; the `run_id` value itself is unchanged): never overwrite an earlier run's ledger.
 
 ```json
 {
@@ -127,7 +127,7 @@ For each, write the wizard with the `wizard` skill (unattended rules in `~/Devel
 
 Arm the harness's goal mode (see **Running on each harness**) with this condition and let it drive:
 
-> Goal: drain the factory queue for <project> under the budget in `docs/factory/runs/<date>.json`. Before starting any chunk: re-read the ledger, stop if the clock is past `last_dispatch` or past `hour_limit`, run the Red main check, re-query Linear for the next eligible issue (the board may have changed). Build each chunk per `~/Developer/dev-workflow/rules/goal-runs.md`. Update the ledger row at start and end of every chunk. Ending conditions are queue empty, deadline, run limit, or hard stop; write `stop_reason` and finish with Step 5.
+> Goal: drain the factory queue for <project> under the budget in `docs/factory/runs/run-<date>.json`. Before starting any chunk: re-read the ledger, stop if the clock is past `last_dispatch` or past `hour_limit`, run the Red main check, re-query Linear for the next eligible issue (the board may have changed). Build each chunk per `~/Developer/dev-workflow/rules/goal-runs.md`. Update the ledger row at start and end of every chunk. Ending conditions are queue empty, deadline, run limit, or hard stop; write `stop_reason` and finish with Step 5.
 
 The budget check happens **between chunks, never inside one**. A chunk that is running at `stop_at` or `hour_limit` finishes; it is the 45-minute margin's job to make the `stop_at` case rare. The run limit has no margin: at `hour_limit` the in-flight chunk completes and nothing new starts.
 

@@ -105,7 +105,7 @@
    Every screen artboard carries one sticky note: **primary action · secondary actions · what happens next · what data is shown · what is deliberately not here.**
 4. **Actions audit (15 min).** Every action on every screen must serve the loop or move to Shelf. Count taps from open to aha — budget **≤ 3** for a utility loop. Anything that adds a tap without adding to the magic is cut.
 5. **Walk-through (20 min).** With Elisa, or yourself cold. **5-second test** on the magic screen: *"what does this do?"* Then narrate through the flow; write confusion down verbatim. If the flow has to be *felt* (timing, gestures), ask `/design` for the clickable-prototype form of the canvas. If it has to be felt *on device* (camera, voice, share sheet), run a throwaway feasibility spike on a scratch branch — never merged, one paragraph of findings.
-6. **Verdict + summary.** **keep** → write the sketch summary (template in §7) to `docs/strategy/sketches/YYYY-MM-DD-<slug>.md` with the canvas link — this is what Caspian's gate reads. **reshape** → rewrite the loop sentence, re-run another evening. **kill** → back to the shelf with why. Killed sessions are cheap; that's the point.
+6. **Verdict + summary.** **keep** → write the sketch summary (template in §7) to `docs/strategy/sketches/<slug>-YYYY-MM-DD.md` with the canvas link — this is what Caspian's gate reads. **reshape** → rewrite the loop sentence, re-run another evening. **kill** → back to the shelf with why. Killed sessions are cheap; that's the point.
 
 **Rules.** Wireframe until the verdict. No code (spikes excepted, and they never merge). One evening. The canvas is editable by hand later — refine screens during Spec if a spec needs it, **never during Build**. The canvas is the contract the morning verification checks against.
 
@@ -333,7 +333,7 @@ Per-*issue* rigor stays with the flow labels regardless of tier: a `flow:ship` o
 
 ## 7. Templates
 
-### Shape doc — `docs/strategy/shapes/YYYY-MM-DD-<slug>.md`
+### Shape doc — `docs/strategy/shapes/<slug>-YYYY-MM-DD.md`
 
 ```markdown
 # Shape: <name>
@@ -361,7 +361,7 @@ Below the line: <steps that are real but not M1>
 ## Design rung:  none | tweak | screens | journey | product — <why this rung>
 ```
 
-### Sketch summary — `docs/strategy/sketches/YYYY-MM-DD-<slug>.md`
+### Sketch summary — `docs/strategy/sketches/<slug>-YYYY-MM-DD.md`
 
 ```markdown
 # Sketch: <name>
@@ -406,4 +406,4 @@ Not eyeballed: MCR-###, MCR-###   (UI criteria no test asserts; a record, not a 
 /factory
 ```
 
-One line per repo, no arguments. It drains everything `spec-ready` and ungated under the night budget (DISPATCH.md) and leaves `docs/factory/runs/<date>.json` plus a project status update for the morning. `/goal <milestone | IDs>` is still there when you want to focus a night on one thing.
+One line per repo, no arguments. It drains everything `spec-ready` and ungated under the night budget (DISPATCH.md) and leaves `docs/factory/runs/run-<date>.json` plus a project status update for the morning. `/goal <milestone | IDs>` is still there when you want to focus a night on one thing.

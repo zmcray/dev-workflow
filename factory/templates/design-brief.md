@@ -2,7 +2,7 @@
 
 The handoff planning writes when it stops at "design first" (AGENTS.md > Spec gate). One brief per **group** (issues that change the same screens share one canvas). The reader is Zack, cold, in the morning: everything he needs to open Claude Design and finish is on this page. He should never have to open the plan, the issues, or DESIGN.md to know what to draw.
 
-Where it goes: `docs/design/briefs/YYYY-MM-DD-<group-slug>.md` in the project repo, committed with the planning work. A one-line comment on every issue in the group points at it. The planning session prints the "Your steps" section in full, then stops and waits for `canvas <url>`.
+Where it goes: `docs/design/briefs/<group-slug>-YYYY-MM-DD.md` in the project repo, committed with the planning work. A one-line comment on every issue in the group points at it. The planning session prints the "Your steps" section in full, then stops and waits for `canvas <url>`.
 
 Rules for the writer:
 

@@ -32,7 +32,7 @@ A **wave** is every `spec-ready` chunk that is unblocked, carries neither `gate:
 | `concurrency` | 1 (sequential until the wave dispatcher lands; then ≤ CI runner slots) | 1, later 2 |
 | `max_turns_per_chunk` | 150 | 150 |
 
-Ledger: `docs/factory/runs/YYYY-MM-DD.json` in the repo, one row per chunk, written at chunk start and end. Argus reads these for the cross-repo digest later.
+Ledger: `docs/factory/runs/run-YYYY-MM-DD.json` in the repo, one row per chunk, written at chunk start and end. Argus reads these for the cross-repo digest later.
 
 ## When the night ends
 
