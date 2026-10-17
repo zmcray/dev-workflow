@@ -24,6 +24,7 @@ jobs:
           node-version: 22
       - run: bash scripts/guards/date-last-names.test.sh
       - run: bash scripts/guards/swift-swallowed-errors.test.sh
+      - run: bash scripts/agent-pitfalls/metrics.test.sh
       - run: bash hooks/stop-fast-check.test.sh
       - run: bash scripts/branch-protection.test.sh
 

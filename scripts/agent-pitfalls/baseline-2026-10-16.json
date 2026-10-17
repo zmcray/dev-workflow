@@ -1,0 +1,92 @@
+{
+  "window": {
+    "since": "2026-07-16",
+    "until": "2026-10-16"
+  },
+  "note": "Deterministic numbers come from metrics.mjs and compare like for like. Judged numbers came from one agent classification pass in the 2026-10-16 study and need classify-prompt.md to recompute.",
+  "deterministic": {
+    "total": {
+      "commits": 1355,
+      "agent": 929,
+      "fixes": 182,
+      "dateFirst": 304
+    },
+    "messages": {
+      "messages": 1932,
+      "replies": 1567,
+      "actionNeeded": 451
+    },
+    "repos": {
+      "pulse": {
+        "commits": 220,
+        "agent": 197,
+        "fixes": 12,
+        "dateFirst": 56
+      },
+      "motus": {
+        "commits": 325,
+        "agent": 176,
+        "fixes": 54,
+        "dateFirst": 54
+      },
+      "saidso": {
+        "commits": 180,
+        "agent": 95,
+        "fixes": 44,
+        "dateFirst": 73
+      },
+      "pulse-ios": {
+        "commits": 62,
+        "agent": 9,
+        "fixes": 6,
+        "dateFirst": 8
+      },
+      "telos": {
+        "commits": 317,
+        "agent": 212,
+        "fixes": 46,
+        "dateFirst": 56
+      },
+      "argus": {
+        "commits": 50,
+        "agent": 49,
+        "fixes": 4,
+        "dateFirst": 11
+      },
+      "sonar": {
+        "commits": 89,
+        "agent": 85,
+        "fixes": 8,
+        "dateFirst": 32
+      },
+      "quoting": {
+        "commits": 47,
+        "agent": 45,
+        "fixes": 5,
+        "dateFirst": 6
+      },
+      "dev-workflow": {
+        "commits": 33,
+        "agent": 30,
+        "fixes": 3,
+        "dateFirst": 7
+      },
+      "mcray-os-skills": {
+        "commits": 32,
+        "agent": 31,
+        "fixes": 0,
+        "dateFirst": 1
+      }
+    }
+  },
+  "judged": {
+    "fix-commit share": "23% (490 of about 2,120)",
+    "corrections per 100 messages": "19.3 (369 of 1,909)",
+    "hand-back complaints per 100 messages, Sep-Oct": "2.38"
+  },
+  "targets_2026_12_16": {
+    "fix-commit share (judged)": "under 15%",
+    "corrections per 100 messages": "under 12",
+    "hand-back complaints per 100": "under 1"
+  }
+}
