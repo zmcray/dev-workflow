@@ -2,8 +2,8 @@
 
 - **Created:** 2026-10-16
 - **Tier:** not set (each unit is sized below; tier at /packets time)
-- **Linear Project:** Agent-friendly codebase (https://linear.app/mcraygroup/project/agent-friendly-codebase-397984d9efcd)
-- **Linear Issues:** MCR-3302 to MCR-3317 (U1 to U16), plus MCR-3300 (live bug the study found)
+- **Linear Project:** each repo's own project (see "Where the issues live"). The cross-repo project first used for this plan is canceled.
+- **Linear Issues:** MCR-3302 to MCR-3317 (U1 to U16), split-offs MCR-3325 to MCR-3332, plus MCR-3300 (live bug the study found)
 - **Task:** Find the mistakes agents keep repeating in the 10 active repos and remove them through code: architecture and types first, shared CI guards next, prose last. Back every proposal with real data, and settle open questions by prototype.
 
 **Privacy note:** this repo is public. The plan holds only counts, commit shas and file names. The raw evidence (Zack's quotes, Slack items, per-fix JSON, prototype outputs) lives in `.local/agent-pitfalls-2026-10-16/`, which is git-ignored.
@@ -74,9 +74,41 @@ Only part of this plan rests on measurement. The rest rests on agent judgment, a
   - Nothing starts until the rerun reports.
   - Then pick one large unit (U9, U10 or U11), build it, and check whether its class stops recurring before starting the rest.
 
+## Where the issues live
+
+Your Linear rules give each repo one project, and `/factory` only drains the repo's own project. So each issue sits in the project of the repo where its code lands. "Now" issues sit in a live hardening milestone. "Later" issues sit on a shelf with Low priority and `deferred`, so the factory skips them until the rerun.
+
+| Unit | Issue | Project | Milestone |
+|---|---|---|---|
+| Telos purge bug | MCR-3300 | telos | Platform: hardening |
+| U1 output style | MCR-3302 | Workflow | Factory: hardening |
+| U2 date-last templates and guard | MCR-3303 | Workflow | Factory: hardening (merged, #43) |
+| U4 shared guards | MCR-3305 | Workflow | Factory: hardening (workflow merged, #44; per-repo wiring open) |
+| U5 branch protection | MCR-3306 | Workflow | Factory: hardening (audit merged, #45; apply waits for Zack) |
+| U6 Stop hook wiring | MCR-3307 | Workflow | Factory: hardening |
+| U7 redefine-hazard check | MCR-3308 | telos | Platform: hardening |
+| U16 rerun script | MCR-3317 | Workflow | Factory: hardening |
+| U3 skill manifests | MCR-3304 | Workflow | Factory: later |
+| U3a argus one deploy path | MCR-3325 | Argus | Later: deferred |
+| U3b sonar one lockfile | MCR-3326 | Sonar | Later: deferred |
+| U3c saidso Xcode Cloud only | MCR-3327 | Saidso | Later: deferred |
+| U8 telos registries as rows | MCR-3309 | telos | Later: deferred |
+| U9 motus ItemShape and owners | MCR-3310 | Motus | Platform: later |
+| U10 pulse store and clock | MCR-3311 | Pulse | Platform: later |
+| U11a argus job outcomes | MCR-3312 | Argus | Later: deferred |
+| U11b sonar runVerb | MCR-3328 | Sonar | Later: deferred |
+| U11c pulse tagged fetch results | MCR-3329 | Pulse | Platform: later |
+| U11d saidso failure disposition | MCR-3330 | Saidso | Later: deferred |
+| U12 shared schema owners | MCR-3313 | Workflow | Factory: later |
+| U13a verify-motus | MCR-3314 | Motus | Platform: later |
+| U13b verify-saidso | MCR-3331 | Saidso | Later: deferred |
+| U13c verify-pulse | MCR-3332 | Pulse | Platform: later |
+| U14 tested wizards and closeout | MCR-3315 | Workflow | Factory: later |
+| U15 rule table | MCR-3316 | Workflow | Factory: later |
+
 ## Units
 
-Order: subtract first, then shared guards, then architecture per stack, then verification, then prose. Units in the same phase touch different repos, so they can run in parallel. Each unit's milestone is set in Linear.
+Order: subtract first, then shared guards, then architecture per stack, then verification, then prose. Units in the same phase touch different repos, so they can run in parallel.
 
 ### Phase 0: Subtract (S each)
 
@@ -100,8 +132,9 @@ Order: subtract first, then shared guards, then architecture per stack, then ver
   - First rules: date-last names, docs-PR IDs, AGENTS block md5, the retired-names list, and the Swift swallowed-error ratchet.
   - All rules are ratchets with fix-naming errors.
 - **U5 (MCR-3306): Merge gates as code.**
-  - Only 2 of 8 protected repos require PRs to be up to date. There are no merge queues, and argus doesn't require its second suite.
-  - A script applies and audits strict up-to-date, every suite required, and enforce on admins.
+  - Only 2 of 8 protected repos require PRs to be up to date. There are no merge queues, and 6 repos allow direct pushes to main.
+  - A script audits and applies strict up-to-date, enforce on admins, and a required PR.
+  - Correction found while building it: argus's second suite (relay-ci) runs only on some paths, so it can't be required directly. argus needs an always-run gate job first.
 - **U6 (MCR-3307): Finish MCR-2719.**
   - Install the Stop and PreToolUse hooks machine-wide, and fail closed.
   - An audit proves each repo's hook blocks a red turn.
