@@ -59,7 +59,7 @@ For every chunk ask: **can this finish overnight with nobody present?** Apply `g
 One issue per chunk, created in dependency order so edges can reference real IDs. Follow `~/Developer/dev-workflow/rules/linear.md` (milestone required, priority never None, sub-issues inherit the parent's milestone).
 
 - **Title:** `U3: <imperative, one line>`
-- **Labels:** the parent's `flow:*`, the parent's `design:*`, exactly one `tier:*`, `spec-ready`, `prd-source` if the parent has it, and `gate:human` from Step 4b where it applies.
+- **Labels:** the parent's `flow:*`, the chunk's own `design:*` (Design gate below), exactly one `tier:*`, `spec-ready`, `prd-source` if the parent has it, and `gate:human` from Step 4b where it applies.
 - **Relations:** native `blocked by` links from Step 3.
 - **Body** (the build packet, `~/Developer/dev-workflow/factory/templates/build-packet.md`):
 
@@ -75,6 +75,8 @@ Lands in: <landing group name> (commit <k> of <n>; one commit per chunk; the PR 
 ```
 
 **Design gate.** If the parent is `design:screens`, `design:journey`, or `design:product`, every chunk that touches UI needs a real canvas URL on its `Artboard:` line (`~/Developer/dev-workflow/rules/design.md` > Spec gate). No canvas on the parent or the plan → create the chunks without `spec-ready`, write the **design brief** for the group (`~/Developer/dev-workflow/rules/design.md` > Design brief; template `~/Developer/dev-workflow/factory/templates/design-brief.md`) to `docs/design/briefs/`, comment "design first: brief at <path>" on the parent and each UI chunk, and end the handoff (Step 6) with the brief's table and "Your steps". Never write `n/a (no UI)` to get past it, and never hand off a bare "draw the canvas".
+
+**Each chunk carries its own rung, not the parent's.** A chunk that touches UI takes the parent's `design:*`. A chunk where nothing a user sees changes (its `File scope:` names no screen, page, component, view or style path: a migration, API, connector, job, script, skill or test) gets `design:none` and `Artboard: n/a (no UI)`, and keeps `spec-ready` even while the parent waits on its canvas. `design:journey` with `Artboard: n/a (no UI)` is a contradiction the night skips forever; never write it. When unsure whether a chunk touches UI, it does.
 
 Acceptance criteria come from the unit's Test scenarios and Verification, rewritten so each names the check that proves it. A criterion a machine cannot check is rewritten or the chunk loses `spec-ready` with a comment saying why. Describe behaviour and interfaces, not line numbers.
 

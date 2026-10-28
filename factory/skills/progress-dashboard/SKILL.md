@@ -38,7 +38,7 @@ argument-hint: "[project | <epic name> | <milestone name>]"
    - An issue a checkpoint or ledger says has unfixed review findings or a hard stop → Stuck.
    - In-progress issue with no branch and no PR, untouched for 48 hours or more, that blocks nothing → Stuck, pill `Idle`. The night shift skips started issues, so name them together in one alert.
    - Open `gate:human` issue: its blockers are done → Needs you, pill `Now`. Otherwise pill `Later`.
-   - Any issue on `design:screens`, `design:journey` or `design:product` without a canvas link → Stuck, pill `No canvas`.
+   - Any issue on `design:screens`, `design:journey` or `design:product` without a canvas link → Stuck, pill `No canvas`. IF its packet says `Artboard: n/a (no UI)`, pill `Mislabeled` instead: it should be `design:none`, and the next night relabels it.
    IF none apply, the section is one `.clear` line naming the next step.
 8. **Write the verdict.** One sentence in `<b>`, bad news first if there is any, then one short sentence of consequence. Plain words: "the player screen is half built", not "Circuits 2 is at 50%".
 9. **Fill the page.** Copy `template.html` to the scratch directory and fill it. Remove the sections the mode does not use (per the template comments) and every template comment. Replace the example rows. Keep the component classes; do not add new visual styles. IF the repo has `DESIGN.md` with color tokens, swap the `:root` values for them (both themes). Title: `<Project> Build Tracker` (project mode), `<Epic> Build Tracker` (epic), `<Milestone short name> Tracker` (milestone, e.g. "Circuits 2 Tracker").
