@@ -3,7 +3,7 @@
 - **Created:** 2026-10-31
 - **Tier:** judgment (process design); build units moderate
 - **Linear Project:** Workflow (rules, factory, skill); Pulse (the queue view)
-- **Linear Issue:** none yet; `/packets` cuts them from the units below. MCR-1801 (deferred Planning board) is narrowed by Unit 5.
+- **Linear Issue:** MCR-3877 (umbrella; chunks listed under Chunks). MCR-1801 (deferred Planning board) stays deferred and is blocked by U5b.
 - **Task:** Every screen that needs a canvas shows up in one list Zack can pick from. If he has not drawn one and it is the only thing holding work back, the factory draws it.
 
 ---
@@ -114,7 +114,7 @@ Done when: Zack says the canvases are good enough to build from, or the brief te
 
 - `api/_linear.js`: pull issues with `needs-canvas` or `canvas:agent`, and those with a canvas link but no packet, across all projects.
 - `src/views/`: the queue in the Build tab, with one row per group: name, repo, rung, issues unblocked, state, brief and canvas links. Most unblocked first. Per-repo filter.
-- Narrow MCR-1801 to this view, and leave the rest of the board deferred.
+- MCR-1801 stays deferred for the rest of the board, to be re-scoped against this queue before anyone builds it.
 
 Done when: every row matches the Linear view on fixture data, and there is no sideways overflow at 375px.
 
@@ -125,3 +125,21 @@ Done when: every row matches the Linear view on fixture data, and there is no si
 - **Night time goes to drawing.** The cap limits it, and the ledger shows the cost.
 - **Lanes differ.** A canvas one lane cannot read blocks a chunk built on that lane. Unit 0 answers this before anything depends on it.
 - **The December 14 date is fixed.** If everything else slips, Unit 3's template change still has to land.
+
+## Chunks
+
+| Unit | Issue | Wave | Landing group | Tier |
+|---|---|---|---|---|
+| U0 | MCR-3878 | 1 | Design queue U0 | judgment |
+| U1a | MCR-3879 | 1 | Design queue PR 1 | moderate |
+| U1b | MCR-3880 | 2 | Design queue PR 1 | moderate |
+| U2 | MCR-3882 | 2 | Design queue PR 2 | judgment |
+| U3a | MCR-3883 | 2 | Design queue PR 3 | moderate |
+| U1c | MCR-3884 | 3 | no PR (Linear only) | moderate |
+| U3b | MCR-3885 | 3 | Design queue PR 3 | mechanical |
+| U1d | MCR-3886 | 4 | no PR (`gate:human`) | mechanical |
+| U5a | MCR-3887 | 4 | Design queue Pulse PR | moderate |
+| U4 | MCR-3888 | 4 | Design queue U4 (`gate:human`) | judgment |
+| U5b | MCR-3889 | 5 | Design queue Pulse PR | moderate |
+
+U1 split into four along its files and its human step. U5 split into data and screen, so the data chunk can build without a canvas. U5b is not `spec-ready`: U4 writes its brief and draws its canvas. Writing the brief now would use the template U3b replaces.
