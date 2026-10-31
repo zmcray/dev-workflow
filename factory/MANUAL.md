@@ -20,7 +20,7 @@
 | 0s | **Sort** | Agent | the first time planning touches an issue; nightly sweep before `/factory` as backup | the planning step itself, or the scheduled sort job (`SORT.md`) | one `design:*` rung + one sort card per open issue | every open issue sorted, or `sort:needs-answers` with questions |
 | 1 | **Bet** | You | mapping day · 15 min / project | the Linear idea shelf, read against the product's `STRATEGY.md` | bets + this week's appetite | bets ≤ appetite |
 | 2 | **Shape** | You + Claude | mapping day · 30–60 min / bet | conversation, `/ce-brainstorm`, `/diagram`, `/hagen` | shape doc | loop sentence in one line; dominant risk named; design rung set |
-| 3 | **Design session** | You drive, Claude Design draws (the night draws what you skip, D-032) | one design block in the daily hour · on `design:screens` and up, picked from the Design queue | `/design` canvas (or Figma/Excalidraw) | screens + flow + actions canvas; sketch summary | walk-through passed; verdict = keep |
+| 3 | **Design session** | You drive, Claude Design draws (the night draws what you skip, D-032) | one design block in the daily hour · on `design:screens` and up, picked from the Design queue | `/canvas <group>` (or Figma/Excalidraw) | screens + flow + actions canvas; sketch summary | walk-through passed; verdict = keep |
 | 4 | **Commit** | You + the council | mapping day · ~1 h (PACKET: 30 min) | `/caspian` v3 | PRD with Later Shelf; labeled issues | Red Team adjudicated; M1 = skeleton only |
 | 5 | **Spec** | Agent; you for taste calls | spec days · the daily hour | `/ce-plan` → `/packets` | `spec-ready` chunks | queue ≥ appetite; every issue ≥ 7; plans landed |
 | 6 | **Build** | Agents | nights | built-in `/goal` → `/lfg` per chunk | merged PRs, residuals, nightly build, asks in Pulse | green train; hard stops surfaced, not guessed |
@@ -95,9 +95,9 @@
 
 **Purpose.** Lock the product flow, the screens, the layout and the actions *as pictures you can look at and argue with* — before a word of PRD or a line of code. Wireframe fidelity until the verdict; hi-fi is a Build-stage cost.
 
-**You do** (in Claude Design — `/design` in Claude Code — or Figma/Excalidraw; same steps, same output):
+**You do** (with `/canvas <group>` in Claude Code, or Figma/Excalidraw; same steps, same output):
 
-1. **Bring the design brief** (planning writes it at the design-first stop; for a new product, write it from the shape doc). Each spine step is a candidate screen. Run `/design` with a brief: product, loop sentence, spine, device, *wireframe fidelity*. Inside an existing app's repo it matches your real components and tokens automatically — then the session is about layout and flow, not brand.
+1. **Bring the design brief** (planning writes it when it flags a missing canvas; for a new product, write it from the shape doc). Each spine step is a candidate screen. Run `/canvas <group>` on a brief that names the product, loop sentence, spine, device and *wireframe fidelity*. Inside an existing app's repo it matches your real components and tokens automatically — then the session is about layout and flow, not brand.
 2. **Directions (30 min).** 2–4 genuinely different low-fi artboards of the **moment-of-magic screen**, each on a named axis (one-screen vs stepped, dense vs airy, list-first vs canvas-first). Pick one. Once picked, it stays picked.
 3. **Screens + flow (60–90 min).** In the chosen direction, one artboard per spine step. Organize the canvas into pages:
    - **Flow** — screens left→right in loop order; a sticky note on every transition: *trigger → destination*.
