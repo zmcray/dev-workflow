@@ -34,9 +34,11 @@ The sort card is the one top-level comment whose body starts with `Sort card`. M
 
 Work oldest first (`createdAt`) up to the cap.
 
+**Canvas check (separate from the cap).** Also list every open issue on `design:screens`, `design:journey` or `design:product`, except those labeled `deferred` or `ops`, those whose packet says `Artboard: n/a (no UI)`, and parents with sub-issues (their chunks carry their own rungs). Sorted or not, `spec-ready` or not, each gets Step 4's canvas label check. This keeps the Design queue true even when nobody touches the issue.
+
 ## Step 2: Read
 
-Per issue, read: title, description, labels, milestone, parent issue, blocking/related links, comments (including every reply in the sort card's thread... those are Zack's answers and they win over the description). If it has `prd-source`, read the PRD it links. If the project's repo is on this Mac (find the `.linear-project.json` under `~/Developer` whose `name` matches the project), look at the current screens the issue touches: route or view files, component names. **Read-only on code:** no branches, no edits, no builds.
+Per issue, read the full issue, one at a time: a listing cuts descriptions off, so a canvas link can look missing. Read: title, description, labels, milestone, parent issue, blocking/related links, comments (including every reply in the sort card's thread... those are Zack's answers and they win over the description). If it has `prd-source`, read the PRD it links. If the project's repo is on this Mac (find the `.linear-project.json` under `~/Developer` whose `name` matches the project), look at the current screens the issue touches: route or view files, component names. **Read-only on code:** no branches, no edits, no builds.
 
 **In the cloud routine** only this repo is checked out, so it cannot read other project repos. Skip the screen check unless the issue's owning repo is dev-workflow. The Mac wording above is the fallback if the desktop task is ever re-enabled.
 
@@ -70,6 +72,7 @@ Order matters: labels first, card last, so the card's `updatedAt` is the newest 
    - Set exactly one `design:*`. On a re-sort that changes the rung, remove the old one.
    - Add `sort:needs-answers` when it cannot place the issue; remove it when a re-sort places it.
    - Add one `flow:*` only if the issue has none (`flow:design` new surface, architecture, auth/data/payments or hard to reverse; `flow:standard` a meaty feature in known territory; `flow:ship` small and reversible). Never change an existing `flow:*`.
+   - **Canvas label.** Read the issue's full description and attachments. A canvas link is a Linear attachment, or a `Canvas: <url>` or `Artboard: <url>` line, pointing at a full URL; a bare path is not one. On `design:screens`, `design:journey` or `design:product` with no link, add `needs-canvas`. With a link, remove it. On any other rung, remove it. Never add or remove `canvas:agent`. If this changes a label on an issue with a sort card, edit the card in place too, so the write does not read as a change tomorrow.
 2. **Sort card.** Post it as a top-level comment, or **edit the existing card in place**. Never post a second card, and never reply in the card's thread except to record Zack's chat answers (Step 5).
 
 ```
@@ -89,7 +92,7 @@ Questions: <1) … 2) …> | none
 
 ## Never
 
-Plan, build, branch, or open a PR. Change an issue's status, priority, milestone, assignee, title, or description. Close or cancel anything (cancel candidates are only named). Add labels other than the ones in Step 4. Notify anyone: the morning brief and the Pulse Planning board read `sort:needs-answers` from Linear themselves. Compute Today's pick: Pulse does that.
+Plan, build, branch, or open a PR. Change an issue's status, priority, milestone, assignee, title, or description (so the sort never writes a `Brief:` line; such an issue shows in the queue as No brief yet). Close or cancel anything (cancel candidates are only named). Add labels other than the ones in Step 4. Notify anyone: the morning brief and the Pulse Planning board read `sort:needs-answers` from Linear themselves. Compute Today's pick: Pulse does that.
 
 ## Step 5: Log
 

@@ -2,6 +2,8 @@
 
 *Operating manual — how work moves from a spark to a shipped, verified feature. Heavy hands up front, no hands at night.*
 
+> **Out of date.** The current manual is `factory/MANUAL.md`. This page predates the design rungs and the Design queue, so read its design handoff there.
+
 **The principle.** The front of the line is judgment, and it's yours: what to build, what it looks like, what the first usable version is. The back of the line is execution, and it belongs to agents and loops. Every stage has an exit gate. The gates are what keep blue-sky thinking — which is welcome, and captured — from leaking into tonight's build.
 
 **Three kinds of time.** *Factory day* (Thursday: bet → shape → design → commit → spec). *Nights* (overnight goal runs). *Mornings* (20–30 minutes of verification). Sunday evening: learn.

@@ -16,10 +16,11 @@ Loaded only at Phase 5, after the PRD is on disk. Follow AGENTS.md > Linear stru
      Spec: <repo-relative PRD path> § <feature anchor>
      Acceptance criteria:
      - WHEN ..., the system SHALL ...  (verified by: ...)
-     Artboard: <approved canvas link, or "n/a (no UI)", or "needed: design session before build">
+     Artboard: <approved canvas link, or "n/a (no UI)", or "needed: see Brief line">
      File scope: to be set by /packets
      Out of scope: <feature's "Not here" line>
      ```
+   - **No canvas yet.** A feature that changes what a user sees, with a rung that needs a canvas and none approved, gets no `spec-ready`. Write its brief (`~/Developer/dev-workflow/rules/design.md` > Design brief), add `needs-canvas` and a `Brief: <path>` line, and carry on. The close message gets one line saying which groups joined the Design queue. Never stop here to wait for a canvas.
    - Later Shelf items: one issue each, label `deferred` only (no `spec-ready`), priority Low, milestone `<Epic>: later`, body = defer reason + kill condition + re-price date. Killed features get no issue.
 6. **Document.** Push the PRD as the project's Linear document (create or update by title).
 7. **Back-write.** PRD frontmatter: `linear_initiative`, `linear_project`, `linear_issues` (all created IDs), `last_refreshed` for REFRESH. Then the `**Latest PRD:**` line in the repo's `PROJECT.md` if it exists.
