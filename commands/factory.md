@@ -27,7 +27,7 @@ Standing contract: **never ask the user anything.** Every would-be question is a
 2. **Budget.** Merge, lowest to highest precedence: defaults from `~/Developer/dev-workflow/factory/DISPATCH.md` > Night budget → the `factory` key in `.linear-project.json` → flags on this invocation.
 
 ```json
-"factory": { "stop_at": "06:00", "max_hours": 12, "concurrency": 1, "max_turns_per_chunk": 150 }
+"factory": { "stop_at": "06:00", "max_hours": 12, "concurrency": 1, "max_turns_per_chunk": 150, "max_canvases": 2 }
 ```
 
    One more key in the same object is not part of the budget: `"migration_approval": "class"` opts the repo into class approval for prod migrations (`~/Developer/dev-workflow/rules/build.md` > Standing approval). Absent, only plan approvals count.
@@ -58,7 +58,9 @@ With an asks warning from Step 1.4, send nothing: move every earlier `asks_pendi
 
 ## Step 2: Read the queue
 
-Query the project's issues: `spec-ready`, state type not started/completed/canceled, not `gate:human`, not `ops`, no open `blocked by`. A `blocked by` that points at a plan umbrella (Step 1b item 5) is open only when the umbrella's state type is backlog or unstarted. An In Progress umbrella does not block its chunks: that is how Zack releases them. A `blocked by` that points at a chunk this run left `awaiting-apply` is not open either: the dependent builds stacked on it (Step 4 > **Migrations go last**). That holds only for tonight's own `awaiting-apply` rows; one left from an earlier night still blocks until its PR merges. Then drop any issue labeled `design:screens`, `design:journey`, or `design:product` that has no canvas link (a Linear attachment, or a `Canvas: <url>` or `Artboard: <url>` line in the description). That is the Spec gate (`~/Developer/dev-workflow/rules/design.md`): `spec-ready` without a canvas means someone skipped the design block, and the night never builds screens nobody drew. One exception: an issue whose build packet says `Artboard: n/a (no UI)` and whose `File scope:` names no screen, page, component, view or style path is mislabeled, not missing a canvas (chunks carry their own rung, `/packets` > Design gate). Swap its `design:*` for `design:none`, comment `Relabeled design:none: no-UI chunk (Artboard n/a, file scope <paths>).`, keep it in the queue and add `Relabeled <ID> design:none (no UI)` to the ledger `notes`. When the file scope does touch UI, it stays a `no-canvas` skip. Order: priority (Urgent > High > Medium > Low), then wave from the parent plan's `## Chunks` table when the issue is a chunk, then oldest first.
+Query the project's issues: `spec-ready`, state type not started/completed/canceled, not `gate:human`, not `ops`, no open `blocked by`. A `blocked by` that points at a plan umbrella (Step 1b item 5) is open only when the umbrella's state type is backlog or unstarted. An In Progress umbrella does not block its chunks: that is how Zack releases them. A `blocked by` that points at a chunk this run left `awaiting-apply` is not open either: the dependent builds stacked on it (Step 4 > **Migrations go last**). That holds only for tonight's own `awaiting-apply` rows; one left from an earlier night still blocks until its PR merges. Then drop any issue labeled `design:screens`, `design:journey`, or `design:product` that has no canvas link (a Linear attachment, or a `Canvas: <url>` or `Artboard: <url>` line in the description). That is the Spec gate (`~/Developer/dev-workflow/rules/design.md`): `spec-ready` without a canvas means someone skipped the design block, and the night never builds screens nobody drew. One exception: an issue whose build packet says `Artboard: n/a (no UI)` and whose `File scope:` names no screen, page, component, view or style path is mislabeled, not missing a canvas (chunks carry their own rung, `/packets` > Design gate). Swap its `design:*` for `design:none`, comment `Relabeled design:none: no-UI chunk (Artboard n/a, file scope <paths>).`, keep it in the queue and add `Relabeled <ID> design:none (no UI)` to the ledger `notes`. When the file scope does touch UI, it stays a `no-canvas` skip, and gets `needs-canvas` if it lacks it, so the second query below sees it. Also drop any `design:journey` or `design:product` issue carrying `canvas:agent`, even when it is labeled `spec-ready`, and report it as `canvas-draft`: an agent drew it, and choosing a direction is Zack's call. A `design:screens` issue carrying `canvas:agent` stays in the queue. On a lane that cannot read a Design artifact (Step 3c), a canvas link on `claude.ai/artifact/` counts as no canvas: `no-canvas`, and no `needs-canvas` is added. Order: priority (Urgent > High > Medium > Low), then wave from the parent plan's `## Chunks` table when the issue is a chunk, then oldest first.
+
+**Second query: what the night can draw.** `needs-canvas` issues, state type not started/completed/canceled, not `gate:human`, not `ops`, not `deferred`, no open `blocked by`. Group them by their `Brief:` line; an issue with no `Brief:` line takes its group from its sort card's Group line, or is a group of one. Rank groups by issues unblocked (the group's issues plus the open issues they block), most first. Step 3c draws from this list.
 
 Run the **chunk sweep** first, exactly as `~/Developer/dev-workflow/rules/goal-runs.md` describes it, so plans written today are cut before the queue is read.
 
@@ -66,12 +68,13 @@ Print the shift plan once and start. No confirmation.
 
 ```
 Factory: <project>. <E> eligible, no new chunk after <last_dispatch> or <hour_limit> (whichever is first), stop by <stop_at>.
-Skipped: <n> gate:human (<IDs>), <n> ops, <n> blocked, <n> no-canvas (<IDs>).
+Skipped: <n> gate:human (<IDs>), <n> ops, <n> blocked, <n> no-canvas (<IDs>), <n> canvas-draft (<IDs>).
+Canvases to draw: <up to max_canvases group names, in order> (omit the line at zero)
 Relabeled design:none (no UI): <IDs> (omit the line at zero)
 Order: <IDs in order>.
 ```
 
-`--dry-run` prints this and stops. It is the only argument that changes behaviour beyond the budget.
+`--dry-run` prints this and stops, and draws nothing. It is the only argument that changes behaviour beyond the budget.
 
 ## Step 3: Open the ledger
 
@@ -87,6 +90,7 @@ Write `docs/factory/runs/run-YYYY-MM-DD.json` in the repo (create the directory;
   "eligible": ["MCR-1710", "MCR-1711"],
   "skipped": [{ "issue": "MCR-1714", "reason": "gate:human" }, { "issue": "MCR-1716", "reason": "no-canvas" }],
   "items": [],
+  "canvases": [{ "group": "Circuit workout screens", "brief": "docs/design/briefs/circuit-workout-screens-2026-09-23.md", "issues": ["MCR-1720"], "rung": "design:screens", "url": "https://claude.ai/artifact/…", "outcome": "build | draft | failed", "reason": null }],
   "asks": { "open_at_start": 0, "resolved": 0, "written": 0, "synced": false, "warning": null },
   "asks_pending": [],
   "checklist": [],
@@ -128,6 +132,27 @@ Only when Step 1 item 5 found the default branch red. Fixing it is the night's f
 Before the first chunk, so the human batch is ready even on a short night. Find the project's open `gate:human` issues whose human step is a **procedure** (`~/Developer/dev-workflow/rules/chunks.md` > Wizards for human procedures) and that have no `Wizard:` line in the description or comments. A `Human gate:` line without a `procedure:` or `judgment:` prefix is classified from its wording; unsure means judgment, no wizard. Highest priority first, at most 5 a night; the rest wait for tomorrow.
 
 For each, write the wizard with the `wizard` skill (unattended rules in `~/Developer/dev-workflow/rules/chunks.md`), all of them in one `chore:` PR that names no issue ID anywhere (branch, title, commit subjects or body: the AGENTS.md core, Never list), so no issue is started by it. Merge on green, then comment the PR URL and `Wizard: bash scripts/wizards/<file>.sh` on each issue with the stage list. Record `"wizards": [{ "issue", "file" }]` in the ledger. A red wizard PR is not a hard stop: close it, note it in the ledger, and start the shift.
+
+## Step 3c: Draw the missing canvases
+
+A missing canvas is the only thing holding these issues back, so the night draws it. Run after the wizards and before the shift. Draw at most `max_canvases` groups (default 2) from Step 2's list, checking the clock before each one. It never files an ask and never stops the run.
+
+**Which lanes draw.** Only `claude`: it drew and read a Design artifact unattended in the 2026-10-31 test (plan `docs/plans/design-queue-agent-canvas-2026-10-31.md` > Unit 0). `codex` cannot read one, and `cursor` is untested. On those lanes, draw nothing and record each group's issues as a `no-canvas` skip, reason `lane cannot draw`.
+
+**Per group:**
+1. **Brief.** No `Brief:` line → write the brief (`~/Developer/dev-workflow/rules/design.md` > Design brief) and add the `Brief:` line to each issue. It is committed with the morning docs PR.
+2. **Draw** per `~/Developer/dev-workflow/commands/canvas.md` > Drawing, in a subagent, naming the repo's `DESIGN.md` in its prompt so it does not use the account's default design system.
+3. **Label** each issue in the group by this table, then add a ledger row to `canvases`:
+
+| Issue | After drawing | `outcome` |
+|---|---|---|
+| `design:screens`, packet finished | Add the `Canvas:` / `Artboard:` link and `canvas:agent`, clear `needs-canvas`, add `spec-ready`. Step 4's next query picks it up tonight | `build` |
+| `design:journey` or `design:product`, packet finished | Add the link and `canvas:agent`, clear `needs-canvas`, no `spec-ready`. Draw directions on the key screen, without picking one | `draft` |
+| Any rung, no plan yet | Add the link and `canvas:agent`, clear `needs-canvas`. It shows as Draft to review, then Ready to plan. No build | `draft` |
+
+A packet is finished when the description has a `## Build packet` with acceptance criteria and a `File scope:` line that is not `to be set by /packets`.
+
+**If drawing fails:** the issue keeps `needs-canvas`, the group's `canvases` row is `failed` with the reason, each issue is a `no-canvas` skip with that reason, and the run moves on to the next group.
 
 ## Step 4: The shift
 
@@ -186,7 +211,7 @@ Asks: <w> filed, <r> resolved, <o> open. (or) Asks not synced: <asks.warning>. T
 Merged: MCR-… (PR), MCR-… (PR)
 Not eyeballed: MCR-…, MCR-… (UI criteria no test asserts; a record, not an ask; omit the line at zero)
 Human batch: MCR-… — <one-line ask> (procedure: `Run: bash scripts/wizards/<file>.sh`)
-Needs design first: MCR-… → brief docs/design/briefs/<file> (spec-ready but no canvas; write the brief per `~/Developer/dev-workflow/rules/design.md` > Design brief if none exists; omit the line at zero)
+Canvases drawn: <group> → <url>: built on it MCR-… | draft waiting for Zack MCR-… | failed: <reason> (from the ledger's `canvases`; everything built on an agent canvas is named here; omit the line at zero)
 Failed: MCR-… — <one line>
 Reverted: MCR-… (PR → revert PR, Bug MCR-…: <failing tests>) (omit the line at zero)
 Needs spec first: MCR-… → <the missing contract or prerequisite, one line> (a gap /packets or a planning session fills by day, not an ask; omit the line at zero)
