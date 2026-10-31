@@ -37,7 +37,7 @@ Agents create the issues; Zack reads the board. Linear must answer, in under a m
   ```
 
 - **Superseding a plan means closing it out:** when a PRD refresh replaces a phase, re-home every open issue into a live milestone or cancel it with a comment. Never rename a milestone "Historical" and leave open issues inside. Put scope changes into structure (milestone, labels, links), not only into the description.
-- **Labels are not structure:** never invent labels that mirror milestones (`mvp:c1`). Labels carry cross-cutting facts only: `flow:*`, `design:*`, `tier:*`, `gate:human`, `prd-source`, `spec-ready`, `sort:needs-answers`, `Bug`, `ops`, `deferred`.
+- **Labels are not structure:** never invent labels that mirror milestones (`mvp:c1`). Labels carry cross-cutting facts only: `flow:*`, `design:*`, `tier:*`, `gate:human`, `prd-source`, `spec-ready`, `sort:needs-answers`, `needs-canvas`, `canvas:agent`, `Bug`, `ops`, `deferred`.
 - **Duplicates:** before filing, search open issues on the same file or module. Extend the existing issue instead of filing a near-copy.
 
 **Hygiene check (read-only, targets all zero).** Run at session close and on status; print the counts every time:
