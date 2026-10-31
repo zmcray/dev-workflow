@@ -74,6 +74,22 @@ Run from a headless session under the factory's own permission mode, against a t
 
 Done when: the answers and the chosen path are written here, per lane.
 
+**Results (2026-10-31, on this Mac):**
+
+| Lane | Draws with no prompt or login | Uses the repo's `DESIGN.md` | Reads a Design artifact | Path |
+|---|---|---|---|---|
+| Claude (`claude -p`, auto mode) | Yes: created, published, URL back, no denials, 52 seconds, $0.88 | Yes, when the prompt names it | Yes: a fresh session read the timer text, label and background color from the source | Design artifact |
+| Codex (`codex exec`, approval never) | Untested | Untested | **No.** Its browser needs an approval for claude.ai, and nobody is there to give it | Fallback: HTML in `docs/design/canvas/`, full GitHub URL |
+| Cursor | Untested: no `cursor-agent` command here, only the app | Untested | Untested | Fallback until tested. The lane is not built (MCR-1412) |
+
+What this means for the later units:
+- **Name the design file.** The Design type uses the account's default design system unless the session names another. Every draw prompt must name the repo's `DESIGN.md`.
+- **Read the source, not the page.** A builder reads `project/canvas.json` and `project/*.dc.html` through the Artifact tool. A plain fetch of the link returns 200, which proves nothing about the canvas.
+- **A Design artifact builds only on the Claude lane.** Until Codex can read one, a chunk with a Design artifact canvas skips on Codex as `no-canvas`.
+- **Not covered:** the other Mac, and a scheduled night start. Both sessions were started by hand from this Mac's login. Unit 4's real night covers the scheduled start.
+
+Test canvas, left in place and private: https://claude.ai/artifact/WH3vpyYqk76NkPU1AwQaw8
+
 ### Unit 1: Rules, labels and the stopgap view
 
 - `rules/design.md`: the new planning behavior, the labels, the `Brief:` line, and the rung table above.
