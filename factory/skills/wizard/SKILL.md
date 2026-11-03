@@ -11,6 +11,18 @@ The delightful UX is already solved by [template.sh](template.sh): stage-by-stag
 
 A wizard is ephemeral by default: built for one run, saved to a scratch or `scripts/` path, deleted when the job's done. Commit it only when the user wants a repeatable setup path that should live in the repo.
 
+## Only the steps that need hands
+
+A wizard holds only what needs the person's own hands: a click on a page no tool reaches, a sign-in, a value only a vendor dashboard shows. Everything an agent can do or check with a tool it has (a CLI or API, SQL, a connector such as Linear, Supabase or the routines API) is the agent's, before or after the wizard, never a stage:
+
+- **No confirm-a-fact prompts.** Never ask the person whether an issue is Done, a PR merged, a setting is on or a row exists. The agent reads it. A precondition the agent finds unmet stops the handoff before the wizard runs.
+- **No queries to paste.** Never hand the person SQL, a curl or a command to run and read back. The agent runs reads itself.
+- **No record-what-you-chose prompts.** The agent reads the result from the system afterwards.
+- **Settings an API can set, the agent sets** (a routine's schedule or connectors, a repo setting, an env var through a CLI), with the person's yes in chat, instead of walking them through the screen.
+- **Each stage is the click and where it happens.** The last stage says to come back to chat, where the agent verifies everything and reports.
+
+If nothing is left after the cut, there is no wizard: do the work in chat. Example of the cut: a routine-setup wizard asked the person to confirm an issue was Done, paste SQL to check a stamp row, say which connectors were attached, and record which paste format they used. Every one of those was an agent read. What belonged in the wizard: create the routine on its page and paste the launcher.
+
 ## Process
 
 ### 1. Scope the procedure
@@ -20,7 +32,7 @@ Work out every manual step the human must take and every value that gets capture
 - For setup: `.env`, `.env.example`, `.env.*`, `README`, `docker-compose*`, framework config, and `.github/workflows/*` (every `secrets.*` / `vars.*` reference is a value the wizard must produce).
 - For a migration or transition: the current state, the target state, and the irreversible actions between them.
 
-Then show the user the ordered list of stages and the values each produces, and confirm: they may add, drop, or reorder.
+Then cut every step an agent can do or check (**Only the steps that need hands**, above) and move it to the agent's own pre-check or verify list. Show the user the ordered list of what is left and the values each produces, and confirm: they may add, drop, or reorder.
 
 **Done when:** every stage is named in order, and for each captured value you know (a) where the human gets it, (b) where it's written (`.env`, a GitHub secret, both, or nowhere; some stages are pure actions), and (c) whether it's secret (hidden entry) or public.
 
@@ -42,3 +54,4 @@ Hold the bar the template sets: open the URL before asking for its value, use `a
 - `chmod +x <script>`.
 - Don't run it end-to-end yourself: it opens browsers and blocks on human input. Trace it statically instead: every value from step 1 is captured and lands where step 1 said, and every `set_secret` name exactly matches a `secrets.*` reference in CI.
 - Tell the user how to run it. If it's a repeatable setup path, commit it and link it from the README so the next person runs the script instead of asking an AI.
+- Write down the agent's verify list (each check and the tool that runs it) where the next agent finds it: the issue comment for a committed wizard, the chat otherwise. When the person comes back, run every check yourself and report pass or fail. Never ask them to check.
