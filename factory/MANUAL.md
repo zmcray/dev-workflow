@@ -158,7 +158,7 @@
 1a. **Parallel where the plan allows it.** Every chunk in the current wave (unblocked, disjoint file scope) may be built at the same time by different agents, each in its own environment. **Build in parallel, merge one at a time:** rebase on fresh `main`, re-run the smoke gate, then merge. Today a `/goal` run works one chunk at a time; parallel waves arrive with the Cursor cloud lane (see §6).
 2. **Per-issue gate = smoke** (build + unit + a 10–15-test smoke UI plan, ~5–8 min). Merge on green. Residuals filed. Next issue branches from fresh `main`.
 3. **Train end = full suite**, once, on final `main`. Red → Urgent residual, fix-forward in the morning.
-4. Cut the **nightly build** (TestFlight from `main`; Vercel preview for web), tag it, and post the **morning status update**: what merged, the human batch, decision follow-ups, and a `Not eyeballed:` line for UI criteria no test asserts (a record, not a to-do). Acceptance criteria never become morning checks (MCR-2748).
+4. Cut the **nightly build** (TestFlight from `main`; Vercel preview for web), tag it, and post the **morning status update**: what merged, the human batch, decision follow-ups, a `Checked by agent:` line for UI criteria the agent opened and found right, and a `Not eyeballed:` line for the ones it flagged or could not open. Before posting, the agent opens each merged screen no test asserts, screenshots it and compares it with the canvas (`/factory` > Morning check, D-033). Acceptance criteria never become morning checks (MCR-2748).
 5. Checkpoint. Hard stops (red baseline, unmergeable PR, PRD kick-back, anything destructive) stop the run and surface to the morning — never guessed through.
 
 **Rules.** Pipeline projects are never hand-built at night — they're queued. Risky paths (migrations, auth, payments, workflows, entitlements) trip the risk gate: they require `flow:design` and the cross-model review, or the PR fails. Freehand projects (see §5) are exempt from all of this by declaration.
@@ -173,7 +173,7 @@
 1. Read the overnight digest (Argus): what merged, what stopped, what's red, and the **human batch** (every `gate:human` issue, parked or queued, with its one-line ask).
 2. Work the asks in Pulse's Build tab: secrets and vendor steps, decisions, blockers. Each one has a runbook.
 3. Triage residuals; note anything that smells like a learning for Sunday.
-4. Optional, never a gate: when a `Not eyeballed:` issue matters to you, open the preview and look. A problem you find is a Bug, filed like any other.
+4. The agent has already looked at merged UI work (`/factory` > Morning check). What it flagged or could not open is one `other-morning-check` ask with its screenshots: look at each, and file a Bug for a real problem, like any other. The `Not eyeballed:` line lists the same rows.
 5. Work the human batch in one sitting: for a procedure, run its wizard (`bash scripts/wizards/<file>.sh`, written overnight by `/factory`); for a judgment, look and decide. Do each `gate:human` step, remove the label (or hand the chunk to `/lfg` if the rest is agent work), and note any packet that missed its gate... that is a `/packets` learning.
 
 **Gate.** No open asks at the end of the ritual, or each remaining one is explicitly parked with a reason.
@@ -396,7 +396,8 @@ empty · loading · result · error · first-run
 ```markdown
 Factory <date> (<lane>, run:<run_id>): <d> done, <f> failed, <r> reverted, <p> parked, stopped: <reason> at <time>.
 Human batch: MCR-### — <one-line ask>
-Not eyeballed: MCR-###, MCR-###   (UI criteria no test asserts; a record, not a to-do)
+Checked by agent: 3 look right (MCR-###, MCR-###)
+Not eyeballed: MCR-### (looks wrong: <one line>), MCR-### (cannot check: needs sign-in)
 
 ## Morning review   build: <tag / preview URL>
 - [ ] MCR-### <title>: <what you must decide or do>
