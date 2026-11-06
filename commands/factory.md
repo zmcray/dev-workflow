@@ -1,7 +1,7 @@
 ---
 name: factory
 description: The night shift. With no arguments, drains everything spec-ready in this repo's Linear project overnight under a budget (stop time, 12-hour run limit), skips anything that needs a human, and leaves a run ledger plus a morning report. Wraps the harness's goal mode (Claude Code, Codex, or Cursor); the build rules stay in AGENTS.md and ~/Developer/dev-workflow/rules/. Use for "/factory", "run the factory", "start the night shift", "drain the queue". NOT for a single issue (/lfg) or a named objective (/goal <objective>).
-argument-hint: "(none) | --dry-run | --stop-at HH:MM | --max-hours N"
+argument-hint: "(none) | --dry-run | --check | --stop-at HH:MM | --max-hours N"
 ---
 
 # Factory
@@ -30,7 +30,9 @@ Standing contract: **never ask the user anything.** Every would-be question is a
 "factory": { "stop_at": "06:00", "max_hours": 12, "concurrency": 1, "max_turns_per_chunk": 150, "max_canvases": 2 }
 ```
 
-   One more key in the same object is not part of the budget: `"migration_approval": "class"` opts the repo into class approval for prod migrations (`~/Developer/dev-workflow/rules/build.md` > Standing approval). Absent, only plan approvals count.
+   Two more keys in the same object are not part of the budget:
+   - `"migration_approval": "class"` opts the repo into class approval for prod migrations: additive migrations only, decided by `node ~/Developer/dev-workflow/scripts/migration-class.mjs` on the SQL, never by the chunk's label (`~/Developer/dev-workflow/rules/build.md` > Standing approval). Absent, only plan approvals count.
+   - `"check": { "url": "https://…", "start": "pnpm dev", "local_url": "http://localhost:3000", "sign_in": "none | test-user" }` tells the **Morning check** where to look. Every field is optional; the section says what happens without them.
 
 3. **Deadline math.** Two clocks, and whichever trips first ends the shift. There is no chunk cap: the night builds as many chunks as the clocks allow.
    - **Stop time.** `stop_at` is local time, tomorrow if it is already past. `last_dispatch = stop_at - 45 min`. No chunk starts after `last_dispatch`.
@@ -53,6 +55,7 @@ Before the queue, so the night knows what is already waiting on Zack and never f
    - **Stale started** (report only). Never a plan umbrella. In Progress or In Review, no open PR, no remote branch with its ID, not updated in 24 hours.
    - Never move anything else: it may be Zack's hand work. Stale-started and report-only merged-but-open rows go on the status update's `Sweep:` line and nowhere else on the night they are found: **no nightly follow-up**. A row whose issue has not been updated in 7 days goes into the **Weekly review** (item 6). Hold the result for the ledger's `sweep`. An open `other-stale-started` follow-up from before this rule is resolved with `folded into the weekly review`, and its still-stale issues go into item 6.
 6. **Weekly review.** Build or refresh the project's weekly review per **Asks** > **Weekly review**: aged asks and week-old stale issues in one follow-up, instead of one row each.
+7. **Close out applied rows.** An `awaiting-apply` row stays in its ledger after the apply batch or Zack has landed it, so old ledgers overstate what is waiting (on 2026-11-06 they listed 33 rows; all 33 PRs had merged and all 24 migration files behind them were in prod). For every `awaiting-apply` row in the ledgers of the last 14 days: when its PR is merged and its migration (if it has one) shows in `list_migrations` on the target project (matched by the file's name after the version prefix), set the row to `applied` and add `"applied_seen": "<run_id>"`. Change nothing else. A row whose PR is still open, or whose migration is not in the list, stays `awaiting-apply`. Commit the changed ledgers with tonight's docs PR.
 
 With an asks warning from Step 1.4, send nothing: move every earlier `asks_pending` entry into this run's, and queue the resolves, human steps and weekly review you would have sent there too, so a renewed token catches up next run. Hold the counts (open at start, resolved, written); Step 3 writes them into the ledger.
 
@@ -74,7 +77,7 @@ Relabeled design:none (no UI): <IDs> (omit the line at zero)
 Order: <IDs in order>.
 ```
 
-`--dry-run` prints this and stops, and draws nothing. It is the only argument that changes behaviour beyond the budget.
+`--dry-run` prints this and stops, and draws nothing. `--check` runs only the **Morning check** pass (its section below) and stops. They are the only arguments that change behaviour beyond the budget.
 
 ## Step 3: Open the ledger
 
@@ -95,7 +98,7 @@ Write `docs/factory/runs/run-YYYY-MM-DD.json` in the repo (create the directory;
   "asks_pending": [],
   "checklist": [],
   "stale_asks": [{ "ask_id": "<uuid from factory-asks open>", "issue": "MCR-1705", "key": "unblock-dependency", "why": "one line" }],
-  "not_eyeballed": [],
+  "not_eyeballed": [{ "issue": "MCR-1710", "criterion": "Week card matches the canvas at phone width", "pr": "https://github.com/...", "check": { "status": "checked-by-agent | flagged | cannot-check", "run_id": "2026-09-23-claude-2340", "at": "...", "url": "<page checked>", "screenshots": "<Linear comment URL>", "note": "one line" } }],
   "sweep": { "reset": ["MCR-1720"], "closed": [{ "issue": "MCR-1698", "pr": "https://github.com/..." }], "stale_started": ["MCR-1702"], "merged_open": [{ "issue": "MCR-1699", "pr": "https://github.com/..." }] },
   "weekly_review": { "week": "2026-W42", "action": "inserted | refreshed | none", "issues": ["MCR-1702", "MCR-1714"], "aged_resolved": ["<ask uuid>"] },
   "reverts": 0,
@@ -111,7 +114,7 @@ Every item row is written **when the chunk starts** and updated when it ends, so
 
 ```json
 { "issue": "MCR-1710", "tier": "moderate", "model": "opus", "started_at": "...", "ended_at": "...",
-  "status": "done | interrupted | parked | awaiting-apply | skipped-budget | skipped-conflict | failed | reverted",
+  "status": "done | interrupted | parked | awaiting-apply | applied | skipped-budget | skipped-conflict | failed | reverted",
   "pr": "https://github.com/...", "turns": 0, "retries": 0, "note": "one line" }
 ```
 
@@ -168,7 +171,7 @@ Per-chunk delegation follows DISPATCH.md: the builder gets the model (or reasoni
 
 **Migrations go last.** A prod migration apply can make the harness refuse every action after it (on Claude Code the auto-mode classifier did exactly this on 2026-10-07 and 2026-10-08, ending both nights after one chunk). So an apply never happens mid-shift. Holding the apply must not hold the work behind it, so its dependents keep building, stacked on it:
 - **What counts.** Only a migration to a deployed database, as `~/Developer/dev-workflow/rules/build.md` > Discipline (Migrations reach prod separately from code) defines it. A local or disposable database (a SQLite cache rebuilt from committed files, an upgrade the app runs on itself at start) has no apply step: build it, merge on green and unblock its dependents like any other chunk. Never park it, never mark it `awaiting-apply`.
-- A chunk whose migration is covered by a standing approval (a plan approval, or a class approval in a repo that opted in: `~/Developer/dev-workflow/rules/build.md` > Standing approval) builds to a green, non-draft PR and stops there: no apply, no merge. Its ledger row ends `awaiting-apply` and adds `"approval": "plan" | "class"`. The shift moves on to the next eligible chunk. This includes a repair or Bug issue filed outside any plan: when its migration is in the class, it never parks for an authorization ask.
+- A chunk whose migration is covered by a standing approval (a plan approval, or a class approval in a repo that opted in, where `migration-class.mjs` prints `additive` for every migration file in the PR: `~/Developer/dev-workflow/rules/build.md` > Standing approval) builds to a green, non-draft PR and stops there: no apply, no merge. Its ledger row ends `awaiting-apply` and adds `"approval": "plan" | "class"`. The shift moves on to the next eligible chunk. This includes a repair or Bug issue filed outside any plan: when its migration is in the class, it never parks for an authorization ask.
 - **Stack the dependents.** A dependent of an `awaiting-apply` chunk is eligible (Step 2). Cut its branch from the tip of its blocker's branch, not from the default branch, and open its PR against the default branch, so CI tests the blocker and the dependent together. The PR body starts `Stacked on #<blocker PR>: merge after it.` It builds to green and stops there like its blocker: no merge, row `awaiting-apply` with `stacked_on`. Its own dependents stack on it in turn, so a whole chain can build behind one migration in one night. A stacked chunk lands alone, never in a group PR, so it squash-merges cleanly once its parent is in. A stacked chunk with its own migration gets its own apply, in stack order, in Step 6.
 - **A stack breaks like any other chain.** A stacked chunk still red after its retry is `failed`, and the chunks stacked on it are skipped. Its parent is unaffected.
 - A migration with no standing approval still parks as `gate:human`, as before, and its dependents stay blocked. Several such parks in one night share **one** ask, not one each: a `follow_up` with key `other-approve-migrations`, hung on the first parked issue. Its runbook has one step per parked PR (up to 7; the 8th step points at the status update), and each issue's own `human_step` waits until Zack closes that batch ask (KTD4). One shared wizard may walk the whole batch.
@@ -195,7 +198,8 @@ Every red-main hard stop also files the `restore-baseline` follow-up in Step 5. 
 1. Write `stopped_at` and `stop_reason` (`queue-empty | deadline | hour-limit | budget | hard-stop`) to the ledger.
 2. **Sort the merged issues' acceptance criteria. None of them becomes a check: the morning list holds only what Zack must do for work to keep moving (MCR-2748).** Go through every merged issue's acceptance criteria. Each one lands in exactly one place:
    - **Asserted by a merged test:** dropped. CI verified it.
-   - **How a screen looks or behaves, not asserted by a test** (UI, layout, "not screenshotted"): recorded, never asked. List the issue on the status update's `Not eyeballed:` line (item 4) and in the ledger as `"not_eyeballed": [{ "issue", "criterion" }]`. Zack catches UI problems in daily use; this line makes a regression traceable to its PR.
+   - **How a screen looks or behaves, not asserted by a test** (UI, layout, "not screenshotted"): recorded in the ledger as `"not_eyeballed": [{ "issue", "criterion", "pr" }]`, then looked at by the agent in the **Morning check** (item 2a). Never a check ask.
+2a. **Morning check.** Run the **Morning check** (its section below) on tonight's `not_eyeballed` rows. It marks each row `checked-by-agent`, `flagged` or `cannot-check`, and files at most one `other-morning-check` follow-up for the last two kinds (item 3 sends it with the other follow-ups).
    - **A live-schema or prod read the builder could not run, or anything else noted "not run":** redo it now. If only Zack can do it, file an `other-<slug>` follow-up in item 3.
    - **A product question hiding in a criterion** (which behavior, which wording, which scope): a `decide-scope` follow-up in item 3 with the real question.
    Merged issues close to Done on merge (GitHub integration); a kick back reopens the issue. Per-issue merge comments keep the PR summary and judgment calls and end with one line: `Morning review: see the Factory <date> status update.`
@@ -209,7 +213,8 @@ Every red-main hard stop also files the `restore-baseline` follow-up in Step 5. 
 Factory <date> (<lane>, run:<run_id>): <d> done, <f> failed, <r> reverted, <p> parked, stopped: <reason> at <time>.
 Asks: <w> filed, <r> resolved, <o> open. (or) Asks not synced: <asks.warning>. The Morning review below is the record for this run.
 Merged: MCR-… (PR), MCR-… (PR)
-Not eyeballed: MCR-…, MCR-… (UI criteria no test asserts; a record, not an ask; omit the line at zero)
+Checked by agent: <n> look right (MCR-…, MCR-…) (omit the line at zero)
+Not eyeballed: MCR-… (looks wrong: <one line>), MCR-… (cannot check: <reason>) (only the flagged and cannot-check rows; omit the line at zero)
 Human batch: MCR-… — <one-line ask> (procedure: `Run: bash scripts/wizards/<file>.sh`)
 Canvases drawn: <group> → <url>: built on it MCR-… | draft waiting for Zack MCR-… | failed: <reason> (from the ledger's `canvases`; everything built on an agent canvas is named here; omit the line at zero)
 Failed: MCR-… — <one line>
@@ -224,7 +229,7 @@ Next: <first eligible issue left in the queue, or "queue empty: plan first">
 - [ ] MCR-… <title>: <what Zack must decide or do>
 ```
 
-   **The Morning review section lists only follow-ups first filed tonight:** an upsert that came back `action=inserted`, one queued in `asks_pending` that was not open at Step 1b, or one dropped with exit 1 or 4. One checkbox line each, in the shape above. Human steps stay on the `Human batch:` line only: Pulse already lists `gate:human` issues, and a second line would show each one twice. A stale ask (R5 > **Stale asks**) is never listed. Nothing new → write `Morning review: nothing needs your eyes.` Write the same items to the ledger as `"checklist": [{ "issue", "title", "criterion" }]`. Keep the `Not eyeballed:` line above the section heading, never inside it: Pulse reads every checkbox or issue bullet inside the section as a review item.
+   **The Morning review section lists only follow-ups first filed tonight:** an upsert that came back `action=inserted`, one queued in `asks_pending` that was not open at Step 1b, or one dropped with exit 1 or 4. One checkbox line each, in the shape above. Human steps stay on the `Human batch:` line only: Pulse already lists `gate:human` issues, and a second line would show each one twice. A stale ask (R5 > **Stale asks**) is never listed. Nothing new → write `Morning review: nothing needs your eyes.` Write the same items to the ledger as `"checklist": [{ "issue", "title", "criterion" }]`. Keep the `Checked by agent:` and `Not eyeballed:` lines above the section heading, never inside them: Pulse reads every checkbox or issue bullet inside the section as a review item.
 
    **The first line starts `Factory <date> (<lane>, run:<run_id>)`**, exactly, and always carries all four counts, zeros included; a hard stop adds its `stop_detail` after the reason. The counts are ledger rows: `done` (merged and still in), `failed`, `reverted`, `parked`. Pulse keeps only updates that start with `Factory `, reads the date from that line, and matches `run:<run_id>` against the sync markers; a run id anywhere else counts as unsynced. Keep the `## Morning review` section even when the asks synced: it is the human-readable record and Pulse's fallback when they did not.
    **Times are ET (America/New_York), always.** Every time a human reads (status update, checklist, merge comments) is written in ET, e.g. `6:00 AM ET`, never UTC. Convert cron and workflow schedules (`10:00 UTC` → `6:00 AM ET` in EDT, `5:00 AM ET` in EST) using the date the reader will act on.
@@ -241,13 +246,38 @@ The night's last act, after the docs PR has merged. A **stack** is one migration
 
 Then, for each chunk in the line, in order:
 
-2. **Migration chunk:** for a row with `"approval": "class"`, first re-run the class check (`~/Developer/dev-workflow/rules/build.md` > Standing approval) on the exact file bytes in the PR. A statement outside the class ends the batch here: draft the PR, add `gate:human`, and file it in the `other-approve-migrations` batch ask. Then run the pre-apply check, apply the file byte-identical, run the post-apply checks, compare `md5(array_to_string(statements, ''))` in `supabase_migrations.schema_migrations` with the file's md5, and post both, with the applied version, as a PR comment. Then merge on green. A chunk with no migration skips straight to the merge.
+2. **Migration chunk:** for a row with `"approval": "class"`, first re-run the class check on the exact file bytes in the PR: `node ~/Developer/dev-workflow/scripts/migration-class.mjs <each migration file>` (`~/Developer/dev-workflow/rules/build.md` > Standing approval). Exit 1 (gated) or 2 (unreadable) ends the batch here: draft the PR, add `gate:human`, and file it in the `other-approve-migrations` batch ask. Then run the pre-apply check, apply the file byte-identical, run the post-apply checks, compare `md5(array_to_string(statements, ''))` in `supabase_migrations.schema_migrations` with the file's md5, and post both, with the applied version, as a PR comment. Then merge on green. A chunk with no migration skips straight to the merge.
 3. **Merge** (squash), then the next chunk. No rebase and no push between merges: after a restack every stacked PR already holds its parent's changes, so it squash-merges cleanly, and its green CI run tested exactly the tree that lands. Nothing else merges to the default branch during Step 6.
 4. When a stack's last merge lands, resolve its `apply-migration` follow-up.
 
 Never push to a branch after an apply. The file keeps its build-time name: the PR comment's applied version and matching md5 tie it to the shared history, so there is no rename commit. On Claude Code, the auto-mode classifier reads any push after a prod apply as a production deploy and refuses it. The merges need the allow rule in **Running on each harness**.
 
 A refusal or a failed check at any point ends the batch. That is a normal ending, not a hard stop, and needs no clean-up: the status update and the follow-ups already say what is still pending. A stacked PR left open after its parent merged is fine to merge by hand in order. Never retry or route around a refusal.
+
+## Morning check
+
+Merged UI work that no test asserts used to wait for Zack's eye (14 items on 2026-11-06). The agent looks first. It runs in Step 5 item 2a on tonight's rows, and alone with `/factory --check`, the short morning pass. Approved by Zack on 2026-11-06 (D-033).
+
+**`--check` mode.** Run Step 1 items 0, 1 and 4 (preflight, project, asks check), then this section over every `not_eyeballed` row with no `check` in the ledgers of the last 7 days (all lanes and file names), then stop: write each result back into the ledger it came from, file the one ask, and open the `docs:` PR with the changed ledgers (Step 5 item 5's rules: no issue ID anywhere). No queue, no build, no status update. Close with one line: `Morning check: <c> look right, <f> flagged, <x> cannot check. Ask: <filed | none>.`
+
+**Budget.** At most 15 rows and 30 minutes a pass, oldest merge first; it may run past `stop_at`. Rows left over keep no `check` and wait for the next pass. One row is one issue and criterion; several criteria on one screen share one visit.
+
+**Per row:**
+1. **Browser.** Claude Code: the Compound Engineering `ce-test-browser` skill (agent-browser), or Playwright from the shell (`npx playwright screenshot`, or a short Playwright script). Codex and Cursor: Playwright from the shell, or the harness's own browser tool. No working browser on this lane: every row is `cannot-check`, note `no browser on this lane`.
+2. **Where to look.** The build must contain the merge. In order:
+   - the PR's own preview deployment (`gh api repos/<owner>/<repo>/deployments?sha=<PR head sha>`, then the newest successful status's `environment_url`): it is exactly that PR's code;
+   - `check.url` from `.linear-project.json` (live or shared preview), once the deploy of the merge commit has finished (a successful deployment for the merge sha, or 15 minutes after the merge when the repo has no deployments API);
+   - `check.start` run locally on the default branch at or after the merge, with the repo's own seed or fixture data, at `check.local_url`. Stop the server after the pass.
+   None of these: `cannot-check`, note `no URL`. A native iOS or macOS screen: `cannot-check`, note `native app: no browser check`.
+3. **Which screen.** Find the route from the criterion and the PR diff (the pages, routes or components it touched). Not findable from the repo: `cannot-check`, note `screen not found`.
+4. **Sign-in.** Never use a real account or a real password. When the page asks for sign-in, go on only with the repo's own test account (`check.sign_in: "test-user"`, values from its seed, fixture or example-config files) on a local or preview host. Otherwise `cannot-check`, note `needs sign-in`.
+5. **Capture.** Screenshots at desktop 1280x800 and phone 390x844, plus each state the criterion names that a click or two reaches (empty, error, open menu). At most 6 per row. Read the console for errors on that page.
+6. **Compare.** Against the canvas when the issue has a `Canvas:` or `Artboard:` link the lane can read (Step 3c > Which lanes draw), and always against the criterion text. `checked-by-agent` only when every element the criterion or canvas names is there, in the right place, readable, with nothing cut off, overflowing or overlapping at either width, and no console error from that page. Any doubt is `flagged`, with one line on what looks wrong ("Approve button below the fold at phone width", "card shows 0 min, canvas shows the week's total").
+7. **Record.** Upload the screenshots to the Linear issue and post one comment: `Agent check (<run_id>): looks right | looks wrong: <one line> | cannot check: <reason>. Criterion: <text>. Page: <url>.` with the images attached. Write the row's `check` in the ledger: `status`, `run_id`, `at`, `url` (the page), `screenshots` (that comment's URL), `note`. When the upload fails, commit the PNGs under `docs/factory/checks/<run_id>/` with the docs PR and put that path in `screenshots`.
+
+**The one ask.** Flagged and cannot-check rows go to Zack together: one `follow_up` per pass, key `other-morning-check`, hung on the first flagged row's issue (or the first cannot-check row's when nothing is flagged). Runbook: one step per row, flagged first, up to 7 (the 8th points at the status update): `MCR-… <criterion, short>: looks wrong: <note>` with an `open` action to its screenshots comment, or `MCR-… <criterion, short>: cannot check (<reason>)` with an `open` action to the page or the PR. `done_when`: `each item is looked at; a real problem is filed as a Bug or its issue reopened`. Nothing flagged and nothing uncheckable: no ask.
+
+**The human path stays.** A flagged or cannot-check row also stays on the status update's `Not eyeballed:` line, and Zack handles it the way he always has: look, and file a Bug if it is wrong (`factory/MANUAL.md` > Stage 7). A `checked-by-agent` row goes on the `Checked by agent:` line only. The agent never reopens an issue or files a Bug from its own check: it flags, and Zack decides.
 
 ## Asks
 
@@ -260,7 +290,7 @@ Everything a run needs from Zack is also stored as an **ask**: a row in `os.fact
 
 **Is it an ask?** Only when work cannot keep moving without Zack.
 - **Yes:** a vendor key or secret, an App Store or dashboard step, a prod migration to apply that no standing approval covers, a scope or naming decision, a red baseline the night could not fix, a blocked dependency, a chunk parked on a gate.
-- **No:** "the card shows this week's minutes", "layout matches the canvas", "not screenshotted", "verify X works". Those go on the `Not eyeballed:` line (Step 5) or nowhere.
+- **No, the agent looks first:** "the card shows this week's minutes", "layout matches the canvas", "not screenshotted". The **Morning check** opens the screen and compares it. Only what looks wrong or what it cannot open reaches Zack, all in one `other-morning-check` follow-up per run. "Verify X works" with nothing to look at is not an ask at all.
 - **No, the agent does it first:** work an agent can do is never the ask. Sampling and tallying records, reading the repo or Linear to find which source or contract is authoritative, comparing options against the PRD: the factory does that work, posts the result on the issue, and only then asks for the decision that is left, as a `decide-scope` with its recommended answer first (`Recommended: <option>, because <one line>`). When nothing is left to decide, it is not an ask at all.
 - **No, it is a spec gap:** a prerequisite nobody has packeted, or a contract the plan never settled ("settle and packet X before Y"). That goes on the status update's `Needs spec first:` line and the issue stays out of the queue. It is not an ask: /packets or a planning session fills it by day.
 - **No, keep it:** disposable infrastructure the factory itself made (a verification stack, a test project, a preview environment) is kept by default. List it in the ledger notes. Deleting it is never an ask; Zack deletes it when he wants to.
@@ -269,7 +299,7 @@ Everything a run needs from Zack is also stored as an **ask**: a row in `os.fact
 
 **Keys (KTD2). Rule-based, never invented per run:**
 - Human step: `gate`.
-- Follow-up: a slug from this list, `decide-scope`, `apply-migration`, `restore-baseline`, `unblock-dependency`, or `other-<slug>` (kebab-case, at most 30 characters, derived from the ask). The RPC validates the shape.
+- Follow-up: a slug from this list, `decide-scope`, `apply-migration`, `restore-baseline`, `unblock-dependency`, `other-morning-check` (the Morning check's one ask per run), or `other-<slug>` (kebab-case, at most 30 characters, derived from the ask). The RPC validates the shape.
 
 An ask's identity is its issue's UUID, kind and key. Filing it again refreshes the open row (text, steps, prompt, last seen). A closed ask never reopens; a new generation opens only for a human step whose last one was done or resolved, or a follow-up whose last one was done or resolved and that carries `seen_again: true`.
 
@@ -341,7 +371,7 @@ Report back on <MCR-123>: what you did and anything that surprised you.
 
 **Not an ask.** An item with nothing for Zack to do stays in the status update's prose:
 - a report of what shipped;
-- skipped visual evidence (a screenshot, "not eyeballed"): the `Not eyeballed:` line, never a follow-up;
+- visual evidence the Morning check confirmed: the `Checked by agent:` line, never a follow-up (only its flagged and cannot-check rows go into the one `other-morning-check` follow-up);
 - a skipped live read: the factory redoes it, or files a follow-up for the part only Zack can do;
 - a question hidden in a criterion: that becomes a `follow_up` with key `decide-scope` and the real question.
 

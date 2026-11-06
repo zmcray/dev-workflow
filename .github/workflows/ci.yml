@@ -27,6 +27,7 @@ jobs:
       - run: bash scripts/agent-pitfalls/metrics.test.sh
       - run: bash hooks/stop-fast-check.test.sh
       - run: bash scripts/branch-protection.test.sh
+      - run: bash scripts/migration-class.test.sh
 
   guards:
     uses: ./.github/workflows/guards.yml
