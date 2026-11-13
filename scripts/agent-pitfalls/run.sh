@@ -9,7 +9,7 @@ UNTIL="$(date +%F)"
 SINCE="$(date -v-"${DAYS}"d +%F 2>/dev/null || date -d "-${DAYS} days" +%F)"
 OUT="$ROOT/.local/agent-pitfalls-${DAYS}d-$UNTIL"
 mkdir -p "$OUT"
-for r in pulse motus saidso pulse-ios telos argus sonar quoting dev-workflow mcray-os-skills; do
+for r in pulse motus saidso telos argus sonar quoting dev-workflow mcray-os-skills; do
   [ -d "$HOME/Developer/$r" ] && git -C "$HOME/Developer/$r" fetch -q origin || true
 done
 python3 -I "$HERE/extract_messages.py" --out "$OUT/messages" --days "$DAYS" > "$OUT/extract.log"

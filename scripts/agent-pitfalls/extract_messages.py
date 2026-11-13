@@ -14,7 +14,7 @@ ARGS.add_argument("--days", type=int, default=92)
 OPTS = ARGS.parse_args()
 OUT_DIR = Path(OPTS.out)
 SINCE = time.time() - OPTS.days * 86400
-REPOS = ["pulse-ios", "pulse", "motus", "saidso", "telos", "argus", "sonar", "quoting", "dev-workflow", "mcray-os-skills"]
+REPOS = ["pulse", "motus", "saidso", "telos", "argus", "sonar", "quoting", "dev-workflow", "mcray-os-skills"]
 NOISE = re.compile(r"^\s*(<command-|<local-command|<scheduled-task|<task-notification|<side-sessions-event|<ci-monitor-event|Caveat:|\[Request interrupted|# AGENTS\.md instructions|<environment_context>|<user_instructions>|Base directory for this skill|This session is being continued|<codex_internal_context|Background \(from the sess|Last login:|zacharymcray@)", re.S)
 
 def repo_for_path(p: str):
@@ -23,7 +23,7 @@ def repo_for_path(p: str):
     if not m:
         return None
     rest = m.group(1).lower()
-    for r in REPOS:  # pulse-ios before pulse
+    for r in REPOS:
         if rest == r or rest.startswith(r + "-"):
             return r
     return None

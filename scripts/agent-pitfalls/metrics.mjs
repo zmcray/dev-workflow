@@ -6,7 +6,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-const REPOS = ['pulse', 'motus', 'saidso', 'pulse-ios', 'telos', 'argus', 'sonar', 'quoting', 'dev-workflow', 'mcray-os-skills']
+const REPOS = ['pulse', 'motus', 'saidso', 'telos', 'argus', 'sonar', 'quoting', 'dev-workflow', 'mcray-os-skills']
 const AGENT = /Co-Authored-By:.*(Claude|Codex|Cursor|noreply@anthropic\.com)/i
 const FIX = /^(fix|revert|hotfix)\b|^Revert "/i
 const DATE_FIRST = /^(19|20)\d{2}-\d{2}-\d{2}/
