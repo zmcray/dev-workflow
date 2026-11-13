@@ -12,7 +12,6 @@
     "argus": { "required": ["node-tests"], "gap": "relay-ci only runs on some paths, so it can't be required directly. Add an always-run gate job that needs both suites (rules/ci.md), then require the gate." },
     "sonar": { "required": ["ci"] },
     "quoting": { "required": ["check"] },
-    "pulse-ios": { "required": ["CI gate"] },
     "dev-workflow": { "required": ["tests"] },
     "mcray-os-skills": { "required": [], "gap": "No CI yet, so nothing to require. Protection still blocks direct pushes to main." }
   }
