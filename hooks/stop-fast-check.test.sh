@@ -25,11 +25,18 @@ const git = (...args) => {
 }
 const calls = () => fs.existsSync(log) ? fs.readFileSync(log, 'utf8').trim().split('\n').filter(Boolean).map(JSON.parse) : []
 const reset = () => fs.rmSync(log, { force: true })
-const run = (mode = 'pass', active = false, payload = { cwd: repo }) => spawnSync(hook, [], {
+const ALREADY = 'If this was already failing before your change, say so in your reply and stop again; the hook will not block twice.'
+// The green cache skips a state that already passed. Tests that rerun one state with a different fake outcome
+// (which in real use needs a change) clear it first; the cache cases keep it.
+const forget = dir => {
+  const gitDir = spawnSync('git', ['rev-parse', '--absolute-git-dir'], { cwd: dir, encoding: 'utf8' })
+  if (gitDir.status === 0) fs.rmSync(path.join(gitDir.stdout.trim(), 'stop-fast-check.ok'), { force: true })
+}
+const run = (mode = 'pass', active = false, payload = { cwd: repo }) => (forget(repo), spawnSync(hook, [], {
   timeout: 100000, killSignal: 'SIGKILL',
   cwd: payload.cwd ? root : repo, input: JSON.stringify({ ...payload, stop_hook_active: active }), encoding: 'utf8',
   env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, CHECK_MODE: mode, CHECK_LOG: log, CHECK_CWD: cwdLog, CHILD_PID: childPid, BUDGET_GROUP: budgetGroup },
-})
+}))
 fs.writeFileSync(path.join(bin, 'pnpm'), `#!/usr/bin/env node
 const fs = require('node:fs')
 const { spawn } = require('node:child_process')
@@ -94,11 +101,12 @@ else process.exit(process.env.FAKE_FAIL === path.basename(process.argv[1]) ? 3 :
     g('commit', '-qm', 'base')
     return dir
   }
-  const fire = (script, cwd, { active = false, fail = '', sleep = '', input, from = root } = {}) => {
+  const fire = (script, cwd, { active = false, fail = '', sleep = '', session, keepCache = false, input, from = root } = {}) => {
     fs.rmSync(fakeLog, { force: true })
+    if (!keepCache && cwd && fs.existsSync(cwd)) forget(cwd)
     return spawnSync(script, [], {
       cwd: from, encoding: 'utf8', timeout: 60000, killSignal: 'SIGKILL',
-      input: input ?? JSON.stringify({ cwd, stop_hook_active: active }),
+      input: input ?? JSON.stringify({ cwd, stop_hook_active: active, ...(session !== undefined ? { session_id: session } : {}) }),
       env: { ...process.env, PATH: `${fakes}:${process.env.PATH}`, FAKE_LOG: fakeLog, FAKE_FAIL: fail, FAKE_SLEEP: sleep },
     })
   }
@@ -287,6 +295,134 @@ if (process.argv[2] === 'hang') setInterval(() => {}, 1000)
 
   committedCases({ copy, setTable, fire, cmds, repoAt })
   timeoutCases({ copy, setTable, fire, cmds, repoAt })
+  sessionCases({ copy, setTable, fire, cmds, repoAt })
+  cacheCases({ copy, setTable, fire, cmds, repoAt })
+}
+
+// The retry belongs to the session that timed out: another session in the same checkout neither uses
+// nor deletes it, so the two-blocks bound holds per session.
+function sessionCases({ copy, setTable, fire, cmds, repoAt }) {
+  setTable({ shared: [{ run: ['swift', 'test'] }] }, 2)
+  const shared = repoAt('shared', 'https://github.com/zmcray/shared.git')
+  fs.writeFileSync(path.join(shared, 'a.swift'), 'a')
+  const marker = path.join(gitIn(shared, 'rev-parse', '--absolute-git-dir'), 'stop-fast-check.timeout')
+  let r = fire(copy, shared, { session: 'A', sleep: 'swift' })
+  assert.equal(r.status, 2, r.stderr)
+  assert.match(fs.readFileSync(marker, 'utf8'), /^A\n/, 'the marker carries the session id')
+  const markerA = fs.readFileSync(marker, 'utf8')
+  // Session B, already continuing: A's marker is not its retry.
+  r = fire(copy, shared, { session: 'B', active: true, sleep: 'swift' })
+  assert.equal(r.status, 0, `another session's marker grants no retry: ${r.stderr}`)
+  r = fire(copy, shared, { session: 'B', active: true, fail: 'swift' })
+  assert.equal(r.status, 0, 'nor does a real failure block another session under stop_hook_active')
+  assert.equal(fs.readFileSync(marker, 'utf8'), markerA, "B leaves A's marker alone")
+  // B keeps timing out on fresh stops: it blocks as today, without taking over A's marker or promising a retry.
+  r = fire(copy, shared, { session: 'B', sleep: 'swift' })
+  assert.equal(r.status, 2)
+  assert.doesNotMatch(r.stderr, /next stop/i)
+  assert.equal(fs.readFileSync(marker, 'utf8'), markerA, "B never overwrites A's marker")
+  r = fire(copy, shared, { session: 'B', active: true, sleep: 'swift' })
+  assert.equal(r.status, 0)
+  // A still gets its one retry, then the bound: a real failure blocks once more, then never again.
+  r = fire(copy, shared, { session: 'A', active: true, fail: 'swift' })
+  assert.equal(r.status, 2, `A's retry blocks on the real failure: ${r.stderr}`)
+  assert.ok(!fs.existsSync(marker), "A's retry deletes its marker")
+  r = fire(copy, shared, { session: 'A', active: true, fail: 'swift' })
+  assert.equal(r.status, 0, 'never more than two blocked stops in a row for A')
+  // No session_id: an empty id is written and matched, as before.
+  r = fire(copy, shared, { sleep: 'swift' })
+  assert.equal(r.status, 2)
+  assert.equal(fs.readFileSync(marker, 'utf8').split('\n')[0], '')
+  r = fire(copy, shared, { active: true, fail: 'swift' })
+  assert.equal(r.status, 2, 'a payload without session_id matches its own marker')
+  assert.ok(!fs.existsSync(marker))
+}
+
+// The green cache: a state that already passed every applicable check runs nothing on the next stop.
+function cacheCases({ copy, setTable, fire, cmds, repoAt }) {
+  setTable({ cache: [{ run: ['pnpm', 'check'], files: true }] })
+  const repo = repoAt('cache', 'https://github.com/zmcray/cache.git')
+  gitIn(repo, 'update-ref', 'refs/remotes/origin/main', 'HEAD')
+  gitIn(repo, 'checkout', '-q', '-b', 'feature')
+  fs.writeFileSync(path.join(repo, 'a.ts'), 'a')
+  commitAll(repo, 'a')
+  const ok = path.join(gitIn(repo, 'rev-parse', '--absolute-git-dir'), 'stop-fast-check.ok')
+  const keep = opts => fire(copy, repo, { keepCache: true, ...opts })
+  const ran = (why, opts) => {
+    const r = keep(opts)
+    assert.equal(r.status, 0, `${why}: ${r.stderr}`)
+    assert.equal(cmds().length, 1, `${why}: the checks run`)
+    assert.ok(fs.existsSync(ok), `${why}: a pass writes the fingerprint`)
+    const again = keep(opts)
+    assert.equal(again.status, 0, again.stderr)
+    assert.equal(again.stderr, '')
+    assert.deepEqual(cmds(), [], `${why}: then nothing changed, nothing runs`)
+  }
+  ran('first pass')
+  fs.writeFileSync(path.join(repo, 'b.ts'), 'b')
+  commitAll(repo, 'b')
+  ran('a new commit')
+  fs.writeFileSync(path.join(repo, 'a.ts'), 'edited')
+  ran('an edit')
+  fs.writeFileSync(path.join(repo, 'a.ts'), 'edited again')
+  ran('a second edit to the same file')
+  fs.writeFileSync(path.join(repo, 'loose.ts'), 'untracked')
+  ran('a new untracked file')
+  fs.writeFileSync(path.join(repo, 'loose.ts'), 'untracked, longer')
+  ran('an untracked file that changed size')
+  setTable({ cache: [{ run: ['pnpm', 'check'], files: true }, { run: ['npm', 'other'], when: ['nothing/'] }] })
+  ran('a changed table')
+
+  // A failure, a timeout and the over-cap fallback never write the fingerprint.
+  fs.writeFileSync(path.join(repo, 'a.ts'), 'will fail')
+  fs.rmSync(ok)
+  let r = keep({ fail: 'pnpm' })
+  assert.equal(r.status, 2)
+  assert.ok(!fs.existsSync(ok), 'a failed run writes no fingerprint')
+  r = keep({ fail: 'pnpm' })
+  assert.equal(r.status, 2, 'so the failure is found again')
+  setTable({ cache: [{ run: ['pnpm', 'check'], files: true }] }, 2)
+  r = keep({ sleep: 'pnpm' })
+  assert.equal(r.status, 2)
+  assert.ok(!fs.existsSync(ok), 'a timed-out run writes no fingerprint')
+  r = keep({ active: true })
+  assert.equal(r.status, 0, r.stderr)
+  setTable({ cache: [{ run: ['pnpm', 'check'], files: true }] })
+  const big = repoAt('cache-big', 'https://github.com/zmcray/cache.git')
+  gitIn(big, 'update-ref', 'refs/remotes/origin/main', 'HEAD')
+  gitIn(big, 'checkout', '-q', '-b', 'large')
+  for (let i = 0; i < 151; i++) fs.writeFileSync(path.join(big, `f${i}.ts`), String(i))
+  commitAll(big, 'many')
+  const bigOk = path.join(gitIn(big, 'rev-parse', '--absolute-git-dir'), 'stop-fast-check.ok')
+  r = fire(copy, big, { keepCache: true })
+  assert.equal(r.status, 0, r.stderr)
+  assert.ok(!fs.existsSync(bigOk), 'the over-cap fallback writes no fingerprint')
+  r = fire(copy, big, { keepCache: true })
+  assert.equal(cmds().length, 1, 'so the large branch is checked again')
+
+  // A cache file that cannot be read is no cache.
+  fs.writeFileSync(path.join(repo, 'a.ts'), 'green again')
+  ran('before an unreadable cache')
+  fs.chmodSync(ok, 0o000)
+  try {
+    r = keep()
+    assert.equal(r.status, 0, r.stderr)
+    assert.equal(cmds().length, 1, 'an unreadable cache runs the checks')
+  } finally { fs.chmodSync(ok, 0o644) }
+
+  // The failure message ends with one line for a red that predates the change; a pass and a timeout lack it.
+  fs.writeFileSync(path.join(repo, 'a.ts'), 'red')
+  r = fire(copy, repo, { fail: 'pnpm' })
+  assert.equal(r.status, 2)
+  assert.equal(r.stderr.trim().split('\n').at(-1), ALREADY, 'the failure message ends with the already-failing line')
+  r = fire(copy, repo)
+  assert.equal(r.status, 0)
+  assert.ok(!r.stderr.includes(ALREADY), 'a pass does not print it')
+  setTable({ cache: [{ run: ['pnpm', 'check'], files: true }] }, 2)
+  r = fire(copy, repo, { sleep: 'pnpm' })
+  assert.equal(r.status, 2)
+  assert.ok(!r.stderr.includes(ALREADY), 'the timeout message does not print it')
+  fire(copy, repo, { active: true })
 }
 
 const gitIn = (dir, ...args) => {

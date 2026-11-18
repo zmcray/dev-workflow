@@ -8,6 +8,7 @@
 # Preserve the hook payload while Node reads its program from the heredoc.
 exec node - "$(cd "$(dirname "$0")/.." && pwd)" 3<&0 <<'NODE'
 const fs = require('node:fs')
+const crypto = require('node:crypto')
 const path = require('node:path')
 const { spawn, spawnSync } = require('node:child_process')
 const DEV_WORKFLOW = process.argv[2]
@@ -19,6 +20,7 @@ let label = 'Stop fast check'
 // A timed-out check leaves this marker in the worktree's own git dir; the next stop runs the checks once more.
 let marker = null
 let retry = false
+let session = ''
 // More branch files than this and only the HEAD commit is passed (vitest related on hundreds of files is slow).
 const CAP = 150
 const tail = text => text.slice(-1024 * 1024)
@@ -90,6 +92,29 @@ function probe(args, cwd) {
   } catch { return null }
 }
 
+// Fingerprint of the worktree state the checks see: HEAD, the table, status, the tracked diff, and each
+// untracked file's path, size and mtime. Null when any part cannot be read (then there is no cache).
+function fingerprint(root) {
+  const hash = crypto.createHash('sha256')
+  const part = args => {
+    const result = spawnSync('git', args, { cwd: root, stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 256 * 1024 * 1024 })
+    if (result.status !== 0 || result.error) throw new Error(`git ${args[0]}`)
+    hash.update(`\0${args.join(' ')}\0`).update(result.stdout)
+    return result.stdout
+  }
+  try {
+    part(['rev-parse', 'HEAD'])
+    hash.update('\0table\0').update(fs.readFileSync(TABLE))
+    part(['status', '--porcelain=v1', '-z'])
+    part(['diff', 'HEAD', '--'])
+    for (const file of list(part(['ls-files', '--others', '--exclude-standard', '-z']).toString('utf8'))) {
+      const stat = fs.lstatSync(path.join(root, file), { throwIfNoEntry: false })
+      hash.update(`\0${file}\0${stat ? `${stat.size}:${stat.mtimeMs}` : 'gone'}`)
+    }
+    return hash.digest('hex')
+  } catch { return null }
+}
+
 // The merge-base with origin's default branch: origin/HEAD, else origin/main, else origin/master.
 // None resolves (no fetch yet, no remote-tracking refs): null, and only uncommitted work is checked.
 function branchBase(root) {
@@ -142,6 +167,7 @@ async function main() {
   // Not a hook payload: nothing to check, and nothing to say.
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return 0
   active = payload.stop_hook_active === true
+  session = typeof payload.session_id === 'string' ? payload.session_id : ''
   const sessionCwd = typeof payload.cwd === 'string' && payload.cwd ? payload.cwd : process.cwd()
   if (!fs.existsSync(sessionCwd)) return
   const root = probe(['rev-parse', '--show-toplevel'], sessionCwd)
@@ -156,9 +182,21 @@ async function main() {
   // If it cannot be deleted, no retry (a marker that never goes away would block forever).
   const gitDir = probe(['rev-parse', '--absolute-git-dir'], root)
   marker = gitDir ? path.join(gitDir, 'stop-fast-check.timeout') : null
-  if (marker && fs.existsSync(marker)) {
+  // Only this session's marker counts: another session's is left alone and this run acts as if there were none.
+  let owner = null
+  try { owner = fs.readFileSync(marker, 'utf8').split('\n')[0] } catch {}
+  if (owner === session) {
     try { fs.rmSync(marker); retry = true; active = false } catch {}
   }
+  // Green cache: this exact state already passed every applicable check.
+  const okFile = gitDir ? path.join(gitDir, 'stop-fast-check.ok') : null
+  const print = okFile ? fingerprint(root) : null
+  if (print) {
+    let stored = null
+    try { stored = fs.readFileSync(okFile, 'utf8').trim() } catch {}
+    if (stored === print) return
+  }
+  let overCap = false
   const uncommitted = list(await run('git', ['diff', '--name-only', '-z', 'HEAD', '--'], root))
   const untracked = list(await run('git', ['ls-files', '--others', '--exclude-standard', '-z'], root))
   // Committed work on the branch: agents commit each chunk before they stop.
@@ -168,6 +206,7 @@ async function main() {
     let from = branch.base
     committed = list(await run('git', ['diff', '--name-only', '-z', from, 'HEAD', '--'], root))
     if (committed.length > CAP) {
+      overCap = true
       const count = committed.length
       from = probe(['rev-parse', '--verify', '-q', 'HEAD^'], root) ?? probe(['hash-object', '-t', 'tree', '/dev/null'], root)
       committed = list(await run('git', ['diff', '--name-only', '-z', from, 'HEAD', '--'], root))
@@ -198,6 +237,8 @@ async function main() {
     const [program, ...args] = argv
     await run(program === 'node' ? process.execPath : program, [...args, ...extra], cwd, name)
   }
+  // Every applicable check passed. The over-cap fallback did not check the whole branch, so it is not cached.
+  if (print && !overCap) try { fs.writeFileSync(okFile, `${print}\n`) } catch {}
 }
 // Exit explicitly: a stray handle (a pipe a detached process still holds) must not keep Node alive.
 // At most two blocked stops in a row: a timeout blocks and leaves a marker only when stop_hook_active is
@@ -210,10 +251,12 @@ main().then(() => process.exit(0), error => {
     message += `${label}: ${error.check} could not finish in two tries (it timed out again on the retry), so the turn may end. Run it yourself before trusting this turn.\n`
   } else if (error.timedOut && !active && marker) {
     try {
-      fs.writeFileSync(marker, `${error.check}\n`)
+      // Never take over another session's marker (flag wx): then this block promises no retry, as before.
+      fs.writeFileSync(marker, `${session}\n${error.check}\n`, { flag: 'wx' })
       message = `${label}: ${error.check} timed out at the shared ${budget}-second deadline, likely a cold build. The work it did is cached; the next stop will run it again, once, and block only on a real failure.\n${message}`
     } catch {}
   }
+  if (code === 2 && !error.timedOut) message += 'If this was already failing before your change, say so in your reply and stop again; the hook will not block twice.\n'
   process.stderr.write(message, () => process.exit(code))
 })
 NODE
