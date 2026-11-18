@@ -3,9 +3,12 @@
 # Exit 2 blocks the turn end and feeds stderr back to the agent. Repos outside the table (or owned by
 # someone else), folders outside git, and an unreadable payload always exit 0. For a table repo every
 # internal error blocks (fail closed). A broken table blocks only in dev-workflow itself.
+# Changed files include the branch's commits since its merge-base with origin's default branch. A timed-out
+# check earns one real retry on the next stop; never more than two blocked stops in a row (see hooks/README.md).
 # Preserve the hook payload while Node reads its program from the heredoc.
 exec node - "$(cd "$(dirname "$0")/.." && pwd)" 3<&0 <<'NODE'
 const fs = require('node:fs')
+const crypto = require('node:crypto')
 const path = require('node:path')
 const { spawn, spawnSync } = require('node:child_process')
 const DEV_WORKFLOW = process.argv[2]
@@ -14,13 +17,23 @@ let budget = 90
 let deadline = performance.now() + budget * 1000
 let active = false
 let label = 'Stop fast check'
+// A timed-out check leaves this marker in the worktree's own git dir; the next stop runs the checks once more.
+let marker = null
+let retry = false
+let session = ''
+// More branch files than this and only the HEAD commit is passed (vitest related on hundreds of files is slow).
+const CAP = 150
 const tail = text => text.slice(-1024 * 1024)
 const show = argv => argv.map(a => /^[\w./@:=+-]+$/.test(a) ? a : JSON.stringify(a)).join(' ')
+const list = out => out.split('\0').filter(Boolean)
+const unique = (...lists) => [...new Set(lists.flat())]
+// A timeout is not a failure: the check never got to say pass or fail.
+const timeout = (message, name) => Object.assign(new Error(message), { timedOut: true, check: name })
 
 function run(command, args, cwd, name = `${command} ${args[0] ?? ''}`) {
   return new Promise((resolve, reject) => {
     const remaining = deadline - performance.now()
-    if (remaining <= 0) return reject(new Error(`${name} did not start: the shared ${budget}-second deadline was used up.`))
+    if (remaining <= 0) return reject(timeout(`${name} did not start: the shared ${budget}-second deadline was used up.`, name))
     let child, timer, force, stdout = '', stderr = '', timedOut = false, settled = false
     const done = (fn, value) => { if (!settled) { settled = true; clearTimeout(timer); clearTimeout(force); fn(value) } }
     const killGroup = signal => {
@@ -57,17 +70,16 @@ function run(command, args, cwd, name = `${command} ${args[0] ?? ''}`) {
         killGroup('SIGKILL')
         setTimeout(() => {
           release()
-          done(reject, new Error(`${name} failed (shared ${budget}-second deadline exceeded).\n${stdout}${stderr}`))
+          done(reject, timeout(`${name} failed (shared ${budget}-second deadline exceeded).\n${stdout}${stderr}`, name))
         }, 250).unref()
       }, 250)
     }, Math.max(0, remaining - 250))
     child.on('close', (closeCode, closeSignal) => {
       killGroup('SIGKILL')
       const code = exited ? exited.code : closeCode, signal = exited ? exited.signal : closeSignal
-      if (timedOut || code !== 0) {
-        const reason = timedOut ? `shared ${budget}-second deadline exceeded` : `exit ${code}${signal ? `, signal ${signal}` : ''}`
-        done(reject, new Error(`${name} failed (${reason}).\n${stdout}${stderr}`))
-      } else done(resolve, stdout)
+      if (timedOut) done(reject, timeout(`${name} failed (shared ${budget}-second deadline exceeded).\n${stdout}${stderr}`, name))
+      else if (code !== 0) done(reject, new Error(`${name} failed (exit ${code}${signal ? `, signal ${signal}` : ''}).\n${stdout}${stderr}`))
+      else done(resolve, stdout)
     })
   })
 }
@@ -78,6 +90,40 @@ function probe(args, cwd) {
     const result = spawnSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
     return result.status === 0 ? result.stdout.replace(/\n$/, '') : null
   } catch { return null }
+}
+
+// Fingerprint of the worktree state the checks see: HEAD, the table, status, the tracked diff, and each
+// untracked file's path, size and mtime. Null when any part cannot be read (then there is no cache).
+function fingerprint(root) {
+  const hash = crypto.createHash('sha256')
+  const part = args => {
+    const result = spawnSync('git', args, { cwd: root, stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 256 * 1024 * 1024 })
+    if (result.status !== 0 || result.error) throw new Error(`git ${args[0]}`)
+    hash.update(`\0${args.join(' ')}\0`).update(result.stdout)
+    return result.stdout
+  }
+  try {
+    part(['rev-parse', 'HEAD'])
+    hash.update('\0table\0').update(fs.readFileSync(TABLE))
+    part(['status', '--porcelain=v1', '-z'])
+    part(['diff', 'HEAD', '--'])
+    for (const file of list(part(['ls-files', '--others', '--exclude-standard', '-z']).toString('utf8'))) {
+      const stat = fs.lstatSync(path.join(root, file), { throwIfNoEntry: false })
+      hash.update(`\0${file}\0${stat ? `${stat.size}:${stat.mtimeMs}` : 'gone'}`)
+    }
+    return hash.digest('hex')
+  } catch { return null }
+}
+
+// The merge-base with origin's default branch: origin/HEAD, else origin/main, else origin/master.
+// None resolves (no fetch yet, no remote-tracking refs): null, and only uncommitted work is checked.
+function branchBase(root) {
+  for (const ref of ['refs/remotes/origin/HEAD', 'refs/remotes/origin/main', 'refs/remotes/origin/master']) {
+    if (!probe(['rev-parse', '--verify', '-q', `${ref}^{commit}`], root)) continue
+    const base = probe(['merge-base', 'HEAD', ref], root)
+    return base ? { base, ref: ref.replace('refs/remotes/', '') } : null
+  }
+  return null
 }
 
 // Origin's last two path segments: owner and repo, for https, ssh:// and git@host:owner/repo forms.
@@ -121,6 +167,7 @@ async function main() {
   // Not a hook payload: nothing to check, and nothing to say.
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return 0
   active = payload.stop_hook_active === true
+  session = typeof payload.session_id === 'string' ? payload.session_id : ''
   const sessionCwd = typeof payload.cwd === 'string' && payload.cwd ? payload.cwd : process.cwd()
   if (!fs.existsSync(sessionCwd)) return
   const root = probe(['rev-parse', '--show-toplevel'], sessionCwd)
@@ -131,15 +178,49 @@ async function main() {
   const entry = loadTable(repo)
   if (!entry.member) return
   label = `Stop fast check (${entry.key ?? repo.name})`
-  const tracked = await run('git', ['diff', '--name-only', '-z', 'HEAD', '--'], root)
-  const untracked = await run('git', ['ls-files', '--others', '--exclude-standard', '-z'], root)
-  const files = [...new Set((tracked + untracked).split('\0').filter(Boolean))]
+  // A marker from a timed-out stop: delete it first, then run for real even under stop_hook_active.
+  // If it cannot be deleted, no retry (a marker that never goes away would block forever).
+  const gitDir = probe(['rev-parse', '--absolute-git-dir'], root)
+  marker = gitDir ? path.join(gitDir, 'stop-fast-check.timeout') : null
+  // Only this session's marker counts: another session's is left alone and this run acts as if there were none.
+  let owner = null
+  try { owner = fs.readFileSync(marker, 'utf8').split('\n')[0] } catch {}
+  if (owner === session) {
+    try { fs.rmSync(marker); retry = true; active = false } catch {}
+  }
+  // Green cache: this exact state already passed every applicable check.
+  const okFile = gitDir ? path.join(gitDir, 'stop-fast-check.ok') : null
+  const print = okFile ? fingerprint(root) : null
+  if (print) {
+    let stored = null
+    try { stored = fs.readFileSync(okFile, 'utf8').trim() } catch {}
+    if (stored === print) return
+  }
+  let overCap = false
+  const uncommitted = list(await run('git', ['diff', '--name-only', '-z', 'HEAD', '--'], root))
+  const untracked = list(await run('git', ['ls-files', '--others', '--exclude-standard', '-z'], root))
+  // Committed work on the branch: agents commit each chunk before they stop.
+  let committed = [], committedNew = []
+  const branch = branchBase(root)
+  if (branch) {
+    let from = branch.base
+    committed = list(await run('git', ['diff', '--name-only', '-z', from, 'HEAD', '--'], root))
+    if (committed.length > CAP) {
+      overCap = true
+      const count = committed.length
+      from = probe(['rev-parse', '--verify', '-q', 'HEAD^'], root) ?? probe(['hash-object', '-t', 'tree', '/dev/null'], root)
+      committed = list(await run('git', ['diff', '--name-only', '-z', from, 'HEAD', '--'], root))
+      process.stderr.write(`${label}: this branch is large (${count} files changed since ${branch.ref}, over ${CAP}); only the latest commit was checked, plus uncommitted and untracked files.\n`)
+    }
+    committedNew = list(await run('git', ['diff', '--name-only', '--diff-filter=AR', '-z', from, 'HEAD', '--'], root))
+  }
+  const files = unique(committed, uncommitted, untracked)
   if (!files.length) return
   if (entry.broken) throw new Error(`${entry.broken}.\nFix: restore config/fast-checks.json in ${DEV_WORKFLOW} (git -C ${DEV_WORKFLOW} status; git -C ${DEV_WORKFLOW} pull).`)
   deadline = performance.now() + budget * 1000
   validate(entry.checks, entry.key)
-  const added = (await run('git', ['diff', '--name-only', '--diff-filter=AR', '-z', 'HEAD', '--'], root)).split('\0').filter(Boolean)
-  const fresh = [...new Set([...added, ...untracked.split('\0').filter(Boolean)])]
+  const added = list(await run('git', ['diff', '--name-only', '--diff-filter=AR', '-z', 'HEAD', '--'], root))
+  const fresh = unique(committedNew, added, untracked)
   const total = entry.checks.length
   for (const [i, check] of entry.checks.entries()) {
     if (check.when && !files.some(f => check.when.some(prefix => f.startsWith(prefix)))) continue
@@ -156,9 +237,26 @@ async function main() {
     const [program, ...args] = argv
     await run(program === 'node' ? process.execPath : program, [...args, ...extra], cwd, name)
   }
+  // Every applicable check passed. The over-cap fallback did not check the whole branch, so it is not cached.
+  if (print && !overCap) try { fs.writeFileSync(okFile, `${print}\n`) } catch {}
 }
 // Exit explicitly: a stray handle (a pipe a detached process still holds) must not keep Node alive.
+// At most two blocked stops in a row: a timeout blocks and leaves a marker only when stop_hook_active is
+// false; the retry it earns can block once more, and never leaves a marker.
 main().then(() => process.exit(0), error => {
-  process.stderr.write(`${label}: ${error.message}\n`, () => process.exit(active ? 0 : 2))
+  let code = active ? 0 : 2
+  let message = `${label}: ${error.message}\n`
+  if (error.timedOut && retry) {
+    code = 0
+    message += `${label}: ${error.check} could not finish in two tries (it timed out again on the retry), so the turn may end. Run it yourself before trusting this turn.\n`
+  } else if (error.timedOut && !active && marker) {
+    try {
+      // Never take over another session's marker (flag wx): then this block promises no retry, as before.
+      fs.writeFileSync(marker, `${session}\n${error.check}\n`, { flag: 'wx' })
+      message = `${label}: ${error.check} timed out at the shared ${budget}-second deadline, likely a cold build. The work it did is cached; the next stop will run it again, once, and block only on a real failure.\n${message}`
+    } catch {}
+  }
+  if (code === 2 && !error.timedOut) message += 'If this was already failing before your change, say so in your reply and stop again; the hook will not block twice.\n'
+  process.stderr.write(message, () => process.exit(code))
 })
 NODE
