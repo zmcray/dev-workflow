@@ -16,7 +16,20 @@ Add a job to the repo's PR workflow and make the repo's gate job need it:
     uses: zmcray/dev-workflow/.github/workflows/guards.yml@main
     with:
       swift: true   # iOS repos only
+      runs_on: '["self-hosted","macOS","imac"]'   # optional; default is "ubuntu-latest"
 ```
+
+`runs_on` is JSON for the runner. It defaults to `"ubuntu-latest"` (note the quotes: it is a JSON string). Self-hosted repos pass a JSON array.
+
+## Prove every repo calls it
+
+`config/guards-repos.json` lists the repos that must call the guards, the gate job in each that must list the guards job in its `needs`, and whether the call must pass `swift: true`. The audit reads each repo's workflows on its default branch and prints one line per repo, `wired` or `MISSING: <what>`. It exits 1 if any repo is missing something. Anything it cannot parse counts as missing.
+
+```bash
+node ~/Developer/dev-workflow/scripts/guards-audit.mjs
+```
+
+`--dir <path>` reads `<path>/<repo>/.github/workflows/` from disk instead of GitHub (the test uses it).
 
 ## Run it locally
 
