@@ -14,6 +14,8 @@
 #      approved skill changes and proposes its own edits as a pull request from then on.
 #   8. Installs the disk upkeep launch agents: the simulator reaper four times a day
 #      (install-sim-reaper.sh) and the weekly cache sweep (install-disk-sweep.sh).
+#   9. Merges the machine-wide Claude Code hooks into ~/.claude/settings.json (install-claude-hooks.mjs):
+#      the Stop fast check and the PreToolUse naming and XcodeGen guard. Backs the file up first.
 #   Ends with a checklist of what still needs a person (sign-ins, unattended-mode settings).
 #
 # Non-destructive: installs and copies only. Never deletes (the launch agents from step 8 do,
@@ -23,6 +25,7 @@
 # Usage:
 #   bash setup-factory-machine.sh --dry-run   # report only, change nothing
 #   bash setup-factory-machine.sh             # apply
+#   bash setup-factory-machine.sh --settings <path>   # merge the hooks into another settings file
 
 set -uo pipefail
 
@@ -33,7 +36,15 @@ CE_REPO="EveryInc/compound-engineering-plugin"
 CURSOR_PLUGINS="$HOME/.cursor/plugins/cache/cursor-public"
 
 DRY_RUN=0
-[[ "${1:-}" == "--dry-run" ]] && DRY_RUN=1
+CLAUDE_SETTINGS="$HOME/.claude/settings.json"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run) DRY_RUN=1 ;;
+    --settings) CLAUDE_SETTINGS="${2:?--settings needs a path}"; shift ;;
+    *) echo "unknown option: $1" >&2; exit 64 ;;
+  esac
+  shift
+done
 
 TODO=()
 ok()   { echo "  ok    $*"; }
@@ -132,6 +143,17 @@ for inst in install-sim-reaper.sh install-disk-sweep.sh; do
     fix "$inst missing; not installed"
   fi
 done
+
+echo "== Claude Code hooks (Stop fast check, PreToolUse guard)"
+# Machine-wide: the Stop hook reads each repo's fast check from config/fast-checks.json and
+# leaves every other folder alone. Idempotent; backs the settings file up before any change.
+if [[ -f "$DEV/dev-workflow/scripts/install-claude-hooks.mjs" ]] && have node; then
+  dry=(); [[ $DRY_RUN -eq 1 ]] && dry=(--dry-run)
+  node "$DEV/dev-workflow/scripts/install-claude-hooks.mjs" --settings "$CLAUDE_SETTINGS" ${dry[@]+"${dry[@]}"} \
+    || fix "Claude hooks not merged into $CLAUDE_SETTINGS: read the error above"
+else
+  fix "Install node, then re-run (the Claude Code hooks need it)"
+fi
 
 echo
 echo "== Always by hand (sign-ins and unattended settings are not scripted)"

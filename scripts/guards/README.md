@@ -41,4 +41,6 @@ node ~/Developer/dev-workflow/scripts/guards/date-last-names.mjs --base origin/m
 node ~/Developer/dev-workflow/scripts/guards/swift-swallowed-errors.mjs --base origin/main
 ```
 
+`--worktree` instead scans what is not pushed yet: commits since the upstream (else origin's default branch) plus staged, unstaged and untracked Swift, read from disk. The Stop hook uses it (`hooks/README.md`).
+
 To keep an intended `try?`, end the line with `// ratchet:allow R1 <why>`.

@@ -3,6 +3,8 @@
 // Ratchet: only added lines count, so the existing ones never block a change.
 // Rule R1n from the 2026-10-16 pitfall study: it flagged the exact buggy line in 7 of 9 real fixes.
 import { execFileSync } from 'node:child_process'
+import fs from 'node:fs'
+import path from 'node:path'
 
 const TEST_PATH = /(^|\/)[^/]*(Tests?|UITests|Fixtures?|Mocks?|Previews?)(\/|\.swift$)|(^|\/)(Tools|Scripts|ci_scripts|build|docs)\//
 const TRY_Q = /\btry\?/
@@ -13,7 +15,7 @@ const IDIOM = /Task\.sleep|\.decode\(|JSONSerialization|Data\(contentsOf|\.encod
 const CTOR = /try\?\s*(await\s+)?\.?[A-Z]\w*(\.\w+)?\(/
 const ALLOW = /\/\/\s*ratchet:allow\s+R1\s+\S/
 
-const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 })
+const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] })
 
 // Drops comments and string contents so patterns inside them never match.
 export function codeLines(text) {
@@ -78,8 +80,7 @@ export function flagsInFile(text, lines) {
   return flags
 }
 
-export function addedLines(cwd, base, head) {
-  const diff = git(cwd, 'diff', '--no-color', '-U0', '-M', '--diff-filter=AMR', `${base}...${head}`, '--', '*.swift')
+function parseAdded(diff) {
   const files = new Map()
   let file = null
   for (const l of diff.split('\n')) {
@@ -96,6 +97,35 @@ export function addedLines(cwd, base, head) {
   return files
 }
 
+export function addedLines(cwd, base, head) {
+  return parseAdded(git(cwd, 'diff', '--no-color', '-U0', '-M', '--diff-filter=AMR', `${base}...${head}`, '--', '*.swift'))
+}
+
+// The changes not yet pushed: commits since the upstream (else origin's default branch), plus
+// staged, unstaged and untracked edits, read from disk. The Stop hook runs this before a turn ends.
+export function worktreeBase(cwd) {
+  for (const ref of ['@{upstream}', 'origin/HEAD']) {
+    try { return git(cwd, 'merge-base', 'HEAD', ref).trim() } catch {}
+  }
+  return 'HEAD'
+}
+
+export function scanWorktree(cwd, base = worktreeBase(cwd)) {
+  const root = git(cwd, 'rev-parse', '--show-toplevel').trim()
+  const files = parseAdded(git(root, 'diff', '--no-color', '-U0', '-M', '--diff-filter=AMR', base, '--', '*.swift'))
+  for (const file of git(root, 'ls-files', '--others', '--exclude-standard', '-z', '--', '*.swift').split('\0').filter(Boolean)) {
+    if (TEST_PATH.test(file)) continue
+    const count = fs.readFileSync(path.join(root, file), 'utf8').split('\n').length
+    files.set(file, Array.from({ length: count }, (_, k) => k + 1))
+  }
+  const out = []
+  for (const [file, lines] of files) {
+    if (!lines.length) continue
+    for (const f of flagsInFile(fs.readFileSync(path.join(root, file), 'utf8'), lines)) out.push({ file, ...f })
+  }
+  return out
+}
+
 export function scan(cwd, base, head) {
   const out = []
   for (const [file, lines] of addedLines(cwd, base, head)) {
@@ -107,11 +137,14 @@ export function scan(cwd, base, head) {
 
 function main(argv) {
   const at = flag => argv[argv.indexOf(flag) + 1]
-  if (!argv.includes('--base')) {
-    process.stderr.write('usage: swift-swallowed-errors.mjs --base <ref> [--head <ref>] [--repo <dir>]\n')
+  const repo = argv.includes('--repo') ? at('--repo') : process.cwd()
+  let flags
+  if (argv.includes('--worktree')) flags = scanWorktree(repo, argv.includes('--base') ? at('--base') : undefined)
+  else if (argv.includes('--base')) flags = scan(repo, at('--base'), argv.includes('--head') ? at('--head') : 'HEAD')
+  else {
+    process.stderr.write('usage: swift-swallowed-errors.mjs --base <ref> [--head <ref>] [--repo <dir>] | --worktree [--base <ref>] [--repo <dir>]\n')
     return 64
   }
-  const flags = scan(argv.includes('--repo') ? at('--repo') : process.cwd(), at('--base'), argv.includes('--head') ? at('--head') : 'HEAD')
   for (const f of flags) {
     process.stderr.write(`swift-swallowed-errors: ${f.file}:${f.line} adds a ${f.kind === 'try?' ? '`try?`' : 'log-only `catch`'} that turns a failure into success: ${f.text}\n` +
       '  Return a typed outcome (Result or an enum) or catch the named error and surface it. If swallowing is intended, end the line with `// ratchet:allow R1 <why>`.\n')
