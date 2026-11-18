@@ -57,17 +57,22 @@ function main(argv) {
   if (!added.length) return 0
   for (const label of added) console.log(`  ${dry ? 'would' : 'doing'} add the ${label} to ${file}`)
   if (dry) return 0
-  fs.mkdirSync(path.dirname(file), { recursive: true })
+  // Write through a symlink to its target, so the link stays a link, and keep the file's mode (often 0600).
+  const real = exists ? fs.realpathSync(file) : file
+  const mode = exists ? fs.statSync(real).mode & 0o7777 : 0o600
+  fs.mkdirSync(path.dirname(real), { recursive: true })
   if (exists) {
     // Date last in the name, per the naming rule.
-    let backup = path.join(path.dirname(file), `settings.backup-${stamp()}.json`)
-    for (let n = 2; fs.existsSync(backup); n++) backup = path.join(path.dirname(file), `settings.backup-${n}-${stamp()}.json`)
-    fs.copyFileSync(file, backup, fs.constants.COPYFILE_EXCL)
+    let backup = path.join(path.dirname(real), `settings.backup-${stamp()}.json`)
+    for (let n = 2; fs.existsSync(backup); n++) backup = path.join(path.dirname(real), `settings.backup-${n}-${stamp()}.json`)
+    fs.copyFileSync(real, backup, fs.constants.COPYFILE_EXCL)
+    fs.chmodSync(backup, mode)
     console.log(`  backup ${backup}`)
   }
-  const temp = `${file}.tmp-${process.pid}`
-  fs.writeFileSync(temp, JSON.stringify(settings, null, 2) + '\n')
-  fs.renameSync(temp, file)
+  const temp = `${real}.tmp-${process.pid}`
+  fs.writeFileSync(temp, JSON.stringify(settings, null, 2) + '\n', { mode })
+  fs.chmodSync(temp, mode)
+  fs.renameSync(temp, real)
   return 0
 }
 

@@ -10,17 +10,19 @@ Claude Code hooks, installed once per Mac into `~/.claude/settings.json`. Both r
 ## The Stop hook
 
 - No changed or untracked files: exit 0.
-- Not in a git repo, no `origin`, or the repo is not in the table: exit 0, silently. It never blocks work in other folders.
+- Not in a git repo, no `origin`, origin's owner is not the table's `owner`, the repo is not in the table, or the payload is not a JSON object: exit 0, silently. It never blocks work in other folders.
 - A table repo: runs its checks in order under one shared deadline (`budget_seconds`, 90). The first failure or a timeout prints the check and the tail of its output, and exits 2. A timeout kills the check's whole process group.
-- Fails closed for a table repo: an unreadable or unparsable table, a malformed entry, a program that is not found, or a missing `cwd` exits 2 with the fix.
+- Fails closed for a table repo: a malformed entry, a program that is not found, or a missing `cwd` exits 2 with the fix. A table that cannot be read or parsed, or has no `repos` or `owner`, blocks only in dev-workflow itself (where it gets fixed); every other repo exits 0.
+- A timeout settles even when a detached process still holds the check's output pipe, and the hook always exits explicitly.
 - Loop guard: when the payload has `stop_hook_active: true` it still runs and reports, but exits 0, so a broken check costs at most one extra turn.
 
 ## The table: `config/fast-checks.json`
 
-Keyed by GitHub repo name, matched case-insensitively against the last path segment of `git remote get-url origin`, so worktrees and forks match.
+Keyed by GitHub repo name, matched case-insensitively against the last path segment of `git remote get-url origin`, so worktrees match. The segment before it must equal the table's `owner` (case-insensitive, https or `git@` form), so someone else's clone of a same-named repo is left alone.
 
 ```json
 {
+  "owner": "zmcray",
   "budget_seconds": 90,
   "repos": {
     "motus": [

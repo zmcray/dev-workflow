@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Stop hook, installed once per Mac. Runs the current repo's fast check from config/fast-checks.json.
-# Exit 2 blocks the turn end and feeds stderr back to the agent. Repos outside the table, and folders
-# outside git, always exit 0. For a table repo every internal error blocks (fail closed).
+# Exit 2 blocks the turn end and feeds stderr back to the agent. Repos outside the table (or owned by
+# someone else), folders outside git, and an unreadable payload always exit 0. For a table repo every
+# internal error blocks (fail closed). A broken table blocks only in dev-workflow itself.
 # Preserve the hook payload while Node reads its program from the heredoc.
 exec node - "$(cd "$(dirname "$0")/.." && pwd)" 3<&0 <<'NODE'
 const fs = require('node:fs')
@@ -40,15 +41,29 @@ function run(command, args, cwd, name = `${command} ${args[0] ?? ''}`) {
         done(reject, new Error(`${name} failed: program not found: ${command}.\nFix: install ${command}, or make it reachable on the PATH that Claude Code hooks run with (PATH=${process.env.PATH}).`))
       } else stderr = tail(`${stderr}\n${error.message}`)
     })
+    // A process outside the group (a setsid daemon) can hold the pipes open; never wait on it.
+    const release = () => { child.stdout.destroy(); child.stderr.destroy() }
+    let exited = null
     // The whole process group belongs to this check, including pnpm's children.
-    child.on('exit', () => killGroup('SIGKILL'))
+    child.on('exit', (code, signal) => {
+      killGroup('SIGKILL')
+      exited = { code, signal }
+      setTimeout(release, 250).unref()
+    })
     timer = setTimeout(() => {
       timedOut = true
       killGroup('SIGTERM')
-      force = setTimeout(() => killGroup('SIGKILL'), 250)
+      force = setTimeout(() => {
+        killGroup('SIGKILL')
+        setTimeout(() => {
+          release()
+          done(reject, new Error(`${name} failed (shared ${budget}-second deadline exceeded).\n${stdout}${stderr}`))
+        }, 250).unref()
+      }, 250)
     }, Math.max(0, remaining - 250))
-    child.on('close', (code, signal) => {
+    child.on('close', (closeCode, closeSignal) => {
       killGroup('SIGKILL')
+      const code = exited ? exited.code : closeCode, signal = exited ? exited.signal : closeSignal
       if (timedOut || code !== 0) {
         const reason = timedOut ? `shared ${budget}-second deadline exceeded` : `exit ${code}${signal ? `, signal ${signal}` : ''}`
         done(reject, new Error(`${name} failed (${reason}).\n${stdout}${stderr}`))
@@ -65,25 +80,24 @@ function probe(args, cwd) {
   } catch { return null }
 }
 
-// The GitHub repo name is the last path segment of origin, so worktrees and forks match too.
-function repoName(url) {
-  const last = url.replace(/\/+$/, '').split(/[/:]/).pop() ?? ''
-  return last.replace(/\.git$/i, '').toLowerCase()
+// Origin's last two path segments: owner and repo, for https, ssh:// and git@host:owner/repo forms.
+// Worktrees of the same repo match; someone else's clone of a same-named repo does not.
+function parseOrigin(url) {
+  const parts = url.replace(/\/+$/, '').split(/[/:]/)
+  return { name: (parts.pop() ?? '').replace(/\.git$/i, '').toLowerCase(), owner: (parts.pop() ?? '').toLowerCase() }
 }
 
-function loadTable(name) {
-  let raw
-  try { raw = fs.readFileSync(TABLE, 'utf8') } catch (error) {
-    // Without the table no repo can be told apart, so every repo with changes is treated as a table repo.
-    return { member: true, broken: `cannot read ${TABLE} (${error.code ?? error.message})` }
-  }
-  let table
-  try { table = JSON.parse(raw) } catch (error) {
-    const named = new RegExp(`"${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"\\s*:`, 'i').test(raw)
-    return { member: named, broken: `cannot parse ${TABLE} (${error.message})` }
-  }
-  const repos = table?.repos && typeof table.repos === 'object' ? table.repos : null
-  if (!repos) return { member: true, broken: `${TABLE} has no "repos" object` }
+function loadTable({ name, owner }) {
+  // A broken table cannot say which repos are ours. It blocks only in dev-workflow, where it gets fixed,
+  // and never anywhere else on the machine.
+  const broken = why => ({ member: name === 'dev-workflow', broken: why })
+  let raw, table
+  try { raw = fs.readFileSync(TABLE, 'utf8') } catch (error) { return broken(`cannot read ${TABLE} (${error.code ?? error.message})`) }
+  try { table = JSON.parse(raw) } catch (error) { return broken(`cannot parse ${TABLE} (${error.message})`) }
+  const repos = table?.repos && typeof table.repos === 'object' && !Array.isArray(table.repos) ? table.repos : null
+  if (!repos) return broken(`${TABLE} has no "repos" object`)
+  if (typeof table.owner !== 'string' || !table.owner) return broken(`${TABLE} has no "owner"`)
+  if (owner !== table.owner.toLowerCase()) return { member: false }
   const key = Object.keys(repos).find(k => k.toLowerCase() === name)
   if (!key) return { member: false }
   if (Number.isFinite(table.budget_seconds) && table.budget_seconds > 0) budget = table.budget_seconds
@@ -102,7 +116,10 @@ function validate(checks, key) {
 }
 
 async function main() {
-  const payload = JSON.parse(fs.readFileSync(3, 'utf8'))
+  let payload
+  try { payload = JSON.parse(fs.readFileSync(3, 'utf8')) } catch { return 0 }
+  // Not a hook payload: nothing to check, and nothing to say.
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return 0
   active = payload.stop_hook_active === true
   const sessionCwd = typeof payload.cwd === 'string' && payload.cwd ? payload.cwd : process.cwd()
   if (!fs.existsSync(sessionCwd)) return
@@ -110,10 +127,10 @@ async function main() {
   if (!root) return
   const origin = probe(['remote', 'get-url', 'origin'], root)
   if (!origin) return
-  const name = repoName(origin)
-  const entry = loadTable(name)
+  const repo = parseOrigin(origin)
+  const entry = loadTable(repo)
   if (!entry.member) return
-  label = `Stop fast check (${entry.key ?? name})`
+  label = `Stop fast check (${entry.key ?? repo.name})`
   const tracked = await run('git', ['diff', '--name-only', '-z', 'HEAD', '--'], root)
   const untracked = await run('git', ['ls-files', '--others', '--exclude-standard', '-z'], root)
   const files = [...new Set((tracked + untracked).split('\0').filter(Boolean))]
@@ -140,8 +157,8 @@ async function main() {
     await run(program === 'node' ? process.execPath : program, [...args, ...extra], cwd, name)
   }
 }
-main().catch(error => {
-  process.stderr.write(`${label}: ${error.message}\n`)
-  process.exitCode = active ? 0 : 2
+// Exit explicitly: a stray handle (a pipe a detached process still holds) must not keep Node alive.
+main().then(() => process.exit(0), error => {
+  process.stderr.write(`${label}: ${error.message}\n`, () => process.exit(active ? 0 : 2))
 })
 NODE

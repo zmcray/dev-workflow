@@ -99,6 +99,34 @@ try {
   assert.equal(r.status, 0, r.stderr)
   assert.equal(ours(JSON.parse(fs.readFileSync(missing, 'utf8'))).stop.length, 1)
 
+  // A 0600 file stays 0600, and so does its backup.
+  const priv = path.join(root, 'private', 'settings.json')
+  fs.mkdirSync(path.dirname(priv))
+  fs.writeFileSync(priv, '{"model":"default"}\n', { mode: 0o600 })
+  fs.chmodSync(priv, 0o600)
+  r = run(priv)
+  assert.equal(r.status, 0, r.stderr)
+  assert.equal(fs.statSync(priv).mode & 0o777, 0o600, 'the merged file keeps mode 0600')
+  assert.equal(fs.statSync(path.join(path.dirname(priv), backups(path.dirname(priv))[0])).mode & 0o777, 0o600, 'the backup has the same mode')
+  assert.equal(ours(JSON.parse(fs.readFileSync(priv, 'utf8'))).stop.length, 1)
+
+  // A symlinked settings file stays a symlink; its target gets the change.
+  const linkDir = path.join(root, 'linked')
+  fs.mkdirSync(path.join(linkDir, 'dotfiles'), { recursive: true })
+  const target = path.join(linkDir, 'dotfiles', 'claude-settings.json')
+  fs.writeFileSync(target, '{"model":"default"}\n', { mode: 0o600 })
+  fs.chmodSync(target, 0o600)
+  const link = path.join(linkDir, 'settings.json')
+  fs.symlinkSync(path.join('dotfiles', 'claude-settings.json'), link)
+  r = run(link)
+  assert.equal(r.status, 0, r.stderr)
+  assert.ok(fs.lstatSync(link).isSymbolicLink(), 'the settings file is still a symlink')
+  assert.equal(fs.readlinkSync(link), path.join('dotfiles', 'claude-settings.json'), 'the link still points at the same target')
+  assert.equal(ours(JSON.parse(fs.readFileSync(target, 'utf8'))).stop.length, 1, 'the target got the change')
+  assert.equal(fs.statSync(target).mode & 0o777, 0o600, 'the target keeps its mode')
+  r = run(link)
+  assert.match(r.stdout, /already/, 'a second run through the link is a no-op')
+
   // Malformed JSON, or hooks that are not an object: abort, write nothing.
   for (const [name, text] of [['malformed', '{ "hooks": { "Stop": [ }'], ['badhooks', '{ "hooks": [] }'], ['badevent', '{ "hooks": { "Stop": {} } }']]) {
     const bad = path.join(root, name, 'settings.json')

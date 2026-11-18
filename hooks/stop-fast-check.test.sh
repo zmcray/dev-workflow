@@ -65,7 +65,7 @@ function tableCases() {
   fs.cpSync(path.join(path.dirname(hook), '..', 'scripts', 'guards'), path.join(dw, 'scripts', 'guards'), { recursive: true })
   const copy = path.join(dw, 'hooks', 'stop-fast-check.sh')
   const table = path.join(dw, 'config', 'fast-checks.json')
-  const setTable = repos => fs.writeFileSync(table, JSON.stringify({ budget_seconds: 90, repos }))
+  const setTable = (repos, budget = 90) => fs.writeFileSync(table, JSON.stringify({ owner: 'zmcray', budget_seconds: budget, repos }))
   // One fake for every program a check may name; each call logs its program, argv and cwd.
   const fakes = path.join(root, 'fakes')
   const fakeLog = path.join(root, 'fakes.jsonl')
@@ -93,11 +93,11 @@ process.exit(process.env.FAKE_FAIL === path.basename(process.argv[1]) ? 3 : 0)
     g('commit', '-qm', 'base')
     return dir
   }
-  const fire = (script, cwd, { active = false, fail = '' } = {}) => {
+  const fire = (script, cwd, { active = false, fail = '', input, from = root } = {}) => {
     fs.rmSync(fakeLog, { force: true })
     return spawnSync(script, [], {
-      cwd: root, encoding: 'utf8', timeout: 60000, killSignal: 'SIGKILL',
-      input: JSON.stringify({ cwd, stop_hook_active: active }),
+      cwd: from, encoding: 'utf8', timeout: 60000, killSignal: 'SIGKILL',
+      input: input ?? JSON.stringify({ cwd, stop_hook_active: active }),
       env: { ...process.env, PATH: `${fakes}:${process.env.PATH}`, FAKE_LOG: fakeLog, FAKE_FAIL: fail },
     })
   }
@@ -106,15 +106,25 @@ process.exit(process.env.FAKE_FAIL === path.basename(process.argv[1]) ? 3 : 0)
   // The real table: each repo's entry, as the machine-wide hook will run it.
   const parsed = JSON.parse(fs.readFileSync(realTable, 'utf8'))
   assert.equal(parsed.budget_seconds, 90)
+  assert.equal(parsed.owner, 'zmcray', 'the table names the GitHub owner whose repos it checks')
   for (const [name, checks] of Object.entries(parsed.repos)) {
     assert.ok(Array.isArray(checks) && checks.length, `${name} has checks`)
     assert.match(checks[0].run.join(' '), /date-last-names\.mjs --paths$/, `${name} runs the date-last guard first`)
   }
-  const sonar = repoAt('sonar-fork', 'git@github.com:someone/sonar.git')
+  const sonar = repoAt('sonar', 'git@github.com:ZMcRay/sonar.git')
   fs.writeFileSync(path.join(sonar, 'base.ts'), 'changed')
   let r = fire(hook, sonar)
   assert.equal(r.status, 0, r.stderr)
-  assert.deepEqual(cmds(), [['npm', 'run', 'typecheck'], ['npx', 'vitest', 'related', '--run', '--passWithNoTests', './base.ts']], 'the npm-based entry runs npm and npx, never pnpm; a fork matches by repo name')
+  assert.deepEqual(cmds(), [['npm', 'run', 'typecheck'], ['npx', 'vitest', 'related', '--run', '--passWithNoTests', './base.ts']], 'the npm-based entry runs npm and npx, never pnpm; a git@ URL matches, owner case-insensitively')
+  // Someone else's repo with the same name is not ours, in either URL form.
+  for (const [dir, url] of [['sonar-other-ssh', 'git@github.com:someone/sonar.git'], ['sonar-other-https', 'https://github.com/someone/sonar.git']]) {
+    const foreign = repoAt(dir, url)
+    fs.writeFileSync(path.join(foreign, 'base.ts'), 'changed')
+    r = fire(hook, foreign)
+    assert.equal(r.status, 0, r.stderr)
+    assert.equal(r.stderr, '', `${url}: another owner's clone is silent`)
+    assert.deepEqual(cmds(), [], `${url}: another owner's clone runs no checks`)
+  }
   const argus = repoAt('argus', 'https://github.com/zmcray/argus')
   fs.writeFileSync(path.join(argus, 'base.ts'), 'changed')
   r = fire(hook, argus)
@@ -137,6 +147,15 @@ process.exit(process.env.FAKE_FAIL === path.basename(process.argv[1]) ? 3 : 0)
   r = fire(hook, saidso)
   assert.equal(r.status, 2, 'the date-last guard blocks a new date-first file')
   assert.match(r.stderr, /notes-2026-11-18\.md/)
+
+  // A malformed, empty or null payload exits 0 silently, inside a table repo or anywhere else.
+  for (const input of ['', 'not json', 'null', '[]', '"text"']) {
+    for (const from of [saidso, root]) {
+      r = fire(hook, undefined, { input, from })
+      assert.equal(r.status, 0, `payload ${JSON.stringify(input)} in ${from}: ${r.stderr}`)
+      assert.equal(r.stderr, '', `payload ${JSON.stringify(input)} is silent`)
+    }
+  }
 
   // Not ours: a repo outside the table and a folder outside git never block and print nothing.
   const other = repoAt('other', 'https://github.com/someone/unrelated.git')
@@ -202,22 +221,63 @@ process.exit(process.env.FAKE_FAIL === path.basename(process.argv[1]) ? 3 : 0)
   r = fire(copy, app)
   assert.equal(r.status, 2, 'a check without a program blocks')
   assert.match(r.stderr, /fast-checks\.json/)
-  fs.writeFileSync(table, '{ "repos": { "app": [ { "run": ')
-  r = fire(copy, app)
-  assert.equal(r.status, 2, 'an unparsable table blocks a table repo')
-  assert.match(r.stderr, /fast-checks\.json/)
-  assert.deepEqual(cmds(), [])
-  r = fire(copy, other)
-  assert.equal(r.status, 0, 'an unparsable table still leaves repos it never names alone')
-  fs.rmSync(table)
-  r = fire(copy, app)
-  assert.equal(r.status, 2, 'a missing table blocks: the checkout is broken')
-  assert.match(r.stderr, /fast-checks\.json/)
-  fs.mkdirSync(table)
-  r = fire(copy, app)
-  assert.equal(r.status, 2, 'an unreadable table blocks')
-  assert.match(r.stderr, /fast-checks\.json/)
-  fs.rmSync(table, { recursive: true })
+  // A broken table blocks only in dev-workflow itself, where it can be fixed; every other repo is left alone.
+  const selfRepo = repoAt('dev-workflow-wt', 'git@github.com:zmcray/dev-workflow.git')
+  fs.writeFileSync(path.join(selfRepo, 'base.ts'), 'changed')
+  const broken = [
+    ['unparsable', () => fs.writeFileSync(table, '{ "repos": { "app": [ { "run": ')],
+    ['without repos', () => fs.writeFileSync(table, JSON.stringify({ owner: 'zmcray', budget_seconds: 90 }))],
+    ['without owner', () => fs.writeFileSync(table, JSON.stringify({ budget_seconds: 90, repos: { app: [{ run: ['pnpm', 'x'] }] } }))],
+    ['missing', () => fs.rmSync(table, { force: true })],
+    ['unreadable', () => { fs.rmSync(table, { force: true }); fs.mkdirSync(table) }],
+  ]
+  for (const [kind, breakIt] of broken) {
+    breakIt()
+    for (const repo of [app, other, saidso]) {
+      r = fire(copy, repo)
+      assert.equal(r.status, 0, `${kind} table: ${repo} is left alone: ${r.stderr}`)
+      assert.equal(r.stderr, '', `${kind} table: silent outside dev-workflow`)
+      assert.deepEqual(cmds(), [])
+    }
+    r = fire(copy, selfRepo)
+    assert.equal(r.status, 2, `${kind} table: dev-workflow itself blocks`)
+    assert.match(r.stderr, /fast-checks\.json/, `${kind} table: the message names the table`)
+    fs.rmSync(table, { recursive: true, force: true })
+  }
+
+  // The deadline holds even when a check leaves a detached process holding its output pipe.
+  const sleepers = path.join(root, 'sleepers.pids')
+  const holder = path.join(root, 'pipe-holder.js')
+  fs.writeFileSync(holder, `const { spawn } = require('node:child_process')
+const fs = require('node:fs')
+// detached: true calls setsid, so the sleeper is outside the check's process group and survives its kill.
+const child = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { detached: true, stdio: ['ignore', 'inherit', 'inherit'] })
+fs.appendFileSync(${JSON.stringify(sleepers)}, child.pid + '\\n')
+child.unref()
+console.log('holder started')
+if (process.argv[2] === 'hang') setInterval(() => {}, 1000)
+`)
+  try {
+    setTable({ app: [{ run: ['node', holder, 'hang'] }] }, 3)
+    fs.writeFileSync(path.join(app, 'base.ts'), 'changed again')
+    let started = performance.now()
+    r = fire(copy, app)
+    let elapsed = performance.now() - started
+    assert.equal(r.status, 2, r.stderr)
+    assert.match(r.stderr, /3-second deadline/)
+    assert.ok(elapsed < 5000, `a held pipe must not outlast the 3-second budget by more than 2 s: ${elapsed}ms`)
+    setTable({ app: [{ run: ['node', holder, 'exit'] }, { run: ['pnpm', 'after'] }] }, 30)
+    started = performance.now()
+    r = fire(copy, app)
+    elapsed = performance.now() - started
+    assert.equal(r.status, 0, r.stderr)
+    assert.deepEqual(cmds(), [['pnpm', 'after']], 'the next check still runs')
+    assert.ok(elapsed < 5000, `a check that exits 0 does not wait for a held pipe: ${elapsed}ms`)
+  } finally {
+    if (fs.existsSync(sleepers)) for (const pid of fs.readFileSync(sleepers, 'utf8').split('\n').filter(Boolean)) {
+      try { process.kill(Number(pid), 'SIGKILL') } catch (error) { if (error.code !== 'ESRCH') throw error }
+    }
+  }
   setTable({ app: [{ run: ['pnpm', 'x'] }] })
   spawnSync('git', ['stash', '-u', '-q'], { cwd: app })
   r = fire(copy, app)
