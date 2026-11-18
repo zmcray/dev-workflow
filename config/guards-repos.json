@@ -1,0 +1,14 @@
+{
+  "owner": "zmcray",
+  "repos": {
+    "Pulse": { "gate": "ci", "swift": true },
+    "motus": { "gate": "ci-gate", "swift": true },
+    "saidso": { "gate": "build-and-test", "swift": true },
+    "telos": { "gate": "verify" },
+    "argus": { "gate": "node-tests" },
+    "sonar": { "gate": "ci" },
+    "quoting": { "gate": "check" },
+    "trim": { "gate": "gate" },
+    "mcray-os-skills": { "gate": null }
+  }
+}
