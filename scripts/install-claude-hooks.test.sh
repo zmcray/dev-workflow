@@ -10,6 +10,11 @@ const { spawnSync } = require('node:child_process')
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'install-claude-hooks-'))
 const STOP = '"$HOME/Developer/dev-workflow/hooks/stop-fast-check.sh"'
 const PRE = '"$HOME/Developer/dev-workflow/hooks/pretooluse-date-last.sh"'
+// Claude Code's default command-hook timeout is 600 s and a killed Stop hook lets the stop through, so the
+// entry carries an explicit timeout comfortably above the hook's own budget: budget + 30 s.
+const BUDGET = JSON.parse(fs.readFileSync(path.join(path.dirname(process.env.SCRIPT), '..', 'config', 'fast-checks.json'), 'utf8')).budget_seconds
+const TIMEOUT = BUDGET + 30
+assert.equal(TIMEOUT, 120)
 const run = (file, ...args) => spawnSync(process.execPath, [process.env.SCRIPT, '--settings', file, ...args], { encoding: 'utf8' })
 const backups = dir => fs.readdirSync(dir).filter(f => f.startsWith('settings.backup-'))
 const ours = settings => ({
@@ -26,7 +31,7 @@ try {
   let s = JSON.parse(fs.readFileSync(empty, 'utf8'))
   assert.deepEqual(s, {
     hooks: {
-      Stop: [{ hooks: [{ type: 'command', command: STOP }] }],
+      Stop: [{ hooks: [{ type: 'command', command: STOP, timeout: TIMEOUT }] }],
       PreToolUse: [{ matcher: 'Write|Edit|MultiEdit', hooks: [{ type: 'command', command: PRE }] }],
     },
   })
@@ -67,6 +72,7 @@ try {
   assert.deepEqual(strip(s), before, 'everything that was there is still there, unchanged')
   assert.deepEqual(Object.keys(s), Object.keys(before), 'top-level key order is kept')
   assert.equal(ours(s).stop.length, 1)
+  assert.equal(ours(s).stop[0].timeout, TIMEOUT, 'a new Stop entry carries the timeout')
   assert.equal(ours(s).pre.length, 1)
   const [backup] = backups(path.dirname(full))
   assert.match(backup, /^settings\.backup-.*\d{4}-\d{2}-\d{2}.*\.json$/, 'the backup name carries a timestamp')
@@ -91,7 +97,41 @@ try {
   assert.equal(r.status, 0, r.stderr)
   s = JSON.parse(fs.readFileSync(half, 'utf8'))
   assert.equal(ours(s).stop.length, 1, 'the Stop hook is not added twice')
+  assert.equal(ours(s).stop[0].timeout, TIMEOUT, 'an existing Stop entry without a timeout gets one')
   assert.equal(ours(s).pre.length, 1)
+  assert.match(r.stdout, /timeout/, 'the timeout update is reported')
+  assert.equal(backups(path.dirname(half)).length, 1, 'the update writes a backup first')
+
+  // Both hooks installed, only the Stop timeout missing: that alone is updated, dry run first.
+  const old = path.join(root, 'old', 'settings.json')
+  fs.mkdirSync(path.dirname(old))
+  const oldText = JSON.stringify({ hooks: {
+    Stop: [{ hooks: [{ type: 'command', command: 'say done' }, { type: 'command', command: STOP }] }],
+    PreToolUse: [{ matcher: 'Write|Edit|MultiEdit', hooks: [{ type: 'command', command: PRE }] }],
+  } })
+  fs.writeFileSync(old, oldText)
+  r = run(old, '--dry-run')
+  assert.equal(r.status, 0, r.stderr)
+  assert.match(r.stdout, /would set the timeout/)
+  assert.equal(fs.readFileSync(old, 'utf8'), oldText, '--dry-run changes nothing')
+  r = run(old)
+  assert.equal(r.status, 0, r.stderr)
+  s = JSON.parse(fs.readFileSync(old, 'utf8'))
+  assert.deepEqual(s.hooks.Stop, [{ hooks: [{ type: 'command', command: 'say done' }, { type: 'command', command: STOP, timeout: TIMEOUT }] }], 'only our entry changes')
+  r = run(old)
+  assert.match(r.stdout, /already/, 'then a no-op')
+  assert.equal(backups(path.dirname(old)).length, 1)
+  // A larger timeout someone set by hand is kept.
+  const big = path.join(root, 'big', 'settings.json')
+  fs.mkdirSync(path.dirname(big))
+  fs.writeFileSync(big, JSON.stringify({ hooks: {
+    Stop: [{ hooks: [{ type: 'command', command: STOP, timeout: 300 }] }],
+    PreToolUse: [{ matcher: 'Write|Edit|MultiEdit', hooks: [{ type: 'command', command: PRE }] }],
+  } }))
+  r = run(big)
+  assert.equal(r.status, 0, r.stderr)
+  assert.equal(JSON.parse(fs.readFileSync(big, 'utf8')).hooks.Stop[0].hooks[0].timeout, 300)
+  assert.equal(backups(path.dirname(big)).length, 0, 'nothing to change, nothing written')
 
   // Missing file: created, with the folder.
   const missing = path.join(root, 'new', 'dir', 'settings.json')

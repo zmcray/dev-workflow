@@ -75,7 +75,8 @@ function tableCases() {
 const fs = require('node:fs')
 const path = require('node:path')
 fs.appendFileSync(process.env.FAKE_LOG, JSON.stringify({ bin: path.basename(process.argv[1]), args: process.argv.slice(2), cwd: process.cwd() }) + '\\n')
-process.exit(process.env.FAKE_FAIL === path.basename(process.argv[1]) ? 3 : 0)
+if (process.env.FAKE_SLEEP === path.basename(process.argv[1])) setInterval(() => {}, 1000)
+else process.exit(process.env.FAKE_FAIL === path.basename(process.argv[1]) ? 3 : 0)
 `)
   fs.chmodSync(fake, 0o755)
   for (const name of ['pnpm', 'npm', 'npx', 'swift']) fs.symlinkSync(fake, path.join(fakes, name))
@@ -93,12 +94,12 @@ process.exit(process.env.FAKE_FAIL === path.basename(process.argv[1]) ? 3 : 0)
     g('commit', '-qm', 'base')
     return dir
   }
-  const fire = (script, cwd, { active = false, fail = '', input, from = root } = {}) => {
+  const fire = (script, cwd, { active = false, fail = '', sleep = '', input, from = root } = {}) => {
     fs.rmSync(fakeLog, { force: true })
     return spawnSync(script, [], {
       cwd: from, encoding: 'utf8', timeout: 60000, killSignal: 'SIGKILL',
       input: input ?? JSON.stringify({ cwd, stop_hook_active: active }),
-      env: { ...process.env, PATH: `${fakes}:${process.env.PATH}`, FAKE_LOG: fakeLog, FAKE_FAIL: fail },
+      env: { ...process.env, PATH: `${fakes}:${process.env.PATH}`, FAKE_LOG: fakeLog, FAKE_FAIL: fail, FAKE_SLEEP: sleep },
     })
   }
   const cmds = () => fakeCalls().map(c => [c.bin, ...c.args])
@@ -283,6 +284,223 @@ if (process.argv[2] === 'hang') setInterval(() => {}, 1000)
   r = fire(copy, app)
   assert.equal(r.status, 0, 'a clean table repo exits 0')
   assert.deepEqual(cmds(), [])
+
+  committedCases({ copy, setTable, fire, cmds, repoAt })
+  timeoutCases({ copy, setTable, fire, cmds, repoAt })
+}
+
+const gitIn = (dir, ...args) => {
+  const result = spawnSync('git', args, { cwd: dir, encoding: 'utf8' })
+  assert.equal(result.status, 0, `git ${args.join(' ')}: ${result.stderr}`)
+  return result.stdout.trim()
+}
+const commitAll = (dir, message) => { gitIn(dir, 'add', '-A'); gitIn(dir, 'commit', '-qm', message) }
+
+// Committed work: the branch since its merge-base with origin's default branch counts as changed.
+function committedCases({ copy, setTable, fire, cmds, repoAt }) {
+  setTable({ work: [
+    { run: ['pnpm', 'all'], files: true },
+    { run: ['swift', 'test'], cwd: 'pkg', when: ['pkg/'] },
+    { run: ['npm', 'fresh'], files: 'new' },
+  ] })
+  const work = repoAt('work', 'https://github.com/zmcray/work.git')
+  fs.writeFileSync(path.join(work, 'gone.ts'), 'gone')
+  commitAll(work, 'more base')
+  gitIn(work, 'update-ref', 'refs/remotes/origin/main', 'HEAD')
+
+  // On the default branch with nothing unpushed and a clean tree: nothing runs.
+  let r = fire(copy, work)
+  assert.equal(r.status, 0, r.stderr)
+  assert.equal(r.stderr, '')
+  assert.deepEqual(cmds(), [], 'default branch, nothing unpushed, clean tree: no checks')
+
+  // A committed-only change on a branch runs the checks; a failing one blocks.
+  gitIn(work, 'checkout', '-q', '-b', 'feature')
+  fs.writeFileSync(path.join(work, 'base.ts'), 'committed change')
+  fs.writeFileSync(path.join(work, 'added.ts'), 'added')
+  fs.rmSync(path.join(work, 'gone.ts'))
+  commitAll(work, 'feature work')
+  assert.equal(gitIn(work, 'status', '--porcelain'), '', 'the tree is clean')
+  r = fire(copy, work)
+  assert.equal(r.status, 0, r.stderr)
+  assert.deepEqual(cmds().map(c => [c[0], c[1], ...c.slice(2).sort()]), [
+    ['pnpm', 'all', './added.ts', './base.ts', './gone.ts'],
+    ['npm', 'fresh', './added.ts'],
+  ], 'committed changes, deletions included, reach `files: true`; committed additions reach `files: "new"`')
+  r = fire(copy, work, { fail: 'pnpm' })
+  assert.equal(r.status, 2, 'a failing check on committed-only work blocks')
+  assert.match(r.stderr, /pnpm all/)
+
+  // Unpushed commits on the default branch count too.
+  gitIn(work, 'checkout', '-q', 'main')
+  fs.writeFileSync(path.join(work, 'unpushed.ts'), 'x')
+  commitAll(work, 'unpushed')
+  r = fire(copy, work)
+  assert.equal(r.status, 0, r.stderr)
+  assert.deepEqual(cmds()[0], ['pnpm', 'all', './unpushed.ts'])
+  gitIn(work, 'reset', '-q', '--hard', 'origin/main')
+  gitIn(work, 'checkout', '-q', 'feature')
+
+  // Committed, uncommitted and untracked are deduplicated into one list.
+  fs.writeFileSync(path.join(work, 'base.ts'), 'committed change, then edited')
+  fs.writeFileSync(path.join(work, 'loose.ts'), 'untracked')
+  r = fire(copy, work)
+  assert.equal(r.status, 0, r.stderr)
+  assert.deepEqual(cmds()[0].slice(2).sort(), ['./added.ts', './base.ts', './gone.ts', './loose.ts'])
+  gitIn(work, 'checkout', '-q', '--', 'base.ts')
+  fs.rmSync(path.join(work, 'loose.ts'))
+
+  // `when` sees committed files.
+  fs.mkdirSync(path.join(work, 'pkg'))
+  fs.writeFileSync(path.join(work, 'pkg', 'a.swift'), 'swift')
+  commitAll(work, 'pkg')
+  r = fire(copy, work)
+  assert.equal(r.status, 0, r.stderr)
+  assert.ok(cmds().some(c => c[0] === 'swift'), 'a `when` prefix matches a committed file')
+
+  // origin/HEAD wins over origin/main when it is set.
+  gitIn(work, 'update-ref', 'refs/remotes/origin/trunk', 'feature')
+  gitIn(work, 'symbolic-ref', 'refs/remotes/origin/HEAD', 'refs/remotes/origin/trunk')
+  r = fire(copy, work)
+  assert.equal(r.status, 0, r.stderr)
+  assert.deepEqual(cmds(), [], 'the base is origin/HEAD (here at HEAD), so nothing is changed')
+  gitIn(work, 'symbolic-ref', '--delete', 'refs/remotes/origin/HEAD')
+  gitIn(work, 'update-ref', '-d', 'refs/remotes/origin/main')
+  gitIn(work, 'update-ref', '-d', 'refs/remotes/origin/trunk')
+  gitIn(work, 'update-ref', 'refs/remotes/origin/master', 'main')
+  r = fire(copy, work)
+  assert.equal(r.status, 0, r.stderr)
+  assert.ok(cmds()[0].includes('./added.ts'), 'origin/master is the last fallback')
+
+  // No origin ref at all: uncommitted and untracked only, silently.
+  gitIn(work, 'update-ref', '-d', 'refs/remotes/origin/master')
+  r = fire(copy, work)
+  assert.equal(r.status, 0, r.stderr)
+  assert.equal(r.stderr, '', 'no origin ref falls back silently')
+  assert.deepEqual(cmds(), [], 'without a base, a clean tree runs nothing')
+  fs.writeFileSync(path.join(work, 'loose.ts'), 'untracked')
+  r = fire(copy, work)
+  assert.equal(r.status, 0, r.stderr)
+  assert.equal(r.stderr, '')
+  assert.deepEqual(cmds()[0], ['pnpm', 'all', './loose.ts'], 'without a base, uncommitted and untracked still run')
+  fs.rmSync(path.join(work, 'loose.ts'))
+
+  // Over the cap: only the HEAD commit plus uncommitted and untracked, with one note that never blocks.
+  const big = repoAt('big', 'https://github.com/zmcray/work.git')
+  gitIn(big, 'update-ref', 'refs/remotes/origin/main', 'HEAD')
+  gitIn(big, 'checkout', '-q', '-b', 'large')
+  fs.mkdirSync(path.join(big, 'many'))
+  for (let i = 0; i < 151; i++) fs.writeFileSync(path.join(big, 'many', `f${i}.ts`), String(i))
+  commitAll(big, 'many files')
+  fs.writeFileSync(path.join(big, 'last.ts'), 'last')
+  commitAll(big, 'last commit')
+  fs.writeFileSync(path.join(big, 'loose.ts'), 'untracked')
+  r = fire(copy, big)
+  assert.equal(r.status, 0, `the over-cap note alone never blocks: ${r.stderr}`)
+  assert.deepEqual(cmds()[0].slice(2).sort(), ['./last.ts', './loose.ts'], 'over the cap: the HEAD commit plus uncommitted and untracked')
+  assert.equal(r.stderr.trim().split('\n').length, 1, 'one note line')
+  assert.match(r.stderr, /large.*only the latest commit/i)
+  r = fire(copy, big, { fail: 'pnpm' })
+  assert.equal(r.status, 2, 'a real failure still blocks on a large branch')
+  // At exactly the cap, every branch file is passed.
+  fs.rmSync(path.join(big, 'loose.ts'))
+  gitIn(big, 'reset', '-q', '--hard', 'origin/main')
+  for (let i = 0; i < 150; i++) fs.writeFileSync(path.join(big, `g${i}.ts`), String(i))
+  commitAll(big, '150 files')
+  r = fire(copy, big)
+  assert.equal(r.status, 0, r.stderr)
+  assert.equal(r.stderr, '', 'at the cap: no note')
+  assert.equal(cmds()[0].length - 2, 150)
+}
+
+// A timeout earns one real retry; never more than two blocked stops in a row.
+function timeoutCases({ copy, setTable, fire, cmds, repoAt }) {
+  setTable({ slow: [{ run: ['pnpm', 'quick'] }, { run: ['swift', 'test'], cwd: 'pkg' }] }, 2)
+  const slow = repoAt('slow', 'https://github.com/zmcray/slow.git')
+  fs.mkdirSync(path.join(slow, 'pkg'))
+  fs.writeFileSync(path.join(slow, 'pkg', 'a.swift'), 'a')
+  const gitDir = dir => fs.realpathSync(path.resolve(dir, gitIn(dir, 'rev-parse', '--git-dir')))
+  const marker = path.join(gitDir(slow), 'stop-fast-check.timeout')
+
+  // Timeout → block with the cold-build message and a marker naming the check.
+  let r = fire(copy, slow, { sleep: 'swift' })
+  assert.equal(r.status, 2, r.stderr)
+  assert.match(r.stderr, /timed out/i)
+  assert.match(r.stderr, /cold build/i)
+  assert.match(r.stderr, /cached/i)
+  assert.match(r.stderr, /next stop/i)
+  assert.ok(fs.existsSync(marker), 'a timeout leaves a marker in the git dir')
+  assert.match(fs.readFileSync(marker, 'utf8'), /swift test/, 'the marker names the check')
+
+  // The bound: timeout → (active, marker) real failure blocks → active again exits 0.
+  r = fire(copy, slow, { active: true, fail: 'swift' })
+  assert.equal(r.status, 2, `with a marker, a real failure blocks even under stop_hook_active: ${r.stderr}`)
+  assert.deepEqual(cmds().map(c => c[0]), ['pnpm', 'swift'], 'the retry runs the checks for real')
+  assert.doesNotMatch(r.stderr, /timed out/i)
+  assert.ok(!fs.existsSync(marker), 'the marker is deleted first')
+  r = fire(copy, slow, { active: true, fail: 'swift' })
+  assert.equal(r.status, 0, 'a third stop in a row is never blocked')
+  assert.match(r.stderr, /swift test/, 'it still reports')
+  assert.ok(!fs.existsSync(marker))
+
+  // Timeout → retry passes: exit 0.
+  r = fire(copy, slow, { sleep: 'swift' })
+  assert.equal(r.status, 2)
+  assert.ok(fs.existsSync(marker))
+  r = fire(copy, slow, { active: true })
+  assert.equal(r.status, 0, r.stderr)
+  assert.deepEqual(cmds().map(c => c[0]), ['pnpm', 'swift'])
+  assert.ok(!fs.existsSync(marker))
+
+  // Timeout → retry times out again: exit 0 with a note, no marker left behind.
+  r = fire(copy, slow, { sleep: 'swift' })
+  assert.equal(r.status, 2)
+  r = fire(copy, slow, { active: true, sleep: 'swift' })
+  assert.equal(r.status, 0, 'never block twice in a row on timeouts')
+  assert.match(r.stderr, /could not finish in two tries/i)
+  assert.ok(!fs.existsSync(marker), 'a second timeout leaves no marker')
+
+  // No marker and stop_hook_active: a timeout exits 0 as today, and writes no marker.
+  r = fire(copy, slow, { active: true, sleep: 'swift' })
+  assert.equal(r.status, 0, r.stderr)
+  assert.match(r.stderr, /deadline/)
+  assert.ok(!fs.existsSync(marker), 'only a blocking timeout writes a marker')
+
+  // A plain failure is not a timeout: no marker, today's message.
+  r = fire(copy, slow, { fail: 'swift' })
+  assert.equal(r.status, 2)
+  assert.doesNotMatch(r.stderr, /timed out|cold build/i)
+  assert.ok(!fs.existsSync(marker), 'a failed check writes no marker')
+
+  // The marker is per worktree: one worktree's timeout does not give another a retry.
+  const tree = path.join(root, 'slow-tree')
+  gitIn(slow, 'worktree', 'add', '-q', '-b', 'other', tree)
+  fs.mkdirSync(path.join(tree, 'pkg'))
+  fs.writeFileSync(path.join(tree, 'pkg', 'b.swift'), 'b')
+  const treeMarker = path.join(gitDir(tree), 'stop-fast-check.timeout')
+  assert.notEqual(treeMarker, marker)
+  r = fire(copy, slow, { sleep: 'swift' })
+  assert.equal(r.status, 2)
+  assert.ok(fs.existsSync(marker) && !fs.existsSync(treeMarker), 'the marker lands in the timed-out worktree only')
+  r = fire(copy, tree, { active: true, fail: 'swift' })
+  assert.equal(r.status, 0, 'another worktree under stop_hook_active is not retried')
+  assert.ok(fs.existsSync(marker), 'and it leaves the first worktree marker alone')
+  r = fire(copy, slow, { active: true })
+  assert.equal(r.status, 0, r.stderr)
+  assert.ok(!fs.existsSync(marker))
+
+  // A git dir the hook cannot write: block as today, with no marker and no retry promise.
+  const treeGit = gitDir(tree)
+  fs.chmodSync(treeGit, 0o555)
+  try {
+    r = fire(copy, tree, { sleep: 'swift' })
+    assert.equal(r.status, 2, r.stderr)
+    assert.match(r.stderr, /deadline/)
+    assert.doesNotMatch(r.stderr, /next stop/i, 'no retry is promised without a marker')
+    assert.ok(!fs.existsSync(treeMarker))
+    r = fire(copy, tree, { active: true, fail: 'swift' })
+    assert.equal(r.status, 0, 'without a marker, stop_hook_active exits 0 as today')
+  } finally { fs.chmodSync(treeGit, 0o755) }
 }
 
 try {
