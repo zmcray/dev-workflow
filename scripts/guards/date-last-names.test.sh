@@ -57,5 +57,27 @@ assert.equal(hook({ tool_name: 'Write', tool_input: { file_path: 'docs/2026-10-1
 assert.equal(hook({ tool_name: 'Write', tool_input: { file_path: 'docs/2026-01-01-legacy.md' } }).status, 0, 'the hook allows overwriting an existing file')
 assert.equal(hook({ tool_name: 'Write', tool_input: { file_path: 'docs/new-2026-10-17.md' } }).status, 0, 'the hook allows a date-last file')
 assert.equal(hook({ tool_name: 'Edit', tool_input: { file_path: 'docs/2026-10-17-new.md' } }).status, 0, 'the hook ignores other tools')
+// XcodeGen repos: the .pbxproj is generated from project.yml, so hand edits are lost on the next generate.
+const ios = fs.mkdtempSync(path.join(os.tmpdir(), 'xcodegen-'))
+spawnSync('git', ['init', '-q'], { cwd: ios })
+fs.mkdirSync(path.join(ios, 'App.xcodeproj'))
+fs.writeFileSync(path.join(ios, 'App.xcodeproj', 'project.pbxproj'), '// generated\n')
+const pbx = path.join(ios, 'App.xcodeproj', 'project.pbxproj')
+for (const tool of ['Write', 'Edit', 'MultiEdit']) {
+  assert.equal(hook({ cwd: ios, tool_name: tool, tool_input: { file_path: pbx } }).status, 0, `${tool}: no project.yml, hand edits are allowed`)
+}
+fs.writeFileSync(path.join(ios, 'project.yml'), 'name: App\n')
+for (const tool of ['Write', 'Edit', 'MultiEdit']) {
+  const r = hook({ cwd: ios, tool_name: tool, tool_input: { file_path: pbx } })
+  assert.equal(r.status, 2, `${tool} to a generated .pbxproj is blocked`)
+  assert.match(r.stderr, /project\.yml/, 'the message names project.yml')
+  assert.match(r.stderr, /xcodegen/i, 'the message says to regenerate')
+}
+assert.equal(hook({ cwd: root, tool_name: 'Edit', tool_input: { file_path: pbx } }).status, 2, 'the repo is found from the file, not the session folder')
+assert.equal(hook({ cwd: ios, tool_name: 'Edit', tool_input: { file_path: 'App.xcodeproj/project.pbxproj' } }).status, 2, 'a relative path resolves against the session folder')
+assert.equal(hook({ cwd: ios, tool_name: 'Edit', tool_input: { file_path: path.join(ios, 'project.yml') } }).status, 0, 'editing project.yml is the fix, so it passes')
+assert.equal(hook({ cwd: ios, tool_name: 'Read', tool_input: { file_path: pbx } }).status, 0, 'reading is fine')
+assert.equal(hook({ cwd: ios, tool_name: 'Write', tool_input: { file_path: path.join(ios, '2026-11-18-plan.md') } }).status, 2, 'the date-first rule still holds in the same repo')
+fs.rmSync(ios, { recursive: true, force: true })
 console.log('date-last-names: all checks passed')
 NODE

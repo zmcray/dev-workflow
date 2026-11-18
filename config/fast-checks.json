@@ -1,0 +1,42 @@
+{
+  "budget_seconds": 90,
+  "repos": {
+    "telos": [
+      {"run": ["node", "{dev_workflow}/scripts/guards/date-last-names.mjs", "--paths"], "files": "new"},
+      {"run": ["pnpm", "typecheck"]},
+      {"run": ["pnpm", "exec", "vitest", "related", "--run", "--passWithNoTests"], "files": true}
+    ],
+    "quoting": [
+      {"run": ["node", "{dev_workflow}/scripts/guards/date-last-names.mjs", "--paths"], "files": "new"},
+      {"run": ["pnpm", "typecheck"]},
+      {"run": ["pnpm", "exec", "vitest", "related", "--run", "--passWithNoTests"], "files": true}
+    ],
+    "trim": [
+      {"run": ["node", "{dev_workflow}/scripts/guards/date-last-names.mjs", "--paths"], "files": "new"},
+      {"run": ["pnpm", "typecheck"]},
+      {"run": ["pnpm", "exec", "vitest", "related", "--run", "--passWithNoTests"], "files": true}
+    ],
+    "sonar": [
+      {"run": ["node", "{dev_workflow}/scripts/guards/date-last-names.mjs", "--paths"], "files": "new"},
+      {"run": ["npm", "run", "typecheck"]},
+      {"run": ["npx", "vitest", "related", "--run", "--passWithNoTests"], "files": true}
+    ],
+    "Pulse": [
+      {"run": ["node", "{dev_workflow}/scripts/guards/date-last-names.mjs", "--paths"], "files": "new"},
+      {"run": ["npx", "vitest", "related", "--run", "--passWithNoTests"], "files": true},
+      {"run": ["swift", "test"], "cwd": "ios/PulseKit", "when": ["ios/PulseKit/"]}
+    ],
+    "argus": [
+      {"run": ["node", "{dev_workflow}/scripts/guards/date-last-names.mjs", "--paths"], "files": "new"},
+      {"run": ["npx", "vitest", "related", "--run", "--passWithNoTests", "--dir", "routines"], "files": true}
+    ],
+    "motus": [
+      {"run": ["node", "{dev_workflow}/scripts/guards/date-last-names.mjs", "--paths"], "files": "new"},
+      {"run": ["swift", "test"], "cwd": "MotusKit", "when": ["MotusKit/"]}
+    ],
+    "saidso": [
+      {"run": ["node", "{dev_workflow}/scripts/guards/date-last-names.mjs", "--paths"], "files": "new"},
+      {"run": ["node", "{dev_workflow}/scripts/guards/swift-swallowed-errors.mjs", "--worktree"]}
+    ]
+  }
+}
