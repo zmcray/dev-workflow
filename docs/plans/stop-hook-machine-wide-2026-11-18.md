@@ -25,7 +25,7 @@ Task: One Stop hook per Mac that reads each repo's fast check from one table, fa
 
 ## Table design
 
-- Match: last path segment of `git remote get-url origin`, case-insensitive (worktrees and forks match).
+- Match: the owner and the last path segment of `git remote get-url origin`, case-insensitive. The owner must equal the table's `owner`, so worktrees match and someone else's clone of a same-named repo does not.
 - Shape: `budget_seconds` (90) and per repo a list of `{ run, cwd?, when?, files? }`.
 - `files: true` appends changed files under `cwd` as `./path`; `"new"` appends only new files (for the date-last guard).
 - `{dev_workflow}` in `run` is this checkout; `node` is the Node running the hook.
