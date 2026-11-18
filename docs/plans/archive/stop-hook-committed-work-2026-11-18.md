@@ -45,3 +45,14 @@ Task: The Stop hook checks committed work and gives a timed-out check one real r
 - `hooks/stop-fast-check.test.sh`: committed-only change, default branch clean, no origin ref, over-cap, `when` on committed files, all four timeout outcomes, the timeout → failure → `stop_hook_active` → exit 0 bound, marker per worktree, read-only git dir.
 - `scripts/install-claude-hooks.test.sh`: new entry has `timeout`, an existing entry without it gets it.
 - `scripts/hooks-audit.sh`: adds committed red per repo and a cold motus case; run once for real.
+
+## Outcome
+
+- Shipped 2026-11-18 in pull request 64, after one review pass.
+- The review added two things the plan did not have:
+  - The retry marker is tied to the session that timed out, so two sessions in one checkout cannot hand each other retries.
+  - A stop with nothing changed since the last pass runs nothing.
+- Both hooks were installed on the MacBook Air the same day. The audit then passed for all 8 code repos: uncommitted red blocked, committed red blocked, green passed.
+- quoting, sonar and argus needed their packages installed before the audit could run there.
+- Not proven by the real audit: the timeout-then-retry path. The cold motus build finished inside the 90 second budget each time (73, 85 and 81 seconds), so only the unit tests cover it.
+- Not done: the iMac has neither the install nor the audit.
