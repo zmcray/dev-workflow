@@ -220,6 +220,7 @@ Canvases drawn: <group> → <url>: built on it MCR-… | draft waiting for Zack 
 Failed: MCR-… — <one line>
 Reverted: MCR-… (PR → revert PR, Bug MCR-…: <failing tests>) (omit the line at zero)
 Needs spec first: MCR-… → <the missing contract or prerequisite, one line> (a gap /packets or a planning session fills by day, not an ask; omit the line at zero)
+Deferred decisions: MCR-… → <decision>: <wait | leave as is>, because <one line> (noted on the issue, not an ask; omit the line at zero)
 Sweep: <r> reset to Todo (MCR-…), <c> closed as merged (MCR-…), <s> stale started (MCR-…), <m> merged but open (MCR-…), <a> asks resolved in other projects (<project>: MCR-… <key>) (omit the line when all five are zero)
 Weekly review: <n> items on MCR-… (filed | refreshed) (omit the line when nothing changed tonight)
 Baseline: red at start on <tests>, fixed in <PR> (Bug MCR-…) (or: infra re-run turned it green; or: repair failed, see Bug MCR-…; omit the line when it started green)
@@ -292,11 +293,11 @@ Everything a run needs from Zack is also stored as an **ask**: a row in `os.fact
 - `follow_up`: anything else the night needs Zack to decide or do.
 - `check`: **retired (MCR-2748).** The schema keeps it for old rows; the helper refuses to file one. Step 1b resolves any that are still open.
 
-**Is it an ask?** Only when work cannot keep moving without Zack.
-- **Yes:** a vendor key or secret, an App Store or dashboard step, a prod migration to apply that no standing approval covers, a scope or naming decision, a red baseline the night could not fix, a blocked dependency, a chunk parked on a gate.
-- **No, the agent looks first:** "the card shows this week's minutes", "layout matches the canvas", "not screenshotted". The **Morning check** opens the screen and compares it. A plain defect becomes a Bug. Only a taste difference or what it cannot open reaches Zack, all in one `other-morning-check` follow-up per run. "Verify X works" with nothing to look at is not an ask at all.
-- **No, the agent does it first:** work an agent can do is never the ask. Sampling and tallying records, reading the repo or Linear to find which source or contract is authoritative, comparing options against the PRD: the factory does that work, posts the result on the issue, and only then asks for the decision that is left, as a `decide-scope` with its recommended answer first (`Recommended: <option>, because <one line>`). When nothing is left to decide, it is not an ask at all.
-- **No, it is a spec gap:** a prerequisite nobody has packeted, or a contract the plan never settled ("settle and packet X before Y"). That goes on the status update's `Needs spec first:` line and the issue stays out of the queue. It is not an ask: /packets or a planning session fills it by day.
+**Is it an ask?** Only when work cannot keep moving without one of four things: **Zack's hands** on a physical device, **a secret or sign-in in his name**, **his money**, or **a product judgment only he can make**. Everything else is agent work.
+- **Yes:** a vendor key or secret, an App Store or dashboard step, a prod migration no standing approval covers, a scope or naming decision, a red baseline the night could not fix, a blocked dependency, a chunk parked on a gate.
+- **No, the agent looks first:** "layout matches the canvas", "not screenshotted". The **Morning check** opens the screen: a plain defect becomes a Bug, and only a taste difference or what it cannot open reaches Zack, in one `other-morning-check` follow-up.
+- **No, the agent does it first:** sampling records, finding the authoritative source or contract in the repo or Linear, comparing options against the PRD. The factory does it, posts the result on the issue, then asks only for the decision left, as a `decide-scope` with its recommended answer first (`Recommended: <option>, because <one line>`). Nothing left to decide, or a recommended "wait" or "leave as is" with nothing blocked behind it: no ask. Note a deferred one on the issue and on the status update's `Deferred decisions:` line.
+- **No, it is a spec gap:** a prerequisite nobody has packeted, or a contract the plan never settled. It goes on the status update's `Needs spec first:` line and stays out of the queue: /packets or a planning session fills it by day.
 - **No, keep it:** disposable infrastructure the factory itself made (a verification stack, a test project, a preview environment) is kept by default. List it in the ledger notes. Deleting it is never an ask; Zack deletes it when he wants to.
 
 **Every ask hangs on one Linear issue.** A human step hangs on its own issue; a follow-up on the issue it is about. A follow-up with no issue (a red baseline, a broken shared dependency) hangs on a Bug filed for the break in `Platform: hardening`, or on the open one already there for the same break.
