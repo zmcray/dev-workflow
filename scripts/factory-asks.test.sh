@@ -124,6 +124,27 @@ if [[ "$ask_lines" -le 6 && "$ask_words" -le 300 ]]; then ok "Is it an ask? is n
 template=$(section "Factory <date> (<lane>, run:<run_id>): <d> done" "## Morning review")
 has "the status update template carries Deferred decisions" "$template" '^Deferred decisions: '
 
+# ── doc guards: an old ask keeps its own row; the weekly review holds only sweep rows ──
+
+rules=$(cat "$RULES")
+r5=$(section "**What closes an ask (R5).**" "**Weekly review.**")
+wr=$(section "**Weekly review.**" "**Stale asks.**")
+item4=$(printf '%s\n' "$step1b" | grep -E '^4\. ')
+lacks "R5 no longer resolves an ask for its age" "$r5" '[Aa]ged'
+has "R5 resolves a weekly review whose items are all closed or have their own ask" "$r5" 'an \`other-weekly-review\` follow-up whose every listed item is Done, Canceled or has its own open ask'
+has "Step 1b item 4 is still the human-step pass" "$item4" 'Upsert human steps'
+lacks "Step 1b item 4 no longer skips an old ask" "$item4" '7 days'
+lacks "Step 1b item 4 no longer skips an issue in a weekly review" "$item4" '[Ww]eekly review'
+lacks "an issue in the open weekly review can get an ask again" "$rules" 'In the open weekly review'
+lacks "no rule folds an aged ask anywhere" "$rules" '[Aa]ged ask|aged_resolved|as aged'
+has "the weekly review takes only sweep rows" "$wr" '^- \*\*What goes in\.\*\* Only sweep rows: every stale-started or merged-but-open row whose issue has not been updated in 7 days\.'
+lacks "the weekly review no longer takes asks by age" "$wr" 'first seen more than 7 days ago'
+has "an ask stays its own row however old" "$wr" 'An ask stays its own row however old it is'
+has "a week with no sweep rows files no weekly review" "$wr" 'No sweep rows: file none'
+d031=$(printf '%s\n' "$decisions" | awk '/^## D-031:/ { on = 1 } /^## D-032:/ { on = 0 } on')
+has "D-031's aged-ask clause is struck through with a pointer" "$d031" '~~[^~]*Asks older than 7 days[^~]*~~[^.]*D-037'
+has "the decision log records that an ask keeps its own row" "$decisions" '^## D-037: .*own row'
+
 if [[ "$FAILS" -gt 0 ]]; then
   printf '\n%s failed\n' "$FAILS"
   exit 1
