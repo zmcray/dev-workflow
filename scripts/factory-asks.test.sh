@@ -106,6 +106,24 @@ d033=$(printf '%s\n' "$decisions" | awk '/^## D-033:/ { on = 1 } /^## D-034:/ { 
 has "D-033's old clause is struck through with a pointer" "$d033" '~~[^~]*never reopens an issue or files a Bug itself[^~]*~~[^.]*D-036'
 has "the decision log records the Bug-filing check" "$decisions" '^## D-036: .*Bug'
 
+# ── doc guards: the four-way test, and "wait" is not an ask ──
+
+ask=$(section "**Is it an ask?**" "**Every ask hangs")
+has "the test names Zack's hands on a physical device" "$ask" "Zack's hands\*\* on a physical device"
+has "the test names a secret or sign-in in his name" "$ask" 'a secret or sign-in in his name'
+has "the test names his money" "$ask" 'his money'
+has "the test names a product judgment only he can make" "$ask" 'a product judgment only he can make'
+has "a wait or leave-as-is decision with nothing blocked is not an ask" "$ask" '"wait" or "leave as is" with nothing blocked behind it: no ask'
+has "a deferred decision is noted on the issue and the status update" "$ask" 'on the issue and on the status update.s \`Deferred decisions:\` line'
+has "decisions still carry the recommended answer first" "$ask" 'Recommended: <option>, because <one line>'
+has "disposable infrastructure is still kept by default" "$ask" 'is kept by default'
+# The section on main before this rule landed: 6 lines, 300 words. It may shrink, never grow.
+ask_lines=$(printf '%s\n' "$ask" | grep -c .)
+ask_words=$(printf '%s\n' "$ask" | wc -w | tr -d ' ')
+if [[ "$ask_lines" -le 6 && "$ask_words" -le 300 ]]; then ok "Is it an ask? is no longer than before"; else fail "Is it an ask? grew ($ask_lines lines, $ask_words words; limit 6 and 300)"; fi
+template=$(section "Factory <date> (<lane>, run:<run_id>): <d> done" "## Morning review")
+has "the status update template carries Deferred decisions" "$template" '^Deferred decisions: '
+
 if [[ "$FAILS" -gt 0 ]]; then
   printf '\n%s failed\n' "$FAILS"
   exit 1
