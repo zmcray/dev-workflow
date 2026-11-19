@@ -32,7 +32,7 @@ Standing contract: **never ask the user anything.** Every would-be question is a
 
    Two more keys in the same object are not part of the budget:
    - `"migration_approval": "class"` opts the repo into class approval for prod migrations: additive migrations only, decided by `node ~/Developer/dev-workflow/scripts/migration-class.mjs` on the SQL, never by the chunk's label (`~/Developer/dev-workflow/rules/build.md` > Standing approval). Absent, only plan approvals count.
-   - `"check": { "url": "https://…", "start": "pnpm dev", "local_url": "http://localhost:3000", "sign_in": "none | test-user" }` tells the **Morning check** where to look. Every field is optional; the section says what happens without them.
+   - `"check": { "url": "https://…", "start": "pnpm dev", "local_url": "http://localhost:3000", "sign_in": "none | test-user", "widths": [1280, 390] }` tells the **Morning check** where to look, and at which widths. Every field is optional; the section says what happens without them.
 
 3. **Deadline math.** Two clocks, and whichever trips first ends the shift. There is no chunk cap: the night builds as many chunks as the clocks allow.
    - **Stop time.** `stop_at` is local time, tomorrow if it is already past. `last_dispatch = stop_at - 45 min`. No chunk starts after `last_dispatch`.
@@ -98,7 +98,7 @@ Write `docs/factory/runs/run-YYYY-MM-DD.json` in the repo (create the directory;
   "asks_pending": [],
   "checklist": [],
   "stale_asks": [{ "ask_id": "<uuid from factory-asks open>", "issue": "MCR-1705", "key": "unblock-dependency", "why": "one line" }],
-  "not_eyeballed": [{ "issue": "MCR-1710", "criterion": "Week card matches the canvas at phone width", "pr": "https://github.com/...", "check": { "status": "checked-by-agent | flagged | cannot-check", "run_id": "2026-09-23-claude-2340", "at": "...", "url": "<page checked>", "screenshots": "<Linear comment URL>", "note": "one line" } }],
+  "not_eyeballed": [{ "issue": "MCR-1710", "criterion": "Week card matches the canvas at phone width", "pr": "https://github.com/...", "check": { "status": "checked-by-agent | flagged | cannot-check", "run_id": "2026-09-23-claude-2340", "at": "...", "url": "<page checked>", "screenshots": "<Linear comment URL>", "note": "one line", "bug": "MCR-1731" } }],
   "sweep": { "reset": ["MCR-1720"], "closed": [{ "issue": "MCR-1698", "pr": "https://github.com/..." }], "stale_started": ["MCR-1702"], "merged_open": [{ "issue": "MCR-1699", "pr": "https://github.com/..." }] },
   "weekly_review": { "week": "2026-W42", "action": "inserted | refreshed | none", "issues": ["MCR-1702", "MCR-1714"], "aged_resolved": ["<ask uuid>"] },
   "reverts": 0,
@@ -199,7 +199,7 @@ Every red-main hard stop also files the `restore-baseline` follow-up in Step 5. 
 2. **Sort the merged issues' acceptance criteria. None of them becomes a check: the morning list holds only what Zack must do for work to keep moving (MCR-2748).** Go through every merged issue's acceptance criteria. Each one lands in exactly one place:
    - **Asserted by a merged test:** dropped. CI verified it.
    - **How a screen looks or behaves, not asserted by a test** (UI, layout, "not screenshotted"): recorded in the ledger as `"not_eyeballed": [{ "issue", "criterion", "pr" }]`, then looked at by the agent in the **Morning check** (item 2a). Never a check ask.
-2a. **Morning check.** Run the **Morning check** (its section below) on tonight's `not_eyeballed` rows. It marks each row `checked-by-agent`, `flagged` or `cannot-check`, and files at most one `other-morning-check` follow-up for the last two kinds (item 3 sends it with the other follow-ups).
+2a. **Morning check.** Run the **Morning check** (its section below) on tonight's `not_eyeballed` rows. It marks each row `checked-by-agent`, `flagged` or `cannot-check`, files a Bug for each plain defect it flagged, and files at most one `other-morning-check` follow-up for the taste and cannot-check rows (item 3 sends it with the other follow-ups).
    - **A live-schema or prod read the builder could not run, or anything else noted "not run":** redo it now. If only Zack can do it, file an `other-<slug>` follow-up in item 3.
    - **A product question hiding in a criterion** (which behavior, which wording, which scope): a `decide-scope` follow-up in item 3 with the real question.
    Merged issues close to Done on merge (GitHub integration); a kick back reopens the issue. Per-issue merge comments keep the PR summary and judgment calls and end with one line: `Morning review: see the Factory <date> status update.`
@@ -214,7 +214,7 @@ Factory <date> (<lane>, run:<run_id>): <d> done, <f> failed, <r> reverted, <p> p
 Asks: <w> filed, <r> resolved, <o> open. (or) Asks not synced: <asks.warning>. The Morning review below is the record for this run.
 Merged: MCR-… (PR), MCR-… (PR)
 Checked by agent: <n> look right (MCR-…, MCR-…) (omit the line at zero)
-Not eyeballed: MCR-… (looks wrong: <one line>), MCR-… (cannot check: <reason>) (only the flagged and cannot-check rows; omit the line at zero)
+Not eyeballed: MCR-… (looks wrong: <one line>, Bug MCR-…), MCR-… (cannot check: <reason>) (only the flagged and cannot-check rows; a Bug when one was filed; omit the line at zero)
 Human batch: MCR-… — <one-line ask> (procedure: `Run: bash scripts/wizards/<file>.sh`)
 Canvases drawn: <group> → <url>: built on it MCR-… | draft waiting for Zack MCR-… | failed: <reason> (from the ledger's `canvases`; everything built on an agent canvas is named here; omit the line at zero)
 Failed: MCR-… — <one line>
@@ -256,9 +256,9 @@ A refusal or a failed check at any point ends the batch. That is a normal ending
 
 ## Morning check
 
-Merged UI work that no test asserts used to wait for Zack's eye (14 items on 2026-11-06). The agent looks first. It runs in Step 5 item 2a on tonight's rows, and alone with `/factory --check`, the short morning pass. Approved by Zack on 2026-11-06 (D-033).
+Merged UI work that no test asserts used to wait for Zack's eye (14 items on 2026-11-06). The agent looks first. It runs in Step 5 item 2a on tonight's rows, and alone with `/factory --check`, the short morning pass. Approved by Zack on 2026-11-06 (D-033); it files Bugs since 2026-11-19 (D-036).
 
-**`--check` mode.** Run Step 1 items 0, 1 and 4 (preflight, project, asks check), then this section over every `not_eyeballed` row with no `check` in the ledgers of the last 7 days (all lanes and file names), then stop: write each result back into the ledger it came from, file the one ask, and open the `docs:` PR with the changed ledgers (Step 5 item 5's rules: no issue ID anywhere). No queue, no build, no status update. Close with one line: `Morning check: <c> look right, <f> flagged, <x> cannot check. Ask: <filed | none>.`
+**`--check` mode.** Run Step 1 items 0, 1 and 4 (preflight, project, asks check), then this section over every `not_eyeballed` row with no `check` in the ledgers of the last 7 days (all lanes and file names), then stop: write each result back into the ledger it came from, file the one ask, and open the `docs:` PR with the changed ledgers (Step 5 item 5's rules: no issue ID anywhere). No queue, no build, no status update. Close with one line: `Morning check: <c> look right, <f> flagged (Bugs: MCR-…; not filed: MCR-…), <x> cannot check. Ask: <filed | none>.`
 
 **Budget.** At most 15 rows and 30 minutes a pass, oldest merge first; it may run past `stop_at`. Rows left over keep no `check` and wait for the next pass. One row is one issue and criterion; several criteria on one screen share one visit.
 
@@ -271,13 +271,17 @@ Merged UI work that no test asserts used to wait for Zack's eye (14 items on 202
    A URL that answers with a sign-in the lane may not pass (step 4), such as a password-locked preview, is skipped: try the next one. `check.start` may be a mode that serves only test data with sign-in off on 127.0.0.1 (Pulse's `npm run dev:check`); that counts as the repo's own test setup, not a bypass. None of these: `cannot-check`, note `no URL`. Every URL behind a sign-in: `cannot-check`, note `needs sign-in`. A native iOS or macOS screen: `cannot-check`, note `native app: no browser check`.
 3. **Which screen.** Find the route from the criterion and the PR diff (the pages, routes or components it touched). Not findable from the repo: `cannot-check`, note `screen not found`.
 4. **Sign-in.** Never use a real account or a real password. When the page asks for sign-in, go on only with the repo's own test account (`check.sign_in: "test-user"`, values from its seed, fixture or example-config files) on a local or preview host. Otherwise `cannot-check`, note `needs sign-in`.
-5. **Capture.** Screenshots at desktop 1280x800 and phone 390x844, plus each state the criterion names that a click or two reaches (empty, error, open menu). At most 6 per row. Read the console for errors on that page.
-6. **Compare.** Against the canvas when the issue has a `Canvas:` or `Artboard:` link the lane can read (Step 3c > Which lanes draw), and always against the criterion text. `checked-by-agent` only when every element the criterion or canvas names is there, in the right place, readable, with nothing cut off, overflowing or overlapping at either width, and no console error from that page. Any doubt is `flagged`, with one line on what looks wrong ("Approve button below the fold at phone width", "card shows 0 min, canvas shows the week's total").
-7. **Record.** Upload the screenshots to the Linear issue and post one comment: `Agent check (<run_id>): looks right | looks wrong: <one line> | cannot check: <reason>. Criterion: <text>. Page: <url>.` with the images attached. Write the row's `check` in the ledger: `status`, `run_id`, `at`, `url` (the page), `screenshots` (that comment's URL), `note`. When the upload fails, commit the PNGs under `docs/factory/checks/<run_id>/` with the docs PR and put that path in `screenshots`.
+5. **Capture.** Screenshots at each width in `check.widths` (800 high); with none set, desktop 1280x800 and phone 390x844. Never open or flag a screen at a width the key leaves out. Add each state the criterion names that a click or two reaches (empty, error, open menu). At most 6 per row. Read the console for errors on that page.
+6. **Compare.** Against the canvas when the issue has a `Canvas:` or `Artboard:` link the lane can read (Step 3c > Which lanes draw), and always against the criterion text. `checked-by-agent` only when every element the criterion or canvas names is there, in the right place, readable, with nothing cut off, overflowing or overlapping at any checked width, and no console error from that page. Any doubt is `flagged`, with one line on what looks wrong ("Approve button below the fold at phone width", "card shows 0 min, canvas shows the week's total").
+7. **Record.** Upload the screenshots to the Linear issue and post one comment: `Agent check (<run_id>): looks right | looks wrong: <one line> | cannot check: <reason>. Criterion: <text>. Page: <url>.` with the images attached. Write the row's `check` in the ledger: `status`, `run_id`, `at`, `url` (the page), `screenshots` (that comment's URL), `note`, and `bug` when one was filed. When the upload fails, commit the PNGs under `docs/factory/checks/<run_id>/` with the docs PR and put that path in `screenshots`.
 
-**The one ask.** Flagged and cannot-check rows go to Zack together: one `follow_up` per pass, key `other-morning-check`, hung on the first flagged row's issue (or the first cannot-check row's when nothing is flagged). Runbook: one step per row, flagged first, up to 7 (the 8th points at the status update): `MCR-… <criterion, short>: looks wrong: <note>` with an `open` action to its screenshots comment, or `MCR-… <criterion, short>: cannot check (<reason>)` with an `open` action to the page or the PR. `done_when`: `each item is looked at; a real problem is filed as a Bug or its issue reopened`. Nothing flagged and nothing uncheckable: no ask.
+**A flagged row is objective or taste.**
+- **Objective:** content cut off, hidden, overlapping or overflowing; a number in the wrong format; a console error from that page. Nothing else. Re-check it on the current default branch and search Linear for a duplicate; gone, or already filed: note it on the row and file nothing. Otherwise file one Bug per root cause (rows with one cause share it) under the issue creation contract (`~/Developer/dev-workflow/rules/linear.md`): the epic's `hardening` milestone, the screenshot, `Bug`, one `flow:*` label and a priority, and `spec-ready` only when the fix is obvious and every criterion names a test. The row stays out of the ask. After 5 Bugs in a pass, file no more: the rest are only listed on the `Not eyeballed:` line (`--check`: the closing line).
+- **Taste:** the build and the canvas differ and nothing is broken. It goes to Zack in the one ask.
 
-**The human path stays.** A flagged or cannot-check row also stays on the status update's `Not eyeballed:` line, and Zack handles it the way he always has: look, and file a Bug if it is wrong (`factory/MANUAL.md` > Stage 7). A `checked-by-agent` row goes on the `Checked by agent:` line only. The agent never reopens an issue or files a Bug from its own check: it flags, and Zack decides.
+**The one ask.** Taste and cannot-check rows go to Zack together: one `follow_up` per pass, key `other-morning-check`, hung on the first taste row's issue (or the first cannot-check row's when there is none). Runbook: one step per row, taste first, up to 7 (the 8th points at the status update): `MCR-… <criterion, short>: looks wrong: <note>` with an `open` action to its screenshots comment, or `MCR-… <criterion, short>: cannot check (<reason>)` with an `open` action to the page or the PR. `done_when`: `each item is looked at; a real problem is filed as a Bug or its issue reopened`. No taste row and nothing uncheckable: no ask.
+
+**On the status update.** A flagged or cannot-check row also goes on the `Not eyeballed:` line; a `checked-by-agent` row goes on the `Checked by agent:` line only. The agent never reopens an issue from its own check.
 
 ## Asks
 
@@ -290,7 +294,7 @@ Everything a run needs from Zack is also stored as an **ask**: a row in `os.fact
 
 **Is it an ask?** Only when work cannot keep moving without Zack.
 - **Yes:** a vendor key or secret, an App Store or dashboard step, a prod migration to apply that no standing approval covers, a scope or naming decision, a red baseline the night could not fix, a blocked dependency, a chunk parked on a gate.
-- **No, the agent looks first:** "the card shows this week's minutes", "layout matches the canvas", "not screenshotted". The **Morning check** opens the screen and compares it. Only what looks wrong or what it cannot open reaches Zack, all in one `other-morning-check` follow-up per run. "Verify X works" with nothing to look at is not an ask at all.
+- **No, the agent looks first:** "the card shows this week's minutes", "layout matches the canvas", "not screenshotted". The **Morning check** opens the screen and compares it. A plain defect becomes a Bug. Only a taste difference or what it cannot open reaches Zack, all in one `other-morning-check` follow-up per run. "Verify X works" with nothing to look at is not an ask at all.
 - **No, the agent does it first:** work an agent can do is never the ask. Sampling and tallying records, reading the repo or Linear to find which source or contract is authoritative, comparing options against the PRD: the factory does that work, posts the result on the issue, and only then asks for the decision that is left, as a `decide-scope` with its recommended answer first (`Recommended: <option>, because <one line>`). When nothing is left to decide, it is not an ask at all.
 - **No, it is a spec gap:** a prerequisite nobody has packeted, or a contract the plan never settled ("settle and packet X before Y"). That goes on the status update's `Needs spec first:` line and the issue stays out of the queue. It is not an ask: /packets or a planning session fills it by day.
 - **No, keep it:** disposable infrastructure the factory itself made (a verification stack, a test project, a preview environment) is kept by default. List it in the ledger notes. Deleting it is never an ask; Zack deletes it when he wants to.
@@ -371,7 +375,7 @@ Report back on <MCR-123>: what you did and anything that surprised you.
 
 **Not an ask.** An item with nothing for Zack to do stays in the status update's prose:
 - a report of what shipped;
-- visual evidence the Morning check confirmed: the `Checked by agent:` line, never a follow-up (only its flagged and cannot-check rows go into the one `other-morning-check` follow-up);
+- visual evidence the Morning check confirmed: the `Checked by agent:` line, never a follow-up (only its taste and cannot-check rows go into the one `other-morning-check` follow-up);
 - a skipped live read: the factory redoes it, or files a follow-up for the part only Zack can do;
 - a question hidden in a criterion: that becomes a `follow_up` with key `decide-scope` and the real question.
 
