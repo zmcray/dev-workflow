@@ -328,7 +328,7 @@ find_projects() {
   [[ -d "$dir" ]] || die 1 "refused: no folder $dir"
   for f in "$dir"/*/.linear-project.json "$dir"/*/*/*/.linear-project.json; do
     [[ -e "$f" ]] || continue
-    id=$("$JQ" -r '.id // empty | strings' "$f" 2>/dev/null) || id=""
+    id=$("$JQ" -r '.id // empty | strings | ascii_downcase' "$f" 2>/dev/null) || id=""
     if ! is_uuid "$id"; then
       printf 'factory-asks: skipped %s: unreadable, or no project id\n' "$f" >&2
       continue
