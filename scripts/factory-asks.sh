@@ -7,10 +7,11 @@
 #
 #   factory-asks check                                      is the writer token present and current?
 #   factory-asks open <project_id>                          open asks for one Linear project
+#   factory-asks open-all [scan_dir]                        open asks for every linked project
 #   factory-asks upsert <ask.json | ->                      file or refresh one ask
 #   factory-asks resolve <ask_id> <project_id> <run_id> <note>
 #   factory-asks record-sync <project_id> <run_id> <asks_written>
-#   factory-asks dry-run <open|upsert|resolve|record-sync> ...
+#   factory-asks dry-run <open|open-all|upsert|resolve|record-sync> ...
 #                                                           validate and print the request; send nothing
 #
 # An upsert file is one JSON object. Fields (the RPC's arguments without the p_ prefix):
@@ -25,6 +26,12 @@
 # wizard scripts/wizards/MCR-2123-factory-writer-token.sh). It reaches curl on stdin (-K -),
 # so it is never in a command line, in ps, or in any output. Output is the HTTP status and
 # the returned status fields; `open` also prints one JSON row per ask.
+#
+# open-all reads the project id from every .linear-project.json one or three folders under
+# scan_dir (default ~/Developer: <repo>/ and <repo>/apps/<app>/), sends one `open` per project,
+# and adds project_id and link_file to each row. It only lists: the caller reads each issue's
+# state and resolves. A link file it cannot read, or with no project id, is skipped with one
+# line on stderr. Its exit code is the worst of its calls; it stops at the first exit 3.
 #
 # Exit codes (the factory's asks rules in commands/factory.md act on each):
 #   0 ok (a resolve that finds the ask already closed is ok too)
@@ -72,7 +79,7 @@ TOKEN_NOTE=""
 HTTP_CODE=""
 RESP=""
 
-usage() { sed -n '8,14p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '8,15p' "$0" | sed 's/^# \{0,1\}//'; }
 die() { printf 'factory-asks: %s\n' "$2" >&2; exit "$1"; }
 
 need_tools() {
@@ -306,21 +313,58 @@ report() {
 
 REQ_NAME=""
 REQ_BODY=""
+PROJECT_IDS=()
+LINK_FILES=()
 ASK_TMP=""
 RESP_TMP=""
 
 cleanup() { rm -f ${ASK_TMP:+"$ASK_TMP"} ${RESP_TMP:+"$RESP_TMP"}; return 0; }
 trap cleanup EXIT
 
+# find_projects DIR: fills PROJECT_IDS and LINK_FILES, one entry per project (the first link
+# file that names it). Globs skip hidden folders, so no agent worktree is read.
+find_projects() {
+  local dir="${1%/}" f id seen=" "
+  [[ -d "$dir" ]] || die 1 "refused: no folder $dir"
+  for f in "$dir"/*/.linear-project.json "$dir"/*/*/*/.linear-project.json; do
+    [[ -e "$f" ]] || continue
+    id=$("$JQ" -r '.id // empty | strings' "$f" 2>/dev/null) || id=""
+    if ! is_uuid "$id"; then
+      printf 'factory-asks: skipped %s: unreadable, or no project id\n' "$f" >&2
+      continue
+    fi
+    case "$seen" in *" $id "*) continue ;; esac
+    seen="${seen}${id} "
+    PROJECT_IDS[${#PROJECT_IDS[@]}]="$id"
+    LINK_FILES[${#LINK_FILES[@]}]="$f"
+  done
+  [[ ${#PROJECT_IDS[@]} -gt 0 ]] || die 1 "refused: no .linear-project.json with a project id under $dir"
+}
+
+open_body() { "$JQ" -cn --arg p "$1" '{p_project_id: $p}'; }
+
+print_request() {  # print_request NAME BODY
+  printf 'POST %s/rest/v1/rpc/%s\n' "$SUPABASE_URL" "$1"
+  printf 'apikey: %s\n' "$SUPABASE_PUBLISHABLE_KEY"
+  printf 'Authorization: Bearer <Keychain %s, never printed>\n' "$KEYCHAIN_SERVICE"
+  printf 'Content-Type: application/json\n\n'
+  printf '%s' "$2" | "$JQ" .
+}
+
 build_request() {
   local cmd="${1:-}"
   shift || true
   case "$cmd" in
+    open-all)
+      [[ $# -le 1 ]] || die 1 "usage: factory-asks open-all [scan_dir]"
+      find_projects "${1:-${HOME:-}/Developer}"
+      REQ_NAME="factory_asks_open"
+      ;;
     open)
       [[ $# -eq 1 ]] || die 1 "usage: factory-asks open <project_id>"
       is_uuid "$1" || die 1 "refused: project_id must be the Linear project UUID"
       REQ_NAME="factory_asks_open"
-      REQ_BODY=$("$JQ" -cn --arg p "$1" '{p_project_id: $p}')
+      REQ_BODY=$(open_body "$1")
       ;;
     upsert)
       [[ $# -eq 1 ]] || die 1 "usage: factory-asks upsert <ask.json | ->"
@@ -371,10 +415,11 @@ build_request() {
 
 # ── main ──
 
-need_tools "$JQ" "$CURL" "$SECURITY" /usr/bin/env
-
 cmd="${1:-}"
 [[ $# -gt 0 ]] && shift
+
+# A dry run sends nothing, so it needs only jq (CI has no Keychain tool).
+if [[ "$cmd" == "dry-run" ]]; then need_tools "$JQ"; else need_tools "$JQ" "$CURL" "$SECURITY" /usr/bin/env; fi
 
 case "$cmd" in
   check)
@@ -385,11 +430,14 @@ case "$cmd" in
   dry-run)
     build_request "$@"
     printf 'DRY RUN: nothing sent.\n'
-    printf 'POST %s/rest/v1/rpc/%s\n' "$SUPABASE_URL" "$REQ_NAME"
-    printf 'apikey: %s\n' "$SUPABASE_PUBLISHABLE_KEY"
-    printf 'Authorization: Bearer <Keychain %s, never printed>\n' "$KEYCHAIN_SERVICE"
-    printf 'Content-Type: application/json\n\n'
-    printf '%s' "$REQ_BODY" | "$JQ" .
+    if [[ "${1:-}" == "open-all" ]]; then
+      for i in "${!PROJECT_IDS[@]}"; do
+        printf 'link file: %s\n' "${LINK_FILES[$i]}"
+        print_request "$REQ_NAME" "$(open_body "${PROJECT_IDS[$i]}")"
+      done
+    else
+      print_request "$REQ_NAME" "$REQ_BODY"
+    fi
     if load_token; then
       TOKEN=""
       printf '\ntoken: %s\n' "$TOKEN_NOTE"
@@ -398,6 +446,28 @@ case "$cmd" in
     printf '\ntoken: %s\n' "$TOKEN_NOTE"
     printf 'A real call would exit 3: record the warning in the ledger and the status update, then go on.\n'
     exit 3
+    ;;
+  open-all)
+    build_request open-all "$@"
+    worst=0
+    for i in "${!PROJECT_IDS[@]}"; do
+      if ! load_token; then
+        printf 'token: %s\n' "$TOKEN_NOTE"
+        exit 3
+      fi
+      [[ "$i" == 0 && "$TOKEN_NOTE" == *renew* ]] && printf 'token: %s\n' "$TOKEN_NOTE"
+      rpc "$REQ_NAME" "$(open_body "${PROJECT_IDS[$i]}")"
+      # report exits on a failed call: run it in a subshell so one project cannot end the loop
+      line=$(report open '"open=\(length)"'); rc=$?
+      printf '%s project=%s\n' "$line" "${PROJECT_IDS[$i]}"
+      if [[ "$rc" -eq 0 ]]; then
+        printf '%s' "$RESP" | "$JQ" -c --arg p "${PROJECT_IDS[$i]}" --arg f "${LINK_FILES[$i]}" \
+          '.[] | . + {project_id: $p, link_file: $f}' || rc=2
+      fi
+      [[ "$rc" -eq 3 ]] && exit 3
+      (( rc > worst )) && worst=$rc
+    done
+    exit "$worst"
     ;;
   open|upsert|resolve|record-sync)
     build_request "$cmd" "$@"

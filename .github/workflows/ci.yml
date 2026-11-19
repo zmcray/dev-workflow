@@ -31,6 +31,7 @@ jobs:
       - run: bash scripts/branch-protection.test.sh
       - run: bash scripts/guards-audit.test.sh
       - run: bash scripts/migration-class.test.sh
+      - run: bash scripts/factory-asks.test.sh
 
   guards:
     uses: ./.github/workflows/guards.yml
