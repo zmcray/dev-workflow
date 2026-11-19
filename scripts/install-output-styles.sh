@@ -7,7 +7,8 @@
 #   - Target dir missing: created.
 #   - Already a symlink to the right file: prints ok, changes nothing.
 #   - A regular file (or a symlink elsewhere) is moved aside first, next to it, as
-#     <name>.backup-<HHMMSS>-<YYYY-MM-DD>.md, then the symlink is made.
+#     <name>.md.backup-<HHMMSS>-<YYYY-MM-DD> (not a .md file, so it never loads as
+#     a second style), then the symlink is made.
 #
 # Never deletes anything. Exits non-zero only on a real error.
 #
@@ -58,11 +59,10 @@ for src in "${filtered[@]}"; do
     continue
   fi
   if [[ -e "$dest" || -L "$dest" ]]; then
-    stem="${name%.md}"
-    backup="$TARGET/$stem.backup-$(date +%H%M%S)-$(date +%Y-%m-%d).md"
+    backup="$TARGET/$name.backup-$(date +%H%M%S)-$(date +%Y-%m-%d)"
     n=2
     while [[ -e "$backup" || -L "$backup" ]]; do
-      backup="$TARGET/$stem.backup-$n-$(date +%H%M%S)-$(date +%Y-%m-%d).md"; n=$((n+1))
+      backup="$TARGET/$name.backup-$n-$(date +%H%M%S)-$(date +%Y-%m-%d)"; n=$((n+1))
     done
     if [[ -L "$dest" ]]; then act "back up $name (symlink to $(readlink "$dest")) as $(basename "$backup")"
     else act "back up $name as $(basename "$backup")"; fi

@@ -10,7 +10,7 @@ An output style is a prompt file that sets how Claude Code writes its replies.
 bash ~/Developer/dev-workflow/scripts/install-output-styles.sh
 ```
 
-Add `--dry-run` to see what it would do. An existing plain file is moved aside as `exec-brief.backup-<HHMMSS>-<YYYY-MM-DD>.md`; nothing is deleted. `setup-factory-machine.sh` runs it too.
+Add `--dry-run` to see what it would do. An existing plain file is moved aside as `exec-brief.md.backup-<HHMMSS>-<YYYY-MM-DD>` (not a `.md` file, so it never loads as a second style); nothing is deleted. `setup-factory-machine.sh` runs it too.
 
 ## The "Action needed" rule
 

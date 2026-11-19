@@ -8,7 +8,7 @@ ROOT="$(mktemp -d)"
 trap 'rm -rf "$ROOT"' EXIT
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
-backups() { find "$1" -maxdepth 1 -name 'exec-brief.backup-*' | wc -l | tr -d ' '; }
+backups() { find "$1" -maxdepth 1 -name 'exec-brief.md.backup-*' | wc -l | tr -d ' '; }
 real() { (cd "$(dirname "$1")" && echo "$(pwd -P)/$(basename "$1")"); }
 want="$(real "$REPO_STYLE")"
 
@@ -30,13 +30,17 @@ printf 'my own edits\n' > "$T/exec-brief.md"
 bash "$SCRIPT" --dir "$T" >/dev/null || fail "regular: exited non-zero"
 [[ -L "$T/exec-brief.md" ]] || fail "regular: not replaced by symlink"
 [[ "$(backups "$T")" == 1 ]] || fail "regular: expected exactly one backup"
-b="$(find "$T" -maxdepth 1 -name 'exec-brief.backup-*')"
+b="$(find "$T" -maxdepth 1 -name 'exec-brief.md.backup-*')"
 [[ "$(cat "$b")" == "my own edits" ]] || fail "regular: backup content differs"
 
 # 6. Backup name ends with the date (before .md), never starts with it.
 base="$(basename "$b")"
-[[ "$base" =~ ^exec-brief\.backup-[0-9]{6}-[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$ ]] || fail "backup name not date-last: $base"
+[[ "$base" =~ ^exec-brief\.md\.backup-[0-9]{6}-[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || fail "backup name not date-last: $base"
 [[ ! "$base" =~ ^[0-9]{4}- ]] || fail "backup name starts with a date: $base"
+
+# A backup must not load as a second style: only the symlink may end in .md.
+[[ "$base" != *.md ]] || fail "backup name ends in .md: $base"
+[[ "$(find "$T" -maxdepth 1 -name '*.md' | wc -l | tr -d ' ')" == 1 ]] || fail "expected exactly one .md entry in target"
 
 # 4. Existing symlink to another path is replaced and reported.
 T="$ROOT/otherlink"; mkdir -p "$T"
