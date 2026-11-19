@@ -418,8 +418,12 @@ build_request() {
 cmd="${1:-}"
 [[ $# -gt 0 ]] && shift
 
-# A dry run sends nothing, so it needs only jq (CI has no Keychain tool).
-if [[ "$cmd" == "dry-run" ]]; then need_tools "$JQ"; else need_tools "$JQ" "$CURL" "$SECURITY" /usr/bin/env; fi
+# A dry run sends nothing, so it needs only jq (CI has no Keychain tool); help needs nothing.
+case "$cmd" in
+  dry-run) need_tools "$JQ" ;;
+  ""|-h|--help|help) ;;
+  *) need_tools "$JQ" "$CURL" "$SECURITY" /usr/bin/env ;;
+esac
 
 case "$cmd" in
   check)

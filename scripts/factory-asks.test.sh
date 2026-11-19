@@ -16,6 +16,7 @@ fail() { printf 'FAIL %s\n' "$1"; FAILS=$((FAILS + 1)); }
 # has NAME TEXT REGEX / lacks NAME TEXT REGEX (extended regex, case-sensitive)
 has() { if printf '%s\n' "$2" | grep -Eq -- "$3"; then ok "$1"; else fail "$1"; fi; }
 lacks() { if printf '%s\n' "$2" | grep -Eq -- "$3"; then fail "$1"; else ok "$1"; fi; }
+# In a pattern write a backtick bare, never \`: GNU grep reads that as "start of text".
 # is NAME ACTUAL EXPECTED
 is() { if [[ "$2" == "$3" ]]; then ok "$1"; else fail "$1 (got $2, want $3)"; fi; }
 count() { printf '%s\n' "$1" | grep -Ec -- "$2"; }
@@ -92,7 +93,7 @@ has "an objective row stays out of the ask" "$mc" 'stays out of the ask'
 has "a taste row goes to Zack in the one ask" "$mc" '^\*\*The one ask\.\*\* Taste and cannot-check rows go to Zack together.*other-morning-check'
 has "a taste row is a difference with nothing broken" "$mc" 'the build and the canvas differ and nothing is broken'
 has "a pass stops filing after 5 Bugs and lists the rest" "$mc" 'After 5 Bugs in a pass, file no more: the rest are only listed'
-has "the check reads its widths from the link file" "$mc" '\`check\.widths\`'
+has "the check reads its widths from the link file" "$mc" '`check\.widths`'
 has "with no widths set it keeps today's two" "$mc" 'with none set, desktop 1280x800 and phone 390x844'
 has "a width the key leaves out is never flagged" "$mc" 'flag a screen at a width the key leaves out'
 has "rules/setup.md documents factory.check.widths" "$(cat "$ROOT/rules/setup.md")" 'factory\.check\.widths'
@@ -114,7 +115,7 @@ has "the test names a secret or sign-in in his name" "$ask" 'a secret or sign-in
 has "the test names his money" "$ask" 'his money'
 has "the test names a product judgment only he can make" "$ask" 'a product judgment only he can make'
 has "a wait or leave-as-is decision with nothing blocked is not an ask" "$ask" '"wait" or "leave as is" with nothing blocked behind it: no ask'
-has "a deferred decision is noted on the issue and the status update" "$ask" 'on the issue and on the status update.s \`Deferred decisions:\` line'
+has "a deferred decision is noted on the issue and the status update" "$ask" 'on the issue and on the status update.s `Deferred decisions:` line'
 has "decisions still carry the recommended answer first" "$ask" 'Recommended: <option>, because <one line>'
 has "disposable infrastructure is still kept by default" "$ask" 'is kept by default'
 # The section on main before this rule landed: 6 lines, 300 words. It may shrink, never grow.
@@ -131,7 +132,7 @@ r5=$(section "**What closes an ask (R5).**" "**Weekly review.**")
 wr=$(section "**Weekly review.**" "**Stale asks.**")
 item4=$(printf '%s\n' "$step1b" | grep -E '^4\. ')
 lacks "R5 no longer resolves an ask for its age" "$r5" '[Aa]ged'
-has "R5 resolves a weekly review whose items are all closed or have their own ask" "$r5" 'an \`other-weekly-review\` follow-up whose every listed item is Done, Canceled or has its own open ask'
+has "R5 resolves a weekly review whose items are all closed or have their own ask" "$r5" 'an `other-weekly-review` follow-up whose every listed item is Done, Canceled or has its own open ask'
 has "Step 1b item 4 is still the human-step pass" "$item4" 'Upsert human steps'
 lacks "Step 1b item 4 no longer skips an old ask" "$item4" '7 days'
 lacks "Step 1b item 4 no longer skips an issue in a weekly review" "$item4" '[Ww]eekly review'
