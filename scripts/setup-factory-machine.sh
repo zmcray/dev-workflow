@@ -16,6 +16,8 @@
 #      (install-sim-reaper.sh) and the weekly cache sweep (install-disk-sweep.sh).
 #   9. Merges the machine-wide Claude Code hooks into ~/.claude/settings.json (install-claude-hooks.mjs):
 #      the Stop fast check and the PreToolUse naming and XcodeGen guard. Backs the file up first.
+#  10. Links the repo's Claude Code output styles into ~/.claude/output-styles (install-output-styles.sh),
+#      so the exec-brief reply style is edited and reviewed in this repo. Backs up any plain file first.
 #   Ends with a checklist of what still needs a person (sign-ins, unattended-mode settings).
 #
 # Non-destructive: installs and copies only. Never deletes (the launch agents from step 8 do,
@@ -153,6 +155,17 @@ if [[ -f "$DEV/dev-workflow/scripts/install-claude-hooks.mjs" ]] && have node; t
     || fix "Claude hooks not merged into $CLAUDE_SETTINGS: read the error above"
 else
   fix "Install node, then re-run (the Claude Code hooks need it)"
+fi
+
+echo "== Claude Code output styles (exec-brief)"
+# Symlinks ~/.claude/output-styles/<name>.md to output-styles/<name>.md here. Idempotent; moves any
+# existing plain file aside as a dated backup first, never deletes.
+if [[ -f "$DEV/dev-workflow/scripts/install-output-styles.sh" ]]; then
+  dry=(); [[ $DRY_RUN -eq 1 ]] && dry=(--dry-run)
+  bash "$DEV/dev-workflow/scripts/install-output-styles.sh" ${dry[@]+"${dry[@]}"} \
+    || fix "Output styles not linked: read the error above"
+else
+  fix "install-output-styles.sh missing; output styles not linked"
 fi
 
 echo
