@@ -78,6 +78,34 @@ sweep_line=$(grep -E '^Sweep: ' "$RULES")
 has "the Sweep line names asks resolved in other projects" "$sweep_line" 'asks resolved in other projects'
 has "CI runs this file" "$(cat "$CI_FILE")" '^ +- run: bash scripts/factory-asks\.test\.sh$'
 
+# ── doc guards: the Morning check files Bugs for plain defects, at the widths an app promises ──
+
+mc=$(section "## Morning check" "## Asks")
+has "an objective row: content cut off, hidden, overlapping or overflowing" "$mc" 'content cut off, hidden, overlapping or overflowing'
+has "an objective row: a number in the wrong format" "$mc" 'a number in the wrong format'
+has "an objective row: a console error from that page" "$mc" 'a console error from that page'
+has "an objective row is re-checked on the default branch" "$mc" 'Re-check it on the current default branch'
+has "an objective row is searched for a duplicate" "$mc" 'for a duplicate'
+has "one Bug per root cause" "$mc" 'one Bug per root cause'
+has "the Bug goes in the epic's hardening milestone with its labels" "$mc" "epic's \`hardening\` milestone, the screenshot, \`Bug\`, one \`flow:\*\` label and a priority"
+has "an objective row stays out of the ask" "$mc" 'stays out of the ask'
+has "a taste row goes to Zack in the one ask" "$mc" '^\*\*The one ask\.\*\* Taste and cannot-check rows go to Zack together.*other-morning-check'
+has "a taste row is a difference with nothing broken" "$mc" 'the build and the canvas differ and nothing is broken'
+has "a pass stops filing after 5 Bugs and lists the rest" "$mc" 'After 5 Bugs in a pass, file no more: the rest are only listed'
+has "the check reads its widths from the link file" "$mc" '\`check\.widths\`'
+has "with no widths set it keeps today's two" "$mc" 'with none set, desktop 1280x800 and phone 390x844'
+has "a width the key leaves out is never flagged" "$mc" 'flag a screen at a width the key leaves out'
+has "rules/setup.md documents factory.check.widths" "$(cat "$ROOT/rules/setup.md")" 'factory\.check\.widths'
+
+OLD_RULE='never reopens an issue or files a Bug|never files a Bug|flags, and Zack decides|file a Bug if it is wrong|file a Bug for a real problem'
+left=$(cd "$ROOT" && grep -rnE "$OLD_RULE" commands factory rules | grep -v '^factory/DECISIONS\.md:.*~~')
+is "no file still says the check never files a Bug" "$left" ""
+
+decisions=$(cat "$ROOT/factory/DECISIONS.md")
+d033=$(printf '%s\n' "$decisions" | awk '/^## D-033:/ { on = 1 } /^## D-034:/ { on = 0 } on')
+has "D-033's old clause is struck through with a pointer" "$d033" '~~[^~]*never reopens an issue or files a Bug itself[^~]*~~[^.]*D-036'
+has "the decision log records the Bug-filing check" "$decisions" '^## D-036: .*Bug'
+
 if [[ "$FAILS" -gt 0 ]]; then
   printf '\n%s failed\n' "$FAILS"
   exit 1
