@@ -36,7 +36,7 @@ Hard rules for every session in every harness. Procedures live in `~/Developer/d
 - Linear, Mcraygroup team, is the audit trail: move status as work moves, comment plan and review summaries, link the PR. Every residual or follow-up is filed there.
 - No issue is created without all four: **project, milestone, priority (never "No priority"), one `flow:*` label.** Residuals go to the `<Epic>: hardening` milestone.
 - `flow:design` = new surface, architecture, auth/data/payments, hard to reverse. `flow:standard` = meaty feature in known territory. `flow:ship` = small, reversible, well-specced.
-- `prd-source` = strategy already ran, skip Think. `spec-ready` = buildable. `gate:human` and `ops` = day shift only, never overnight. Also `tier:*`, `design:*`, `deferred`.
+- `prd-source` = strategy already ran, skip Think. `spec-ready` = buildable. `ops` = day shift only. `gate:human` = a person's step; the night builds it unless the packet's `Human step:` is `before build`. Also `tier:*`, `design:*`, `deferred`.
 
 ### Where things live
 
