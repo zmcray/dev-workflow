@@ -16,7 +16,7 @@ Human step: [none | before build | before merge | after merge]   # when that ste
 
 Rules:
 
-- **Grill before you write it.** A packet is produced by a `grilling` session (`skills/grilling`), run with `domain-modeling` so terms land in `CONCEPTS.md`. The session ends only when the frontier is empty: nothing left silently assumed. A packet written without one is a draft, not a contract.
+- **Grill before you write it.** A packet is produced by a `grilling` session (`skills/grilling`), run with `domain-modeling` so terms land in `CONCEPTS.md`. The session ends only when the frontier is empty: nothing left silently assumed. A packet written without one is a draft, not a contract. **One exception:** the night spec check (`/factory` Step 1c) writes packets for small `flow:ship` issues with no session, `Spec: night spec check <run_id>`. It may, because anything that would need a question is skipped with `sort:needs-answers` instead of specced, and the issue is small and reversible by its label.
 - **Durable over precise.** The packet may sit in the queue for days. Describe interfaces, types, and behaviour, never file paths or line numbers (they rot); File scope is the one exception, and it names directories or globs, not lines. Say *what* the system should do, not *how* to edit the code.
 - **Use the glossary.** Packet language is `CONCEPTS.md` vocabulary. A term that is not in the glossary yet gets added during grilling, not invented in the packet.
 

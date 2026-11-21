@@ -31,6 +31,7 @@ A **wave** is every `spec-ready` chunk that is unblocked, carries no `ops` and n
 | `max_hours` per run | 12 | 12 |
 | `concurrency` | 1 (sequential until the wave dispatcher lands; then ≤ CI runner slots) | 1, later 2 |
 | `max_turns_per_chunk` | 150 | 150 |
+| `max_specs` | 10 (issues the Step 1c spec check may spec a night; it reads at most 25) | 10 |
 
 Ledger: `docs/factory/runs/run-YYYY-MM-DD.json` in the repo, one row per chunk, written at chunk start and end. Argus reads these for the cross-repo digest later.
 

@@ -22,7 +22,7 @@
 | 2 | **Shape** | You + Claude | mapping day · 30–60 min / bet | conversation, `/ce-brainstorm`, `/diagram`, `/hagen` | shape doc | loop sentence in one line; dominant risk named; design rung set |
 | 3 | **Design session** | You drive, Claude Design draws (the night draws what you skip, D-032) | one design block in the daily hour · on `design:screens` and up, picked from the Design queue | `/canvas <group>` (or Figma/Excalidraw) | screens + flow + actions canvas; sketch summary | walk-through passed; verdict = keep |
 | 4 | **Commit** | You + the council | mapping day · ~1 h (PACKET: 30 min) | `/caspian` v3 | PRD with Later Shelf; labeled issues | Red Team adjudicated; M1 = skeleton only |
-| 5 | **Spec** | Agent; you for taste calls | spec days · the daily hour | `/ce-plan` → `/packets` | `spec-ready` chunks | queue ≥ appetite; every issue ≥ 7; plans landed |
+| 5 | **Spec** | Agent; you for taste calls | spec days · the daily hour | `/ce-plan` → `/packets`; small `flow:ship` issues are specced by the night itself (`/factory` Step 1c, D-039) | `spec-ready` chunks | queue ≥ appetite; every issue ≥ 7; plans landed |
 | 6 | **Build** | Agents | nights | built-in `/goal` → `/lfg` per chunk | merged PRs, residuals, nightly build, asks in Pulse | green train; hard stops surfaced, not guessed |
 | 7 | **Verify** | You | mornings · 10–20 min | Pulse Build tab asks, the human batch | gates cleared, decisions made | no open asks |
 | 8 | **Learn** | Agent-led, you read | Sun · 20 min | `/ce-compound`, `/retro` | learnings promoted; board synced | AGENTS.md / templates updated |
@@ -201,8 +201,8 @@ Most planning blocks won't start from a new bet. They start from a backlog of is
 
 | Column | Holds | What it means |
 |---|---|---|
-| Needs answers | `sort:needs-answers` | the sort could not place it; reply in the sort card's thread and the next night re-sorts it |
-| Plan only | `design:none`, `design:tweak` | no drawing: `/ce-plan` then `/packets`, several per hour |
+| Needs answers | `sort:needs-answers` | the sort could not place it (reply in the sort card's thread and the next night re-sorts it), or the night spec check would not spec it (reply to its `Night spec check` comment and the next night reads it again) |
+| Plan only | `design:none`, `design:tweak` | no drawing: `/ce-plan` then `/packets`, several per hour; a `flow:ship` one is specced by the night itself (`/factory` Step 1c) |
 | Mock up | `design:screens` | one design block, then plan |
 | Map the journey | `design:journey`, `design:product` | a Stage 3 session |
 | Stalled | In Progress > 7 days, In Review > 3 days | a scope or design problem wearing a status |

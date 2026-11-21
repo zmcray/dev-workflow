@@ -36,6 +36,8 @@ If an issue is unlabeled, triage it in ~30 seconds, apply the label in Linear, s
 | **flow:standard** | Plan > Execute > Learn | Plan > Execute > Learn |
 | **flow:ship** | Execute (the plan gate is the only planning) | Execute |
 
+On the night shift a `flow:ship` issue with `design:none` or `design:tweak` needs no `/ce-plan` or `/packets`: `/factory` Step 1c (spec check) writes its build packet from the issue as written and marks it `spec-ready`, or skips it with a one-line comment and `sort:needs-answers`. `flow:standard` and `flow:design` still get their packets from `/packets`.
+
 ## Review depth (pre-users rule, set 2026-09-04)
 
 Review ceremony is sized to blast radius, not to habit. Until the product has retained users, the bottleneck is learning, not defects; CI already catches most of what the councils catch.
