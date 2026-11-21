@@ -467,6 +467,13 @@ function committedCases({ copy, setTable, fire, cmds, repoAt }) {
   assert.equal(r.status, 2, 'a failing check on committed-only work blocks')
   assert.match(r.stderr, /pnpm all/)
 
+  // A committed addition renamed away in uncommitted work is no longer new; its new name is.
+  gitIn(work, 'mv', 'added.ts', 'moved.ts')
+  r = fire(copy, work)
+  assert.equal(r.status, 0, r.stderr)
+  assert.deepEqual(cmds().find(c => c[0] === 'npm').slice(2), ['./moved.ts'], 'a renamed-away committed addition does not reach `files: "new"`')
+  gitIn(work, 'mv', 'moved.ts', 'added.ts')
+
   // Unpushed commits on the default branch count too.
   gitIn(work, 'checkout', '-q', 'main')
   fs.writeFileSync(path.join(work, 'unpushed.ts'), 'x')
