@@ -220,7 +220,10 @@ async function main() {
   deadline = performance.now() + budget * 1000
   validate(entry.checks, entry.key)
   const added = list(await run('git', ['diff', '--name-only', '--diff-filter=AR', '-z', 'HEAD', '--'], root))
-  const fresh = unique(committedNew, added, untracked)
+  // A file the branch added but the worktree has since renamed or deleted is no longer new: drop it, or a
+  // date-first file renamed in uncommitted work keeps blocking until the rename is committed.
+  const exists = f => Boolean(fs.lstatSync(path.join(root, f), { throwIfNoEntry: false }))
+  const fresh = unique(committedNew, added, untracked).filter(exists)
   const total = entry.checks.length
   for (const [i, check] of entry.checks.entries()) {
     if (check.when && !files.some(f => check.when.some(prefix => f.startsWith(prefix)))) continue
