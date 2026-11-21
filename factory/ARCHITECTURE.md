@@ -36,7 +36,7 @@ PRD + approved canvas → atomic, dependency-linked Linear issues, each carrying
 - Atomic and independently shippable; diffs reviewable in minutes.
 - **File scope declared and partitioned**: two issues touching the same files get a dependency edge and run sequentially. Scope overlap is the #1 cause of overnight merge pileups.
 - **Acceptance criteria are executable where they can be**: each maps to a test the agent runs itself and CI re-runs. One only an eye can judge is marked `not eyeballed` and ships without a gate (MCR-2748); after merge the agent's Morning check opens the screen, compares it with the canvas, files a Bug for a plain defect, and sends only a taste difference or what it cannot open to Zack (D-033, D-036).
-- `spec-ready` is set at decomposition once the packet is complete. A chunk with a person's step carries `gate:human`: the night still builds it and parks only that step, unless its `Human step:` is `before build` (D-038). An issue that is all human work carries `ops` and never enters the night queue (D-029).
+- `spec-ready` is set at decomposition once the packet is complete. One other source: at the start of each night, `/factory` Step 1c (spec check) writes the packet for up to 10 small `flow:ship` issues with `design:none` or `design:tweak` and sets `spec-ready`, skipping anything vague, stale, too big or on the escalation list with `sort:needs-answers` (D-039). A chunk with a person's step carries `gate:human`: the night still builds it and parks only that step, unless its `Human step:` is `before build` (D-038). An issue that is all human work carries `ops` and never enters the night queue (D-029).
 
 ### 04 Execute — the night shift
 

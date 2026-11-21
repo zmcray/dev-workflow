@@ -1,12 +1,12 @@
 ---
 name: factory
-description: The night shift. With no arguments, drains everything spec-ready in this repo's Linear project overnight under a budget (stop time, 12-hour run limit), builds a `gate:human` chunk up to its person-only step and parks only that step (skipping a step that must come before the build), and leaves a run ledger plus a morning report. Wraps the harness's goal mode (Claude Code, Codex, or Cursor); the build rules stay in AGENTS.md and ~/Developer/dev-workflow/rules/. Use for "/factory", "run the factory", "start the night shift", "drain the queue". NOT for a single issue (/lfg) or a named objective (/goal <objective>).
+description: The night shift. With no arguments, specs up to 10 small no-design `flow:ship` backlog issues itself, then drains everything spec-ready in this repo's Linear project overnight under a budget (stop time, 12-hour run limit), builds a `gate:human` chunk up to its person-only step and parks only that step (skipping a step that must come before the build), and leaves a run ledger plus a morning report. Wraps the harness's goal mode (Claude Code, Codex, or Cursor); the build rules stay in AGENTS.md and ~/Developer/dev-workflow/rules/. Use for "/factory", "run the factory", "start the night shift", "drain the queue". NOT for a single issue (/lfg) or a named objective (/goal <objective>).
 argument-hint: "(none) | --dry-run | --check | --stop-at HH:MM | --max-hours N"
 ---
 
 # Factory
 
-`/packets` fills the queue during the day. `/factory` drains it at night and stops before you wake up. It adds exactly four things on top of `~/Developer/dev-workflow/rules/goal-runs.md`: a queue read with no argument, a budget checked before every chunk, a ledger the morning can read, and a stored list of what the run needs from Zack (asks) that Pulse shows until he closes each one. Everything about how a chunk is built (chunk sweep, pull order, human parks, merge on green, session close, delegation by tier) is the existing goal-mode contract and is not restated here. If a build rule needs to change, change AGENTS.workflow.md or the rules/ file in dev-workflow, not this file.
+`/packets` fills the queue during the day. `/factory` drains it at night and stops before you wake up. It adds exactly five things on top of `~/Developer/dev-workflow/rules/goal-runs.md`: a spec check that makes small `flow:ship` backlog issues build-ready (Step 1c), a queue read with no argument, a budget checked before every chunk, a ledger the morning can read, and a stored list of what the run needs from Zack (asks) that Pulse shows until he closes each one. Everything about how a chunk is built (chunk sweep, pull order, human parks, merge on green, session close, delegation by tier) is the existing goal-mode contract and is not restated here. If a build rule needs to change, change AGENTS.workflow.md or the rules/ file in dev-workflow, not this file.
 
 Standing contract: **never ask the user anything.** Every would-be question is a one-line judgment call logged to the relevant Linear issue. The only exits are the four endings in `~/Developer/dev-workflow/factory/DISPATCH.md`: queue empty, budget stop, human park (per chunk, run continues), hard stop.
 
@@ -27,7 +27,7 @@ Standing contract: **never ask the user anything.** Every would-be question is a
 2. **Budget.** Merge, lowest to highest precedence: defaults from `~/Developer/dev-workflow/factory/DISPATCH.md` > Night budget → the `factory` key in `.linear-project.json` → flags on this invocation.
 
 ```json
-"factory": { "stop_at": "06:00", "max_hours": 12, "concurrency": 1, "max_turns_per_chunk": 150, "max_canvases": 2 }
+"factory": { "stop_at": "06:00", "max_hours": 12, "concurrency": 1, "max_turns_per_chunk": 150, "max_canvases": 2, "max_specs": 10 }
 ```
 
    Two more keys in the same object are not part of the budget:
@@ -59,6 +59,26 @@ Before the queue, so the night knows what is already waiting on Zack and never f
 
 With an asks warning from Step 1.4, send nothing: move every earlier `asks_pending` entry into this run's, and queue the resolves, human steps and weekly review you would have sent there too, so a renewed token catches up next run. Hold the counts (open at start, resolved, written); Step 3 writes them into the ledger.
 
+## Step 1c: Spec check
+
+Only `/packets` sets `spec-ready`, and only from a `/ce-plan` plan, so small `flow:ship` issues never reached the night although `flow:ship` needs no planning (`~/Developer/dev-workflow/rules/build.md` > Flow routing). This step writes their packet so the same night builds them (D-039). It is a defined step of the run, not improvised work (`~/Developer/dev-workflow/rules/goal-runs.md`). It runs on every lane, after Step 1b and before Step 2, so tonight's queue sees what it specced. It never files an ask and never stops the run.
+
+1. **Candidates.** The project's issues with state type backlog or unstarted, `flow:ship`, and `design:none` or `design:tweak`; with no `gate:human`, `ops`, `deferred`, `needs-canvas`, `canvas:agent` or `spec-ready`; not in a milestone ending `: later`; no open `blocked by` (read as Step 2 reads it); and no `## Build packet` in the description (one with a packet but no `spec-ready` was held back on purpose by `/packets`). `sort:needs-answers` excludes it too, unless its newest `Night spec check` comment has a reply created after it: that is an answer, so read it again. `flow:standard` and `flow:design` are never candidates. Order: priority (Urgent > High > Medium > Low > none), then oldest first.
+2. **Caps.** Stop once `max_specs` issues (default 10) are specced or 25 have been read, whichever comes first. The rest wait for the next night.
+3. **Read each one.** The issue, its comments, and the code on the fresh default branch. A read-tier subagent may gather the code and the git history; the call stays in the main thread. Then the first rule that fits decides:
+   - `already-fixed`: the code already does what it asks (cite the file, commit or PR).
+   - `obsolete`: what it names no longer exists, or another issue replaced it (cite it).
+   - `escalation`: the change would touch the escalation list (auth, sessions, tokens, RLS or grants, migrations, deletion or export, payments, outbound fetch).
+   - `needs-person`: a step needs a person (a secret, a device, a console, an outside party).
+   - `vague` or `needs-decision`: 1 to 4 acceptance criteria, each with a machine check, cannot be written without guessing a product choice (which wording, which behaviour, which scope).
+   - `too-big`: over the chunk bar (`~/Developer/dev-workflow/factory/templates/build-packet.md` > Keep it a chunk), or it needs `tier:judgment` reasoning.
+   - Otherwise: **spec it.**
+4. **Spec it.** Append a `## Build packet` to the description, below the issue's own text (never rewrite that text), in the house format (`~/Developer/dev-workflow/factory/templates/build-packet.md`): `Spec: night spec check <run_id>: from the issue as written`; acceptance criteria, each naming the test that proves it (for `design:tweak` the visible change may say `not eyeballed`, but at least one criterion has a machine check); `Artboard: n/a (no UI)`, or for `design:tweak` `Artboard: n/a (design:tweak: no mockup; the screen and the change are in the criteria)`; `File scope:`; `Out of scope:`; `Human gate: none`; `Human step: none`. Add `tier:mechanical` or `tier:moderate` (never `tier:judgment`) and `spec-ready`. Comment `Night spec check (<run_id>): specced from the issue as written. It builds in tonight's queue under the normal rules.`
+5. **Skip it.** Change nothing but one comment and one label: comment `Night spec check (<run_id>): not specced, <reason>. <why, one line, with the evidence or the exact question>.` and add `sort:needs-answers`, so the Planning board shows it and the next night does not read it again. Never close, cancel, re-label `flow:*` or move it, even when it is plainly fixed: closing is Zack's call.
+6. **Hold for the ledger.** One `specced` row per issue read (Step 3): `{ "issue", "outcome": "specced | skipped", "tier", "reason", "why" }`.
+
+Nothing downstream loosens for a specced issue: Step 2 queues it like any `spec-ready` chunk, and it builds under the normal rules (merge on green, one chunk per PR, an escalation-list diff still gets the `flow:design` review, Red main still reverts). Its item row adds `"night_specced": true`. `--dry-run` runs this step read-only: it reads and decides, writes nothing to Linear, and prints the `Spec check:` line with what it would spec. `--check` skips it.
+
 ## Step 2: Read the queue
 
 Query the project's issues: `spec-ready`, state type not started/completed/canceled, not `ops`, no open `blocked by`, and either no `gate:human` or a `gate:human` whose step falls after the build and that is not built yet (**`gate:human` in the queue**, below). A `blocked by` that points at a plan umbrella (Step 1b item 5) is open only when the umbrella's state type is backlog or unstarted. An In Progress umbrella does not block its chunks: that is how Zack releases them. A `blocked by` that points at a chunk this run left `awaiting-apply` is not open either: the dependent builds stacked on it (Step 4 > **Migrations go last**). That holds only for tonight's own `awaiting-apply` rows; one left from an earlier night still blocks until its PR merges. Then drop any issue labeled `design:screens`, `design:journey`, or `design:product` that has no canvas link (a Linear attachment, or a `Canvas: <url>` or `Artboard: <url>` line in the description). That is the Spec gate (`~/Developer/dev-workflow/rules/design.md`): `spec-ready` without a canvas means someone skipped the design block, and the night never builds screens nobody drew. One exception: an issue whose build packet says `Artboard: n/a (no UI)` and whose `File scope:` names no screen, page, component, view or style path is mislabeled, not missing a canvas (chunks carry their own rung, `/packets` > Design gate). Swap its `design:*` for `design:none`, comment `Relabeled design:none: no-UI chunk (Artboard n/a, file scope <paths>).`, keep it in the queue and add `Relabeled <ID> design:none (no UI)` to the ledger `notes`. When the file scope does touch UI, it stays a `no-canvas` skip, and gets `needs-canvas` if it lacks it, so the second query below sees it. Also drop any `design:journey` or `design:product` issue carrying `canvas:agent`, even when it is labeled `spec-ready`, and report it as `canvas-draft`: an agent drew it, and choosing a direction is Zack's call. A `design:screens` issue carrying `canvas:agent` stays in the queue. On a lane that cannot read a Design artifact (Step 3c), a canvas link on `claude.ai/artifact/` counts as no canvas: `no-canvas`, and no `needs-canvas` is added. Order: priority (Urgent > High > Medium > Low), then wave from the parent plan's `## Chunks` table when the issue is a chunk, then oldest first.
@@ -73,6 +93,7 @@ Print the shift plan once and start. No confirmation.
 
 ```
 Factory: <project>. <E> eligible, no new chunk after <last_dispatch> or <hour_limit> (whichever is first), stop by <stop_at>.
+Spec check: <n> specced (<IDs>), <s> skipped (<ID> <reason>, ...), <r> read of <c> candidates. (omit the line when there were no candidates)
 Build then park: <IDs> (gate:human, step after the build) (omit the line at zero)
 Skipped: <n> gate:human before build (<IDs>), <n> gate:human waiting on Zack (<IDs>), <n> ops, <n> blocked, <n> no-canvas (<IDs>), <n> canvas-draft (<IDs>).
 Canvases to draw: <up to max_canvases group names, in order> (omit the line at zero)
@@ -80,7 +101,7 @@ Relabeled design:none (no UI): <IDs> (omit the line at zero)
 Order: <IDs in order>.
 ```
 
-`--dry-run` prints this and stops, and draws nothing. `--check` runs only the **Morning check** pass (its section below) and stops. They are the only arguments that change behaviour beyond the budget.
+`--dry-run` prints this and stops, and draws nothing. Its `Spec check:` line says what Step 1c would spec; nothing was written. `--check` runs only the **Morning check** pass (its section below) and stops. They are the only arguments that change behaviour beyond the budget.
 
 ## Step 3: Open the ledger
 
@@ -96,6 +117,7 @@ Write `docs/factory/runs/run-YYYY-MM-DD.json` in the repo (create the directory;
   "eligible": ["MCR-1710", "MCR-1711"],
   "skipped": [{ "issue": "MCR-1714", "reason": "gate:human (before build)" }, { "issue": "MCR-1716", "reason": "no-canvas" }],
   "items": [],
+  "specced": [{ "issue": "MCR-1730", "outcome": "specced", "tier": "mechanical", "reason": null, "why": null }, { "issue": "MCR-1731", "outcome": "skipped", "tier": null, "reason": "already-fixed", "why": "settings copy already reads 'Sync now' since PR #212" }],
   "canvases": [{ "group": "Circuit workout screens", "brief": "docs/design/briefs/circuit-workout-screens-2026-09-23.md", "issues": ["MCR-1720"], "rung": "design:screens", "url": "https://claude.ai/artifact/…", "outcome": "build | draft | failed", "reason": null }],
   "asks": { "open_at_start": 0, "resolved": 0, "written": 0, "synced": false, "warning": null },
   "asks_pending": [],
@@ -121,7 +143,7 @@ Every item row is written **when the chunk starts** and updated when it ends, so
   "pr": "https://github.com/...", "turns": 0, "retries": 0, "note": "one line" }
 ```
 
-A stacked chunk's row adds `"stacked_on": "<the issue its branch was cut from>"`. A Step 3a repair row adds `"kind": "baseline-fix"`. A chunk that ends any other way than `done` keeps a row: `failed` when its own gate is still red after the retry, `reverted` when it merged and then broke the default branch (the row adds `"revert_pr"` and `"bug"`; see **Red main**). Never drop a row or leave it `interrupted` when the cause is known.
+A stacked chunk's row adds `"stacked_on": "<the issue its branch was cut from>"`. A chunk Step 1c specced tonight adds `"night_specced": true`. A Step 3a repair row adds `"kind": "baseline-fix"`. A chunk that ends any other way than `done` keeps a row: `failed` when its own gate is still red after the retry, `reverted` when it merged and then broke the default branch (the row adds `"revert_pr"` and `"bug"`; see **Red main**). Never drop a row or leave it `interrupted` when the cause is known.
 
 ## Step 3a: Repair a red baseline
 
@@ -223,6 +245,7 @@ Every red-main hard stop also files the `restore-baseline` follow-up in Step 5. 
 Factory <date> (<lane>, run:<run_id>): <d> done, <f> failed, <r> reverted, <p> parked, stopped: <reason> at <time>.
 Asks: <w> filed, <r> resolved, <o> open. (or) Asks not synced: <asks.warning>. The Morning review below is the record for this run.
 Merged: MCR-… (PR), MCR-… (PR)
+Specced: <n> by the night (MCR-…, MCR-…), <s> skipped (MCR-… <reason>, …) (from the ledger's `specced`; omit the line when nothing was read)
 Checked by agent: <n> look right (MCR-…, MCR-…) (omit the line at zero)
 Not eyeballed: MCR-… (looks wrong: <one line>, Bug MCR-…), MCR-… (cannot check: <reason>) (only the flagged and cannot-check rows; a Bug when one was filed; omit the line at zero)
 Human batch: MCR-… — <one-line ask> (procedure: `Run: bash scripts/wizards/<file>.sh`)
