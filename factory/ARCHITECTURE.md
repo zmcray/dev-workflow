@@ -36,17 +36,17 @@ PRD + approved canvas → atomic, dependency-linked Linear issues, each carrying
 - Atomic and independently shippable; diffs reviewable in minutes.
 - **File scope declared and partitioned**: two issues touching the same files get a dependency edge and run sequentially. Scope overlap is the #1 cause of overnight merge pileups.
 - **Acceptance criteria are executable where they can be**: each maps to a test the agent runs itself and CI re-runs. One only an eye can judge is marked `not eyeballed` and ships without a gate (MCR-2748); after merge the agent's Morning check opens the screen, compares it with the canvas, files a Bug for a plain defect, and sends only a taste difference or what it cannot open to Zack (D-033, D-036).
-- `spec-ready` is set at decomposition once the packet is complete. A chunk that needs a person carries `gate:human` (or `ops` when the whole issue is human work) and never enters the night queue (D-029).
+- `spec-ready` is set at decomposition once the packet is complete. A chunk with a person's step carries `gate:human`: the night still builds it and parks only that step, unless its `Human step:` is `before build` (D-038). An issue that is all human work carries `ops` and never enters the night queue (D-029).
 
 ### 04 Execute — the night shift
 
-**Dispatch (event-driven, cloud-default):** an issue reaching `spec-ready` with no `gate:human` or `ops` is the dispatch event. Web: one cloud session per issue (Claude Routines / webhook / GH Actions cron → headless session; or a Cursor cloud agent subscribed to the label). iOS: headless Claude Code in local git worktrees on a Mac (sandbox wave is Linux-first; simulators want real macOS). Practical local ceiling: ~6–10 concurrent worktrees — hitting it means PRs aren't merging fast enough, which is the real problem.
+**Dispatch (event-driven, cloud-default):** an issue reaching `spec-ready` with no `ops` and no before-build `gate:human` is the dispatch event. Web: one cloud session per issue (Claude Routines / webhook / GH Actions cron → headless session; or a Cursor cloud agent subscribed to the label). iOS: headless Claude Code in local git worktrees on a Mac (sandbox wave is Linux-first; simulators want real macOS). Practical local ceiling: ~6–10 concurrent worktrees — hitting it means PRs aren't merging fast enough, which is the real problem.
 
 **Verification ladder (every PR, before any human sees it):**
 1. Build + unit/integration tests green.
 2. Agent self-checks the diff against acceptance criteria and the approved artboard (Playwright screenshot loop on web; simulator screenshots + accessibility tree on iOS), then runs `skills/code-review`: Standards and Spec axes as parallel subagents, the Spec axis reading the packet and flagging any file-scope fence violation as a hard finding.
 3. **Independent cross-model review** (Codex reviews Claude/Cursor output and vice versa), prompted adversarially. Findings fixed or filed as residual Linear issues.
-4. CI re-runs the full gate independently. Green → merge, for every class (D-027). Only three things wait for the morning: a parked chunk (draft PR + `gate:human`), a migration chunk awaiting apply (green PR, not merged), and a failed chunk (still red after its retry).
+4. CI re-runs the full gate independently. Green → merge, for every class (D-027). Only three things wait for the morning: a parked chunk (draft PR + `gate:human`, or merged with its `after merge` step left and the issue held open), a migration chunk awaiting apply (green PR, not merged), and a failed chunk (still red after its retry).
 
 **Guardrails:** pre-flight mergeability check + rebase before opening a PR; strictly sequential merges per repo; flake quarantine list; hard cap of 3 CI-fix attempts, then leave the draft + a Linear comment; never touch files outside declared scope (the kick-back rule's overnight form).
 

@@ -19,7 +19,7 @@ The Cursor column is intent, not verified model IDs. Cursor's cloud agents take 
 
 ## What may run at the same time
 
-A **wave** is every `spec-ready` chunk that is unblocked, carries neither `gate:human` nor `ops`, and whose file scope overlaps no other chunk in the wave. `gate:human` chunks are never dispatched unattended; they run on the day shift with the person's step scheduled up front. One agent, one chunk, one isolated environment. **Build in parallel, merge one at a time:** before merging, rebase on fresh `main` and re-run the smoke gate. Practical ceiling: 6–10 concurrent. Hitting it means PRs are not merging fast enough, which is the real problem.
+A **wave** is every `spec-ready` chunk that is unblocked, carries no `ops` and no `gate:human` whose `Human step:` is `before build`, and whose file scope overlaps no other chunk in the wave. A `before build` `gate:human` chunk is never dispatched unattended; it runs on the day shift with the person's step up front. A `gate:human` chunk whose step falls after the build is dispatched like any chunk, lands alone, and parks at its step (`/factory` > Step 4 > Human step after the build). One agent, one chunk, one isolated environment. **Build in parallel, merge one at a time:** before merging, rebase on fresh `main` and re-run the smoke gate. Practical ceiling: 6–10 concurrent. Hitting it means PRs are not merging fast enough, which is the real problem.
 
 ## Night budget
 
@@ -41,7 +41,7 @@ Ledger: `docs/factory/runs/run-YYYY-MM-DD.json` in the repo, one row per chunk, 
 | Queue empty | normal | stop; morning digest says so |
 | Deadline / run limit | normal | `/factory` hit `stop_at` or `max_hours` between chunks; remaining chunks stay `spec-ready` |
 | Budget stop | normal | credits or plan headroom ran out; remaining chunks stay `spec-ready` |
-| Human park | needs a human, but only for that chunk | a step needs a person (visual judgment, credentials, device, outside party); branch pushed, draft PR, `gate:human` added, comment says what to do; run continues on the next unblocked chunk |
+| Human park | needs a human, but only for that chunk | a step needs a person (credentials, device, outside party, a decision only Zack can make), found mid-build or planned in the packet's `Human step:`; draft PR (or, for an `after merge` step, merged on green with the issue held open), `gate:human` on, comment and `human_step` ask say what to do; run continues on the next unblocked chunk |
 | Hard stop | needs a human | red baseline the run could not fix (it tries a re-run and up to two fix PRs first), unmergeable PR, scope kick-back, anything destructive |
 
 Fallback when one harness runs dry: Claude Code → Cursor → Codex → pause. Record who took a chunk with `lane:*`. Under a tight budget, spend Fable runs on `tier:judgment` chunks only... a plan that is mostly mechanical (sonnet) and moderate (opus) is what makes limited credit go furthest.
